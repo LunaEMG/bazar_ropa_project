@@ -2,45 +2,42 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
 
-# Importación de los módulos de routers para las diferentes entidades
-from app.routers import productos, clientes 
+# Importación de los módulos de routers
+# Ahora incluimos productos, clientes y el nuevo router de ventas
+from app.routers import productos, clientes, ventas 
 
 # Inicialización de la aplicación FastAPI
 app = FastAPI(title="API del Bazar de Ropa", version="0.1.0")
 
 # --- Configuración de CORS ---
-# Define los orígenes permitidos para las peticiones cross-origin.
-# Es crucial para permitir que el frontend (en otro dominio/puerto) interactúe con la API.
+# Define los orígenes permitidos
 origins = [
     # URL del frontend desplegado en Render
     "https://bazar-ropa-project-web.onrender.com", 
-    
-    # Orígenes para desarrollo local (pueden removerse en producción final)
+    # Orígenes para desarrollo local
     "http://localhost", 
     "http://127.0.0.1",
-    "null", # Necesario para permitir peticiones desde archivos 'file:///'
+    "null", # Permite peticiones desde 'file:///'
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,       # Orígenes que tienen permiso
-    allow_credentials=True,    # Permite cookies/credenciales (si se usaran)
-    allow_methods=["*"],       # Permite todos los métodos HTTP (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],       # Permite todas las cabeceras HTTP
+    allow_origins=origins,
+    allow_credentials=True, 
+    allow_methods=["*"], 
+    allow_headers=["*"], 
 )
 
 # --- Inclusión de Routers ---
-# Registra los endpoints definidos en los módulos de routers.
-# Cada router agrupa rutas relacionadas con una entidad (ej. productos, clientes).
+# Registra los endpoints definidos en los módulos de routers
 app.include_router(productos.router)
 app.include_router(clientes.router) 
-# app.include_router(ventas.router) # Ejemplo: Añadir más routers aquí
+app.include_router(ventas.router) # <-- Añade esta línea para activar las rutas de ventas
 
 # --- Endpoint Raíz ---
-@app.get("/", tags=["Root"]) # tags agrupa endpoints en la documentación de Swagger UI
+@app.get("/", tags=["Root"]) 
 def read_root():
     """
-    Endpoint raíz de bienvenida. Proporciona un mensaje simple
-    e indica dónde encontrar la documentación interactiva.
+    Endpoint raíz de bienvenida.
     """
     return {"mensaje": "Bienvenido a la API del Bazar de Ropa. Visita /docs para la documentación."}
