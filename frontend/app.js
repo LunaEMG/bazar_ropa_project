@@ -1,62 +1,157 @@
-// Espera a que todo el contenido del HTML esté completamente cargado y listo
+// Espera a que el DOM esté completamente cargado antes de ejecutar el script.
 document.addEventListener("DOMContentLoaded", () => {
     
-    // --- IMPORTANTE: Reemplaza esta URL con la URL de tu API en Render ---
-    // Esta es la dirección donde tu backend (FastAPI) está alojado en internet.
+    // --- Configuración ---
+    // URL base de la API desplegada en Render.
     const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; 
 
-    // Obtiene una referencia al div donde mostraremos los productos
+    // Referencias a los elementos del DOM donde mostraremos los datos.
     const listaDeProductos = document.getElementById('productos-lista');
+    const listaDeClientes = document.getElementById('clientes-lista');
+    const formNuevoCliente = document.getElementById('form-nuevo-cliente');
+    const clienteMensaje = document.getElementById('cliente-mensaje');
 
-    // Muestra un mensaje inicial mientras se cargan los datos
-    listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
+    // --- Funciones ---
 
-    // Hacemos la petición (fetch) a la ruta de tu API que devuelve todos los productos
-    fetch(`${API_URL}/api/productos`)
-        .then(response => {
-            // Primero, verificamos si la respuesta del servidor fue exitosa (código 200-299)
-            if (!response.ok) { 
-                // Si hubo un error (ej. 404, 500), lanzamos un error para ir al .catch()
-                throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-            }
-            // Si la respuesta fue exitosa, la convertimos de JSON a un objeto JavaScript
-            return response.json(); 
-        })
-        .then(productos => {
-            // Una vez que tenemos la lista de productos (o un array vacío)...
-            
-            // Limpiamos el mensaje de "Cargando..."
-            listaDeProductos.innerHTML = ''; 
-            
-            // Verificamos si la lista de productos está vacía
-            if (!productos || productos.length === 0) {
-                listaDeProductos.innerHTML = '<p>No hay productos disponibles en este momento.</p>';
-                return; // Terminamos la ejecución aquí si no hay productos
-            }
+    /**
+     * Muestra un mensaje temporal en el área designada.
+     * @param {string} mensaje - El texto a mostrar.
+     * @param {boolean} exito - True si es un mensaje de éxito, false si es de error.
+     */
+    function mostrarMensajeCliente(mensaje, exito = true) {
+        clienteMensaje.textContent = mensaje;
+        clienteMensaje.className = exito ? 'mensaje exito' : 'mensaje error'; // Aplica clase CSS
+        // Oculta el mensaje después de 3 segundos
+        setTimeout(() => {
+            clienteMensaje.textContent = '';
+            clienteMensaje.className = 'mensaje';
+        }, 3000);
+    }
 
-            // Si hay productos, recorremos cada uno de ellos
-            productos.forEach(producto => {
-                // Creamos un nuevo elemento div para cada producto
-                const item = document.createElement('div');
-                item.className = 'producto-item'; // Le asignamos la clase CSS para el estilo
+    /**
+     * Carga y muestra la lista de productos desde la API.
+     */
+    function cargarProductos() {
+        if (!listaDeProductos) return; // Si el elemento no existe, no hace nada
 
-                // Creamos el contenido HTML para la tarjeta del producto
-                // Usamos plantillas literales (backticks ``) para insertar fácilmente las variables
-                // .toFixed(2) asegura que el precio siempre tenga dos decimales
-                item.innerHTML = `
-                    <h3>${producto.nombre}</h3>
-                    <p>${producto.descripcion || 'Sin descripción'}</p> 
-                    <p class="precio">$${producto.precio.toFixed(2)}</p>
-                `;
-                
-                // Añadimos la tarjeta del producto al contenedor en el HTML
-                listaDeProductos.appendChild(item);
+        listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
+
+        fetch(`${API_URL}/api/productos`)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(productos => {
+                listaDeProductos.innerHTML = ''; // Limpia el mensaje de carga
+                if (!productos || productos.length === 0) {
+                    listaDeProductos.innerHTML = '<p>No hay productos disponibles.</p>';
+                    return;
+                }
+                productos.forEach(producto => {
+                    const item = document.createElement('div');
+                    item.className = 'producto-item';
+                    item.innerHTML = `
+                        <h3>${producto.nombre}</h3>
+                        <p>${producto.descripcion || 'Sin descripción'}</p>
+                        <p class="precio">$${producto.precio.toFixed(2)}</p>
+                    `;
+                    listaDeProductos.appendChild(item);
+                });
+            })
+            .catch(error => {
+                console.error('Error al cargar productos:', error);
+                listaDeProductos.innerHTML = `<p style="color: red;">Error al cargar productos: ${error.message}</p>`;
             });
+    }
+
+    /**
+     * Carga y muestra la lista de clientes desde la API.
+     */
+    function cargarClientes() {
+        if (!listaDeClientes) return; // Si el elemento no existe, no hace nada
+
+        listaDeClientes.innerHTML = '<p>Cargando clientes...</p>';
+
+        fetch(`${API_URL}/api/clientes`)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return response.json();
+            })
+            .then(clientes => {
+                listaDeClientes.innerHTML = ''; // Limpia el mensaje de carga
+                if (!clientes || clientes.length === 0) {
+                    listaDeClientes.innerHTML = '<p>No hay clientes registrados.</p>';
+                    return;
+                }
+                const ul = document.createElement('ul');
+                clientes.forEach(cliente => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${cliente.nombre}</span> <span>${cliente.telefono || 'Sin teléfono'}</span>`;
+                    ul.appendChild(li);
+                });
+                listaDeClientes.appendChild(ul);
+            })
+            .catch(error => {
+                console.error('Error al cargar clientes:', error);
+                listaDeClientes.innerHTML = `<p style="color: red;">Error al cargar clientes: ${error.message}</p>`;
+            });
+    }
+
+    /**
+     * Maneja el envío del formulario para crear un nuevo cliente.
+     * @param {Event} event - El evento de envío del formulario.
+     */
+    function handleNuevoClienteSubmit(event) {
+        event.preventDefault(); // Evita que la página se recargue
+
+        const formData = new FormData(formNuevoCliente);
+        const nombre = formData.get('nombre');
+        const telefono = formData.get('telefono') || null; // Enviar null si está vacío
+
+        // Deshabilita el botón mientras se envía para evitar doble click
+        const submitButton = formNuevoCliente.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Registrando...';
+
+        fetch(`${API_URL}/api/clientes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ nombre: nombre, telefono: telefono }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                // Si el servidor devuelve un error, intenta leer el detalle
+                return response.json().then(err => { throw new Error(err.detail || `HTTP error! status: ${response.status}`) });
+            }
+            return response.json(); // Convierte la respuesta exitosa a JSON
+        })
+        .then(nuevoCliente => {
+            mostrarMensajeCliente(`Cliente "${nuevoCliente.nombre}" registrado con éxito!`, true);
+            formNuevoCliente.reset(); // Limpia el formulario
+            cargarClientes(); // Recarga la lista de clientes para mostrar el nuevo
         })
         .catch(error => {
-            // Si ocurre cualquier error durante el fetch o el procesamiento...
-            console.error('Error detallado al cargar los productos:', error); // Muestra el error en la consola del navegador
-            // Mostramos un mensaje de error claro al usuario en la página
-            listaDeProductos.innerHTML = `<p style="color: red;">Error al cargar productos: ${error.message}. Por favor, inténtalo más tarde.</p>`;
+            console.error('Error al registrar cliente:', error);
+            mostrarMensajeCliente(`Error al registrar: ${error.message}`, false);
+        })
+        .finally(() => {
+             // Vuelve a habilitar el botón y restaura su texto
+             submitButton.disabled = false;
+             submitButton.textContent = 'Registrar Cliente';
         });
-});
+    }
+
+    // --- Inicialización ---
+
+    // Llama a las funciones para cargar los datos iniciales cuando la página carga.
+    cargarProductos();
+    cargarClientes();
+
+    // Añade el 'escuchador' de eventos al formulario de nuevo cliente.
+    if (formNuevoCliente) {
+        formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
+    }
+
+}); // Fin del addEventListener DOMContentLoaded

@@ -1,71 +1,105 @@
-/* Estilos generales para toda la página */
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; /* Fuentes comunes y limpias */
-    background-color: #f4f4f9; /* Un color de fondo suave */
-    color: #333; /* Color de texto principal */
-    margin: 0; /* Quita márgenes por defecto del navegador */
-    padding: 20px; /* Añade un poco de espacio alrededor del contenido */
-    line-height: 1.6; /* Mejora la legibilidad del texto */
+/* --- Nuevos Estilos para Clientes --- */
+
+/* Estilos generales para las secciones */
+section {
+    margin-bottom: 40px; /* Espacio debajo de cada sección */
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-/* Estilos para el encabezado */
-header {
-    background-color: #34495e; /* Color de fondo oscuro para el encabezado */
-    color: #ffffff; /* Texto blanco */
-    padding: 10px 0; /* Espacio vertical dentro del encabezado */
-    text-align: center; /* Centra el título */
-    margin-bottom: 30px; /* Espacio debajo del encabezado */
+section h2 {
+    margin-top: 0;
+    color: #34495e;
+    border-bottom: 2px solid #ecf0f1; /* Línea sutil debajo del título */
+    padding-bottom: 10px;
+    margin-bottom: 20px;
 }
 
-header h1 {
-    margin: 0; /* Quita el margen por defecto del h1 */
+/* Contenedor Grid (reemplaza o ajusta si ya tenías .container) */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
 }
 
-/* Contenedor principal para centrar el contenido y crear la cuadrícula */
-.container {
-    max-width: 960px; /* Ancho máximo para el contenido */
-    margin: 0 auto; /* Centra el contenedor en la página */
-    display: grid; /* Usa CSS Grid para organizar los productos */
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Crea columnas flexibles */
-    gap: 20px; /* Espacio entre los productos */
+/* Estilos para el formulario de nuevo cliente */
+#form-nuevo-cliente .form-group {
+    margin-bottom: 15px; /* Espacio entre campos del formulario */
 }
 
-/* Estilos para cada tarjeta de producto */
-.producto-item {
-    background-color: #ffffff; /* Fondo blanco para las tarjetas */
-    border: 1px solid #ddd; /* Borde sutil */
-    border-radius: 8px; /* Esquinas redondeadas */
-    padding: 20px; /* Espacio dentro de la tarjeta */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Sombra suave */
-    display: flex; /* Permite organizar el contenido interno */
-    flex-direction: column; /* Apila el contenido verticalmente */
+#form-nuevo-cliente label {
+    display: block; /* Etiqueta arriba del campo */
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
 }
 
-.producto-item h3 {
-    margin-top: 0; /* Quita espacio superior del título del producto */
-    color: #3498db; /* Color azul para el título */
-    font-size: 1.2em; /* Tamaño del título */
+#form-nuevo-cliente input[type="text"],
+#form-nuevo-cliente input[type="tel"] {
+    width: 100%; /* Ocupa todo el ancho disponible */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Incluye padding y borde en el ancho total */
 }
 
-.producto-item p {
-    font-size: 0.9em; /* Texto un poco más pequeño */
-    margin-bottom: 10px; /* Espacio debajo de los párrafos */
-    flex-grow: 1; /* Hace que la descripción ocupe el espacio disponible */
+#form-nuevo-cliente button[type="submit"] {
+    background-color: #3498db; /* Color azul */
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer; /* Cambia el cursor al pasar por encima */
+    font-size: 1em;
 }
 
-.producto-item .precio {
-    font-weight: bold; /* Precio en negritas */
-    color: #27ae60; /* Color verde para el precio */
-    font-size: 1.2em; /* Tamaño más grande para el precio */
-    margin-top: auto; /* Empuja el precio al final de la tarjeta */
-    text-align: right; /* Alinea el precio a la derecha */
+#form-nuevo-cliente button[type="submit"]:hover {
+    background-color: #2980b9; /* Color un poco más oscuro al pasar */
 }
 
-/* Estilos para el pie de página */
-footer {
-    text-align: center; /* Centra el texto */
-    margin-top: 40px; /* Espacio arriba del pie de página */
-    padding-top: 20px; /* Espacio interno superior */
-    border-top: 1px solid #ddd; /* Línea separadora */
-    color: #777; /* Color de texto gris */
+/* Estilos para mensajes de éxito/error en el formulario */
+.mensaje {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+.mensaje.exito {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.mensaje.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Estilos para la lista de clientes */
+#clientes-lista ul {
+    list-style: none; /* Quita los puntos de la lista */
+    padding: 0;
+}
+
+#clientes-lista li {
+    background-color: #ecf0f1; /* Fondo gris claro para cada item */
+    margin-bottom: 10px;
+    padding: 10px 15px;
+    border-radius: 4px;
+    display: flex; /* Permite alinear nombre y teléfono */
+    justify-content: space-between; /* Separa nombre y teléfono */
+    align-items: center; /* Centra verticalmente */
+}
+
+#clientes-lista li span {
+    font-weight: bold; /* Nombre en negritas */
+}
+
+/* Línea divisoria */
+hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 40px 0;
 }

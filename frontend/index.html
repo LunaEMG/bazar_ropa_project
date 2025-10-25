@@ -8,12 +8,39 @@
 </head>
 <body>
     <header>
-        <h1>Catálogo de Productos del Bazar</h1>
+        <h1>Bazar de Ropa</h1>
     </header>
 
-    <main>
-        <div id="productos-lista" class="container">
-            <p>Cargando productos...</p> </div>
+    <main class="container">
+        <section>
+            <h2>Catálogo de Productos</h2>
+            <div id="productos-lista" class="grid-container">
+                <p>Cargando productos...</p>
+            </div>
+        </section>
+
+        <hr> <section>
+            <h2>Registrar Nuevo Cliente</h2>
+            <form id="form-nuevo-cliente">
+                <div class="form-group">
+                    <label for="nombre-cliente">Nombre:</label>
+                    <input type="text" id="nombre-cliente" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefono-cliente">Teléfono (Opcional):</label>
+                    <input type="tel" id="telefono-cliente" name="telefono">
+                </div>
+                <button type="submit">Registrar Cliente</button>
+                <p id="cliente-mensaje" class="mensaje"></p> </form>
+        </section>
+
+        <hr> <section>
+            <h2>Lista de Clientes</h2>
+            <div id="clientes-lista">
+                <p>Cargando clientes...</p>
+            </div>
+        </section>
+
     </main>
 
     <footer>
