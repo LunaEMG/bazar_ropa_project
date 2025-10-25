@@ -1,0 +1,71 @@
+/* Estilos generales para toda la página */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; /* Fuentes comunes y limpias */
+    background-color: #f4f4f9; /* Un color de fondo suave */
+    color: #333; /* Color de texto principal */
+    margin: 0; /* Quita márgenes por defecto del navegador */
+    padding: 20px; /* Añade un poco de espacio alrededor del contenido */
+    line-height: 1.6; /* Mejora la legibilidad del texto */
+}
+
+/* Estilos para el encabezado */
+header {
+    background-color: #34495e; /* Color de fondo oscuro para el encabezado */
+    color: #ffffff; /* Texto blanco */
+    padding: 10px 0; /* Espacio vertical dentro del encabezado */
+    text-align: center; /* Centra el título */
+    margin-bottom: 30px; /* Espacio debajo del encabezado */
+}
+
+header h1 {
+    margin: 0; /* Quita el margen por defecto del h1 */
+}
+
+/* Contenedor principal para centrar el contenido y crear la cuadrícula */
+.container {
+    max-width: 960px; /* Ancho máximo para el contenido */
+    margin: 0 auto; /* Centra el contenedor en la página */
+    display: grid; /* Usa CSS Grid para organizar los productos */
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Crea columnas flexibles */
+    gap: 20px; /* Espacio entre los productos */
+}
+
+/* Estilos para cada tarjeta de producto */
+.producto-item {
+    background-color: #ffffff; /* Fondo blanco para las tarjetas */
+    border: 1px solid #ddd; /* Borde sutil */
+    border-radius: 8px; /* Esquinas redondeadas */
+    padding: 20px; /* Espacio dentro de la tarjeta */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Sombra suave */
+    display: flex; /* Permite organizar el contenido interno */
+    flex-direction: column; /* Apila el contenido verticalmente */
+}
+
+.producto-item h3 {
+    margin-top: 0; /* Quita espacio superior del título del producto */
+    color: #3498db; /* Color azul para el título */
+    font-size: 1.2em; /* Tamaño del título */
+}
+
+.producto-item p {
+    font-size: 0.9em; /* Texto un poco más pequeño */
+    margin-bottom: 10px; /* Espacio debajo de los párrafos */
+    flex-grow: 1; /* Hace que la descripción ocupe el espacio disponible */
+}
+
+.producto-item .precio {
+    font-weight: bold; /* Precio en negritas */
+    color: #27ae60; /* Color verde para el precio */
+    font-size: 1.2em; /* Tamaño más grande para el precio */
+    margin-top: auto; /* Empuja el precio al final de la tarjeta */
+    text-align: right; /* Alinea el precio a la derecha */
+}
+
+/* Estilos para el pie de página */
+footer {
+    text-align: center; /* Centra el texto */
+    margin-top: 40px; /* Espacio arriba del pie de página */
+    padding-top: 20px; /* Espacio interno superior */
+    border-top: 1px solid #ddd; /* Línea separadora */
+    color: #777; /* Color de texto gris */
+}
