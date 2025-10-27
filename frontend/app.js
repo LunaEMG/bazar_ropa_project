@@ -61,21 +61,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /** Realiza una petición fetch genérica con manejo de errores básico. */
-    async function fetchData(url, options = {}) {
+async function fetchData(url, options = {}) {
         try {
             const response = await fetch(url, options);
+            
+            // Si la respuesta NO fue exitosa (status no es 2xx)
             if (!response.ok) {
-                let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`;
+                let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`; // Mensaje por defecto
                 try {
+                    // Intenta obtener el mensaje 'detail' del JSON de error de FastAPI
                     const errJson = await response.json();
-                    errorDetail = errJson.detail || errorDetail; 
-                } catch (e) { /* Ignora si el cuerpo no es JSON */ }
+                    // Si hay un campo 'detail' en el JSON, úsalo como mensaje de error
+                    if (errJson && errJson.detail) {
+                        errorDetail = errJson.detail; 
+                    }
+                } catch (e) { 
+                    // Si el cuerpo de la respuesta no es JSON o no tiene 'detail', 
+                    // se usará el mensaje por defecto (status + statusText)
+                    console.warn("No se pudo parsear el cuerpo del error como JSON o no contiene 'detail'.");
+                }
+                // Lanza un error con el mensaje detallado obtenido
                 throw new Error(errorDetail); 
             }
-            if (response.status === 204) { return null; } 
+
+            // Si la respuesta fue 204 No Content (típico de DELETE exitoso), retorna null
+            if (response.status === 204) { 
+                return null; 
+            }
+            
+            // Si fue exitosa y tiene contenido, retorna el JSON parseado
             return await response.json(); 
+            
         } catch (error) {
-            console.error(`Error en fetch a ${url}:`, error);
+            // Loggea el error completo en la consola para depuración
+            console.error(`Error en fetch a ${url} con opciones ${JSON.stringify(options)}:`, error);
+            // Relanza el error para que la función que llamó a fetchData lo maneje
             throw error; 
         }
     }
@@ -315,25 +335,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const clienteId = parseInt(button.dataset.id);
         const nombreCliente = button.dataset.nombre;
 
+        // Confirmación antes de proceder
         if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombreCliente}"?`)) {
             return; 
         }
 
         try {
-            // Llama al endpoint DELETE usando fetchData para manejo de errores
+            // Llama al endpoint DELETE usando fetchData
             await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
                 method: 'DELETE',
             });
-            // Éxito (status 204)
+            // Si fetchData no lanzó error, la eliminación fue exitosa (status 204)
             mostrarMensaje(clienteMensaje, `Cliente "${nombreCliente}" eliminado con éxito.`, true);
-            cargarClientes(); // Recarga la lista
-            // Oculta sección de direcciones si era del cliente eliminado
+            cargarClientes(); // Recarga la lista actualizada
+            // Opcional: Ocultar sección de direcciones si era del cliente eliminado
             if (clienteSeleccionadoId === clienteId && direccionesClienteDiv) {
                 direccionesClienteDiv.style.display = 'none';
                 clienteSeleccionadoId = null;
             }
         } catch (error) {
-            // Muestra el mensaje de error DETALLADO que viene de la API
+            // Muestra el mensaje de error DETALLADO obtenido por fetchData (ej. 409 Conflict)
             mostrarMensaje(clienteMensaje, `Error al eliminar cliente: ${error.message}`, false); 
         }
     }
