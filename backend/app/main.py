@@ -3,8 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
 
 # Importación de los módulos de routers para las diferentes entidades
-# Se incluye el nuevo router 'proveedores'
-from app.routers import productos, clientes, ventas, proveedores 
+# Se incluye el nuevo router 'direcciones'
+from app.routers import productos, clientes, ventas, proveedores, direcciones 
 
 # Inicialización de la aplicación FastAPI
 app = FastAPI(title="API del Bazar de Ropa", version="0.1.0")
@@ -33,7 +33,8 @@ app.add_middleware(
 app.include_router(productos.router)
 app.include_router(clientes.router) 
 app.include_router(ventas.router) 
-app.include_router(proveedores.router) # <-- Se añade el router de proveedores
+app.include_router(proveedores.router) 
+app.include_router(direcciones.router) # <-- Se añade el router de direcciones
 
 # --- Endpoint Raíz ---
 @app.get("/", tags=["Root"]) 

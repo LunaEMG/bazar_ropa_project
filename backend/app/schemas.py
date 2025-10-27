@@ -1,6 +1,7 @@
+# Importaciones necesarias
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import date # Necesario para el campo fecha
+from datetime import date 
 
 # --- Schemas de Producto (Existentes) ---
 class ProductoBase(BaseModel):
@@ -14,43 +15,42 @@ class Producto(ProductoBase):
     id_producto: int
 
     class Config:
-        orm_mode = True
+        orm_mode = True # Deprecated in Pydantic v2, use from_attributes=True
 
 # --- Schemas de Cliente (Existentes) ---
 class ClienteBase(BaseModel):
-    """Schema base para Cliente, con campos comunes."""
+    """Schema base para Cliente."""
     nombre: str
     telefono: Optional[str] = None
 
 class ClienteCreate(ClienteBase):
-    """Schema para crear un nuevo Cliente."""
+    """Schema para la creación de un Cliente."""
     pass
 
 class Cliente(ClienteBase):
-    """Schema para leer un Cliente."""
+    """Schema para la lectura/respuesta de un Cliente."""
     id_cliente: int
 
     class Config:
-        orm_mode = True
+        orm_mode = True # Deprecated in Pydantic v2, use from_attributes=True
 
 # --- Schemas de Ventas (Existentes) ---
-
 class DetalleVentaBase(BaseModel):
-    """Schema base para un item dentro de una venta."""
+    """Schema base para un item de detalle de venta."""
     id_producto: int
     cantidad: int = Field(gt=0) 
     precio_unitario: float = Field(ge=0) 
 
 class DetalleVentaCreate(DetalleVentaBase):
-    """Schema para crear un detalle de venta."""
+    """Schema para la creación de un detalle de venta."""
     pass
 
 class DetalleVenta(DetalleVentaBase):
-    """Schema para leer un detalle de venta."""
+    """Schema para la lectura/respuesta de un detalle de venta."""
     id_venta: int
 
     class Config:
-        orm_mode = True
+        orm_mode = True # Deprecated in Pydantic v2, use from_attributes=True
 
 class VentaBase(BaseModel):
     """Schema base para Venta."""
@@ -58,33 +58,53 @@ class VentaBase(BaseModel):
     fecha: date 
 
 class VentaCreate(BaseModel):
-    """Schema para crear una nueva Venta."""
+    """Schema para la creación de una Venta."""
     id_cliente: int
     detalles: List[DetalleVentaCreate] 
 
 class Venta(VentaBase):
-    """Schema para leer una Venta."""
+    """Schema para la lectura/respuesta de una Venta."""
     id_venta: int
     monto_total: float
-    # detalles: List[DetalleVenta] = [] # Opcional incluir detalles
 
     class Config:
-        orm_mode = True
+        orm_mode = True # Deprecated in Pydantic v2, use from_attributes=True
 
-# --- NUEVOS Schemas para Proveedores ---
-
+# --- Schemas de Proveedores (Existentes) ---
 class ProveedorBase(BaseModel):
-    """Schema base para Proveedor, campos comunes."""
+    """Schema base para Proveedor."""
     nombre: str
     telefono: Optional[str] = None
 
 class ProveedorCreate(ProveedorBase):
-    """Schema para crear un nuevo Proveedor."""
+    """Schema para la creación de un Proveedor."""
     pass
 
 class Proveedor(ProveedorBase):
-    """Schema para leer un Proveedor (incluye ID)."""
+    """Schema para la lectura/respuesta de un Proveedor."""
     id_proveedor: int
 
     class Config:
-        orm_mode = True # Permite mapeo directo desde objetos de base de datos
+        orm_mode = True # Deprecated in Pydantic v2, use from_attributes=True
+
+# --- NUEVOS Schemas para Direcciones ---
+
+class DireccionBase(BaseModel):
+    """Schema base para Direccion, campos comunes."""
+    calle: str
+    ciudad: str
+    codigo_postal: str
+    # id_cliente se manejará a través de la ruta o contexto, no necesariamente aquí.
+
+class DireccionCreate(DireccionBase):
+    """Schema para la creación de una nueva Direccion."""
+    # Podría requerir id_cliente si la ruta no lo proporciona contextualmente.
+    pass 
+
+class Direccion(DireccionBase):
+    """Schema para la lectura/respuesta de una Direccion (incluye IDs)."""
+    id_direccion: int
+    id_cliente: int # Incluye el ID del cliente al que pertenece
+
+    class Config:
+        orm_mode = True # Deprecated in Pydantic v2, use from_attributes=True
