@@ -19,7 +19,25 @@
             </div>
         </section>
 
-        <hr> <section>
+        <hr>
+
+        <section id="carrito-seccion">
+            <h2>Carrito de Compras</h2>
+            <div id="carrito-items">
+                <p>El carrito está vacío.</p>
+            </div>
+            <p class="carrito-total">Total: $<span id="carrito-total">0.00</span></p>
+            <button id="btn-finalizar-compra" disabled>Finalizar Compra</button> <p id="compra-mensaje" class="mensaje"></p> <div class="form-group" style="margin-top: 15px;">
+                <label for="selector-cliente">Comprar como:</label>
+                <select id="selector-cliente" name="cliente_id" required>
+                    <option value="">Seleccione un cliente...</option>
+                    </select>
+            </div>
+        </section>
+
+        <hr>
+
+        <section>
             <h2>Registrar Nuevo Cliente</h2>
             <form id="form-nuevo-cliente">
                 <div class="form-group">
@@ -31,10 +49,13 @@
                     <input type="tel" id="telefono-cliente" name="telefono">
                 </div>
                 <button type="submit">Registrar Cliente</button>
-                <p id="cliente-mensaje" class="mensaje"></p> </form>
+                <p id="cliente-mensaje" class="mensaje"></p>
+            </form>
         </section>
 
-        <hr> <section>
+        <hr>
+
+        <section>
             <h2>Lista de Clientes</h2>
             <div id="clientes-lista">
                 <p>Cargando clientes...</p>

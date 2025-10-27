@@ -1,70 +1,116 @@
-/* --- Nuevos Estilos para Clientes --- */
+/* --- Estilos Adicionales para Carrito y Formularios --- */
 
-/* Estilos generales para las secciones */
-section {
-    margin-bottom: 40px; /* Espacio debajo de cada sección */
-    padding: 20px;
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+/* Ajuste al contenedor principal si es necesario */
+.container {
+    max-width: 960px; /* Ancho máximo */
+    margin: 0 auto; /* Centrado */
+    /* Remueve el display: grid si lo tenías directo aquí */
 }
 
-section h2 {
-    margin-top: 0;
-    color: #34495e;
-    border-bottom: 2px solid #ecf0f1; /* Línea sutil debajo del título */
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-}
-
-/* Contenedor Grid (reemplaza o ajusta si ya tenías .container) */
+/* Contenedor específico para grids (productos, etc.) */
 .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
 }
 
-/* Estilos para el formulario de nuevo cliente */
-#form-nuevo-cliente .form-group {
-    margin-bottom: 15px; /* Espacio entre campos del formulario */
+/* Estilos para el formulario genérico */
+.form-group {
+    margin-bottom: 15px;
 }
 
-#form-nuevo-cliente label {
-    display: block; /* Etiqueta arriba del campo */
+.form-group label {
+    display: block;
     margin-bottom: 5px;
     font-weight: bold;
     color: #555;
 }
 
-#form-nuevo-cliente input[type="text"],
-#form-nuevo-cliente input[type="tel"] {
-    width: 100%; /* Ocupa todo el ancho disponible */
+.form-group input[type="text"],
+.form-group input[type="tel"],
+.form-group select { /* Añadido select */
+    width: 100%;
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    box-sizing: border-box; /* Incluye padding y borde en el ancho total */
+    box-sizing: border-box;
 }
 
-#form-nuevo-cliente button[type="submit"] {
-    background-color: #3498db; /* Color azul */
+button[type="submit"],
+#btn-finalizar-compra { /* Estilo unificado para botones */
+    background-color: #3498db;
     color: white;
     padding: 10px 15px;
     border: none;
     border-radius: 4px;
-    cursor: pointer; /* Cambia el cursor al pasar por encima */
+    cursor: pointer;
     font-size: 1em;
+    transition: background-color 0.2s ease; /* Transición suave */
 }
 
-#form-nuevo-cliente button[type="submit"]:hover {
-    background-color: #2980b9; /* Color un poco más oscuro al pasar */
+button[type="submit"]:hover,
+#btn-finalizar-compra:hover {
+    background-color: #2980b9;
 }
 
-/* Estilos para mensajes de éxito/error en el formulario */
+button:disabled { /* Estilo para botones deshabilitados */
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+
+/* Estilos específicos para la sección del carrito */
+#carrito-items .carrito-item {
+    background-color: #f9f9f9;
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #eee;
+}
+
+#carrito-items .carrito-item span {
+    margin: 0 5px;
+}
+
+#carrito-items .item-nombre {
+    flex-grow: 1; /* Ocupa el espacio disponible */
+}
+
+#carrito-items .item-cantidad {
+    font-weight: bold;
+}
+
+#carrito-items .item-precio {
+    min-width: 70px; /* Asegura espacio para el precio */
+    text-align: right;
+}
+
+.carrito-total {
+    font-size: 1.3em;
+    font-weight: bold;
+    text-align: right;
+    margin-top: 20px;
+    color: #2c3e50;
+}
+
+#carrito-seccion {
+    border: 1px dashed #3498db; /* Borde distintivo para el carrito */
+    background-color: #fdfdfe;
+}
+
+/* Estilos para mensajes de estado */
 .mensaje {
     margin-top: 10px;
     padding: 10px;
     border-radius: 4px;
     font-size: 0.9em;
+    display: none; /* Oculto por defecto */
+}
+.mensaje.visible {
+    display: block; /* Visible cuando se añade la clase */
 }
 .mensaje.exito {
     background-color: #d4edda;
@@ -79,22 +125,22 @@ section h2 {
 
 /* Estilos para la lista de clientes */
 #clientes-lista ul {
-    list-style: none; /* Quita los puntos de la lista */
+    list-style: none;
     padding: 0;
 }
 
 #clientes-lista li {
-    background-color: #ecf0f1; /* Fondo gris claro para cada item */
+    background-color: #ecf0f1;
     margin-bottom: 10px;
     padding: 10px 15px;
     border-radius: 4px;
-    display: flex; /* Permite alinear nombre y teléfono */
-    justify-content: space-between; /* Separa nombre y teléfono */
-    align-items: center; /* Centra verticalmente */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-#clientes-lista li span {
-    font-weight: bold; /* Nombre en negritas */
+#clientes-lista li span:first-child { /* Estilo para el nombre */
+    font-weight: bold;
 }
 
 /* Línea divisoria */
