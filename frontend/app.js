@@ -61,48 +61,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /** Realiza una petición fetch genérica con manejo de errores básico. */
-async function fetchData(url, options = {}) {
+    async function fetchData(url, options = {}) {
         try {
             const response = await fetch(url, options);
-            
-            // Si la respuesta NO fue exitosa (status no es 2xx)
             if (!response.ok) {
-                let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`; // Mensaje por defecto
+                let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`;
                 try {
-                    // Intenta obtener el mensaje 'detail' del JSON de error de FastAPI
                     const errJson = await response.json();
-                    // Si hay un campo 'detail' en el JSON, úsalo como mensaje de error
-                    if (errJson && errJson.detail) {
-                        errorDetail = errJson.detail; 
-                    }
-                } catch (e) { 
-                    // Si el cuerpo de la respuesta no es JSON o no tiene 'detail', 
-                    // se usará el mensaje por defecto (status + statusText)
-                    console.warn("No se pudo parsear el cuerpo del error como JSON o no contiene 'detail'.");
-                }
-                // Lanza un error con el mensaje detallado obtenido
+                    errorDetail = errJson.detail || errorDetail; 
+                } catch (e) { /* Ignora si el cuerpo no es JSON */ }
                 throw new Error(errorDetail); 
             }
-
-            // Si la respuesta fue 204 No Content (típico de DELETE exitoso), retorna null
-            if (response.status === 204) { 
-                return null; 
-            }
-            
-            // Si fue exitosa y tiene contenido, retorna el JSON parseado
+            if (response.status === 204) { return null; } 
             return await response.json(); 
-            
         } catch (error) {
-            // Loggea el error completo en la consola para depuración
-            console.error(`Error en fetch a ${url} con opciones ${JSON.stringify(options)}:`, error);
-            // Relanza el error para que la función que llamó a fetchData lo maneje
+            console.error(`Error en fetch a ${url}:`, error);
             throw error; 
         }
     }
 
     // --- Funciones de Carga y Renderizado ---
 
-    /** Carga y muestra la lista de productos. */
+    /** Carga y muestra la lista de productos (Corregido listener). */
     async function cargarProductos() {
         if (!listaDeProductos) return;
         listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
@@ -158,7 +138,7 @@ async function fetchData(url, options = {}) {
                         <button class="btn-accion btn-eliminar-cliente" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre}">Eliminar</button>
                     </div>
                 `;
-                // Añadir listeners a los botones de acciones
+                // Asignación de Listeners de Clientes
                 li.querySelector('.btn-ver-direcciones').addEventListener('click', handleVerDireccionesClick);
                 li.querySelector('.btn-editar-cliente').addEventListener('click', handleEditarClienteClick);
                 li.querySelector('.btn-eliminar-cliente').addEventListener('click', handleDeleteClienteClick);
@@ -174,7 +154,7 @@ async function fetchData(url, options = {}) {
         }
     }
 
-    /** Carga y muestra la lista de proveedores. */
+    /** Carga y muestra la lista de proveedores (Corregido listener). */
     async function cargarProveedores() {
         if (!listaDeProveedores) return; 
         listaDeProveedores.innerHTML = '<p>Cargando proveedores...</p>';
@@ -195,7 +175,10 @@ async function fetchData(url, options = {}) {
                          <button class="btn-accion btn-eliminar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}">Eliminar</button>
                     </div>
                 `;
-                // --- TODO: Añadir listeners para handleEditarProveedorClick y handleDeleteProveedorClick ---
+                // --- ASIGNACIÓN DE LISTENERS DE PROVEEDORES (CORRECCIÓN) ---
+                li.querySelector('.btn-editar-proveedor').addEventListener('click', handleEditarProveedorClick);
+                li.querySelector('.btn-eliminar-proveedor').addEventListener('click', handleDeleteProveedorClick);
+                
                 ul.appendChild(li);
             });
             listaDeProveedores.appendChild(ul);
@@ -221,8 +204,7 @@ async function fetchData(url, options = {}) {
                         <span>${dir.ciudad}, CP ${dir.codigo_postal}</span>
                     </div>
                     <div class="item-acciones">
-                        <!-- Botones Editar/Eliminar para direcciones irían aquí -->
-                    </div>
+                        </div>
                     `; 
                 ul.appendChild(li);
             });
@@ -250,12 +232,37 @@ async function fetchData(url, options = {}) {
         editClienteIdInput.value = clienteId;
         editNombreClienteInput.value = nombre;
         editTelefonoClienteInput.value = telefono || ''; 
-        editClienteMensaje.textContent = ''; 
+        editClienteMensaje.textContent = 'Editando Cliente'; 
         editClienteMensaje.className = 'mensaje';
         modalEditarCliente.style.display = 'block'; 
+        
+        // Ajuste visual para el modal:
+        const modalTitle = modalEditarCliente.querySelector('h3');
+        if (modalTitle) modalTitle.textContent = "Editar Cliente";
+        // Añadir una clase al formulario para diferenciar el manejador de envío
+        formEditarCliente.setAttribute('data-target-entity', 'cliente');
     }
 
-    /** Oculta el modal de edición de cliente. */
+    /** Muestra el modal de edición de proveedor con los datos precargados. */
+    function mostrarModalEditarProveedor(proveedorId, nombre, telefono) {
+        if (!modalEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput) return;
+        
+        editClienteIdInput.value = proveedorId;
+        editNombreClienteInput.value = nombre;
+        editTelefonoClienteInput.value = telefono || ''; 
+        editClienteMensaje.textContent = 'Editando Proveedor'; 
+        editClienteMensaje.className = 'mensaje';
+        
+        // Ajuste visual para el modal:
+        const modalTitle = modalEditarCliente.querySelector('h3');
+        if (modalTitle) modalTitle.textContent = "Editar Proveedor";
+        // Añadir una clase al formulario para diferenciar el manejador de envío
+        formEditarCliente.setAttribute('data-target-entity', 'proveedor');
+        
+        modalEditarCliente.style.display = 'block'; 
+    }
+    
+    /** Oculta el modal de edición. */
     function ocultarModalEditarCliente() {
         if (modalEditarCliente) {
             modalEditarCliente.style.display = 'none'; 
@@ -285,13 +292,13 @@ async function fetchData(url, options = {}) {
         carritoTotalSpan.textContent = total.toFixed(2); 
     }
 
-    /** Maneja el clic en "Añadir al Carrito". */
+    /** Maneja el clic en "Añadir al Carrito" (funciona como un Toggle/Añadir). */
     function handleAddCarritoClick(event) {
         const button = event.target;
         const idProducto = parseInt(button.dataset.id); 
         const nombre = button.dataset.nombre;
         const precio = parseFloat(button.dataset.precio); 
-        // console.log("Añadiendo al carrito:", { idProducto, nombre, precio }); // Log de depuración
+        // console.log("Añadiendo al carrito:", { idProducto, nombre, precio }); 
 
         const itemExistente = carrito.find(item => item.id_producto === idProducto);
         if (itemExistente) {
@@ -310,7 +317,7 @@ async function fetchData(url, options = {}) {
         renderizarCarrito(); 
     }
 
-    // --- Manejadores de Eventos ---
+    // --- Manejadores de Eventos CRUD ---
 
     /** Maneja el clic en "Ver/Añadir Direcciones". */
     function handleVerDireccionesClick(event) {
@@ -328,6 +335,15 @@ async function fetchData(url, options = {}) {
         const telefono = button.dataset.telefono; 
         mostrarModalEditarCliente(clienteId, nombre, telefono);
     }
+    
+    /** Maneja el clic en "Editar Proveedor". */
+    function handleEditarProveedorClick(event) {
+        const button = event.target;
+        const proveedorId = parseInt(button.dataset.id);
+        const nombre = button.dataset.nombre;
+        const telefono = button.dataset.telefono; 
+        mostrarModalEditarProveedor(proveedorId, nombre, telefono);
+    }
 
     /** Maneja el clic en "Eliminar Cliente". */
     async function handleDeleteClienteClick(event) {
@@ -335,60 +351,111 @@ async function fetchData(url, options = {}) {
         const clienteId = parseInt(button.dataset.id);
         const nombreCliente = button.dataset.nombre;
 
-        // Confirmación antes de proceder
         if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombreCliente}"?`)) {
             return; 
         }
 
         try {
-            // Llama al endpoint DELETE usando fetchData
             await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
                 method: 'DELETE',
             });
-            // Si fetchData no lanzó error, la eliminación fue exitosa (status 204)
             mostrarMensaje(clienteMensaje, `Cliente "${nombreCliente}" eliminado con éxito.`, true);
-            cargarClientes(); // Recarga la lista actualizada
-            // Opcional: Ocultar sección de direcciones si era del cliente eliminado
+            cargarClientes(); 
             if (clienteSeleccionadoId === clienteId && direccionesClienteDiv) {
                 direccionesClienteDiv.style.display = 'none';
                 clienteSeleccionadoId = null;
             }
         } catch (error) {
-            // Muestra el mensaje de error DETALLADO obtenido por fetchData (ej. 409 Conflict)
             mostrarMensaje(clienteMensaje, `Error al eliminar cliente: ${error.message}`, false); 
         }
     }
+    
+    /** Maneja el clic en "Eliminar Proveedor". */
+    async function handleDeleteProveedorClick(event) {
+        const button = event.target;
+        const proveedorId = parseInt(button.dataset.id);
+        const nombreProveedor = button.dataset.nombre;
 
-    /** Maneja el envío del formulario de edición de cliente. */
-    async function handleEditarClienteSubmit(event) {
-        event.preventDefault();
-        if (!formEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput || !editClienteMensaje) return;
-
-        const clienteId = parseInt(editClienteIdInput.value);
-        const nombre = editNombreClienteInput.value;
-        const telefono = editTelefonoClienteInput.value || null; 
-
-        const submitButton = formEditarCliente.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Guardando...';
+        if (!confirm(`¿Estás seguro de que deseas eliminar al proveedor "${nombreProveedor}"?`)) {
+            return; 
+        }
 
         try {
-            // Llama al endpoint PUT usando fetchData
-            const clienteActualizado = await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, telefono }), 
+            // Llama al endpoint DELETE
+            await fetchData(`${API_URL}/api/proveedores/${proveedorId}`, {
+                method: 'DELETE',
             });
-            mostrarMensaje(editClienteMensaje, `Cliente "${clienteActualizado.nombre}" actualizado!`, true);
-            ocultarModalEditarCliente(); 
-            cargarClientes(); 
+            // Éxito (status 204)
+            mostrarMensaje(proveedorMensaje, `Proveedor "${nombreProveedor}" eliminado con éxito.`, true);
+            cargarProveedores(); // Recarga la lista de proveedores
+            // Opcional: Recargar productos ya que los productos de ese proveedor podrían haberse quedado huérfanos
+            cargarProductos(); 
         } catch (error) {
-            mostrarMensaje(editClienteMensaje, `Error al actualizar: ${error.message}`, false);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = 'Guardar Cambios';
+            // Muestra el mensaje de error DETALLADO que viene de la API (ej. 409 Conflict)
+            mostrarMensaje(proveedorMensaje, `Error al eliminar proveedor: ${error.message}`, false); 
         }
     }
+
+
+/** Maneja el envío del formulario de edición de cliente/proveedor. */
+async function handleEditarSubmit(event) {
+    event.preventDefault();
+    // Obtiene la entidad objetivo ('cliente' o 'proveedor') del atributo data-target-entity
+    const entityType = formEditarCliente.getAttribute('data-target-entity'); 
+    
+    if (!entityType || !formEditarCliente || !editClienteIdInput || !editClienteMensaje) return;
+
+    // --- PUNTO CRÍTICO 1: Obtenemos el ID del input oculto (reutilizado) ---
+    const id = parseInt(editClienteIdInput.value); 
+    const nombre = editNombreClienteInput.value;
+    const telefono = editTelefonoClienteInput.value || null; 
+
+    // Verificación de ID válida
+    if (isNaN(id) || id <= 0) {
+        mostrarMensaje(editClienteMensaje, `Error: ID de ${entityType} no válido (${id}).`, false);
+        return;
+    }
+
+    const submitButton = formEditarCliente.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = 'Guardando...';
+
+    try {
+
+        // Construcción de la URL: /api/{entidad en plural}s/{id}
+        let pluralEntity = entityType;
+        if (entityType === 'proveedor') pluralEntity = 'proveedores';
+        else pluralEntity = `${entityType}s`;
+
+        const endpoint = `${API_URL}/api/${pluralEntity}/${id}`;
+        
+        console.log(`[EDIT] Enviando PUT a: ${endpoint}`); // Log de depuración
+        console.log(`[EDIT] Datos enviados:`, { nombre, telefono }); // Log de depuración
+
+        const actualizado = await fetchData(endpoint, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nombre, telefono }), 
+        });
+        
+        // Lógica de UI según la entidad editada
+        if (entityType === 'cliente') {
+            mostrarMensaje(clienteMensaje, `Cliente "${actualizado.nombre}" actualizado!`, true);
+            cargarClientes();
+        } else if (entityType === 'proveedor') {
+             mostrarMensaje(proveedorMensaje, `Proveedor "${actualizado.nombre}" actualizado!`, true);
+             cargarProveedores();
+        }
+        
+        ocultarModalEditarCliente(); 
+    } catch (error) {
+        mostrarMensaje(editClienteMensaje, `Error al actualizar: ${error.message}`, false); 
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Guardar Cambios';
+    }
+}
+
 
     /** Maneja el envío del formulario para crear un nuevo cliente. */
     async function handleNuevoClienteSubmit(event) { 
@@ -453,7 +520,10 @@ async function fetchData(url, options = {}) {
     if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
     if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit); 
     if (btnFinalizarCompra) btnFinalizarCompra.addEventListener('click', handleFinalizarCompraClick);
-    if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarClienteSubmit);
+    
+    // El formulario de edición del modal maneja ahora Cliente y Proveedor
+    if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarSubmit); 
+    
     if (cerrarModalClienteBtn) cerrarModalClienteBtn.addEventListener('click', ocultarModalEditarCliente);
     if (modalEditarCliente) {
         modalEditarCliente.addEventListener('click', (event) => {
