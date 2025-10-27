@@ -32,7 +32,7 @@ app.add_middleware(
 # Registra los endpoints definidos en los módulos de routers
 app.include_router(productos.router)
 app.include_router(clientes.router) 
-app.include_router(ventas.router) # <-- Añade esta línea para activar las rutas de ventas
+app.include_router(ventas.router) 
 
 # --- Endpoint Raíz ---
 @app.get("/", tags=["Root"]) 
