@@ -131,24 +131,42 @@ def delete_proveedor(proveedor_id: int):
     Elimina un proveedor de la base de datos usando su ID.
 
     Returns:
-        bool: True si la eliminación fue exitosa (1 fila afectada), False en caso contrario.
+        int: 
+            1: si la eliminación fue exitosa (1 fila afectada).
+            0: si el proveedor no fue encontrado (0 filas afectadas).
+           -1: si ocurrió un error genérico de base de datos.
+           -2: si ocurrió un error de violación de clave foránea.
     """
     conn = get_db_connection()
     if conn is None: 
-        return False
+        print("Error: No se pudo conectar a la DB para eliminar proveedor.")
+        return -1 # Indica error de conexión
 
-    rows_deleted = 0
+    rows_deleted_code = 0 # Valor por defecto si no se encuentra
     try:
-        with conn.cursor() as cur, conn.transaction(): # Manejo de transacción recomendado
+        # Usar transacción para asegurar atomicidad y rollback automático
+        with conn.cursor() as cur, conn.transaction(): 
             cur.execute("DELETE FROM proveedor WHERE id_proveedor = %s", (proveedor_id,))
-            rows_deleted = cur.rowcount # Número de filas afectadas por DELETE
-            # Commit automático
-            
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al eliminar proveedor {proveedor_id}: {error}")
+            rows_deleted_code = cur.rowcount # Será 1 si se borró, 0 si no existía
+            if rows_deleted_code == 0:
+                 # Si no se borró nada, psycopg deshace la transacción implícitamente
+                 # pero podemos dejarlo claro para el código de retorno.
+                 pass 
+            # Commit automático al salir del 'with transaction' si no hubo error
+
+    except psycopg.errors.ForeignKeyViolation as fk_error:
+        # Error específico si el proveedor está referenciado (ej. en producto)
+        print(f"Error de FK al eliminar proveedor {proveedor_id}: {fk_error}")
         # Rollback automático
+        rows_deleted_code = -2 # Código para FK violation
+        
+    except (Exception, psycopg.Error) as error:
+        print(f"Error SQL al eliminar proveedor {proveedor_id}: {error}")
+        # Rollback automático
+        rows_deleted_code = -1 # Código para error genérico
     finally:
         if conn: 
             conn.close()
             
-    return rows_deleted == 1 # Confirma que exactamente una fila fue eliminada
+    # Retorna el código numérico resultado de la operación
+    return rows_deleted_code
