@@ -96,6 +96,11 @@ class ProveedorCreate(ProveedorBase):
     """Schema para validar los datos al crear un nuevo Proveedor."""
     pass
 
+class ProveedorUpdate(BaseModel):
+    """Schema para actualizar un Proveedor. Campos opcionales."""
+    nombre: Optional[str] = None
+    telefono: Optional[str] = None
+
 class Proveedor(ProveedorBase):
     """Schema para leer/retornar un Proveedor."""
     id_proveedor: int
@@ -115,6 +120,12 @@ class DireccionCreate(DireccionBase):
     """Schema para validar los datos al crear una nueva Direccion."""
     # id_cliente se obtiene del path parameter en la ruta, no se incluye aquí.
     pass 
+
+class DireccionUpdate(BaseModel):
+    """Schema para actualizar una Direccion. Campos opcionales."""
+    calle: Optional[str] = None
+    ciudad: Optional[str] = None
+    codigo_postal: Optional[str] = None
 
 class Direccion(DireccionBase):
     """Schema para leer/retornar una Direccion."""

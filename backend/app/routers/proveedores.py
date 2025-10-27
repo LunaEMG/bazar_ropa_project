@@ -1,10 +1,10 @@
-# Importaciones necesarias de FastAPI y tipos
+# Importaciones necesarias de FastAPI, tipos y estado HTTP
 from fastapi import APIRouter, HTTPException, status
 from typing import List
 
-# Importa las funciones CRUD y los schemas Pydantic para proveedores
+# Importa las funciones CRUD y los schemas Pydantic relevantes para proveedores
 from app.crud import crud_proveedores
-from app.schemas import Proveedor, ProveedorCreate
+from app.schemas import Proveedor, ProveedorCreate, ProveedorUpdate 
 
 # Crea un router específico para las rutas de proveedores
 router = APIRouter()
@@ -15,7 +15,7 @@ router = APIRouter()
     response_model=Proveedor, 
     status_code=status.HTTP_201_CREATED,
     summary="Registrar un nuevo proveedor",
-    tags=["Proveedores"] # Agrupa en la documentación /docs
+    tags=["Proveedores"] # Agrupa endpoints en la documentación /docs
 )
 def create_new_proveedor(proveedor: ProveedorCreate):
     """
@@ -25,6 +25,7 @@ def create_new_proveedor(proveedor: ProveedorCreate):
     """
     db_proveedor = crud_proveedores.create_proveedor(proveedor=proveedor)
     if db_proveedor is None:
+        # Lanza excepción si la creación falla en la capa CRUD
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Error interno del servidor al crear el proveedor."
@@ -62,4 +63,49 @@ def read_proveedor(proveedor_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado")
     return db_proveedor
 
-# --- (Endpoints para actualizar (PUT) y borrar (DELETE) proveedores se añadirían aquí) ---
+# --- Endpoint para ACTUALIZAR un proveedor existente ---
+@router.put(
+    "/api/proveedores/{proveedor_id}",
+    response_model=Proveedor, # Retorna el proveedor actualizado
+    summary="Actualizar un proveedor existente",
+    tags=["Proveedores"]
+)
+def update_existing_proveedor(proveedor_id: int, proveedor_update: ProveedorUpdate):
+    """
+    Actualiza los datos de un proveedor existente identificado por su 'id_proveedor'.
+    Solo modifica los campos proporcionados en el cuerpo de la petición (ProveedorUpdate).
+    Retorna los datos del proveedor actualizado o 404 si no se encuentra.
+    """
+    # Llama a la función CRUD para realizar la actualización
+    updated_proveedor = crud_proveedores.update_proveedor(
+        proveedor_id=proveedor_id, proveedor_update=proveedor_update
+    )
+    
+    # Si la función CRUD retorna None, el proveedor no fue encontrado
+    if updated_proveedor is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado para actualizar")
+        
+    return updated_proveedor
+
+# --- Endpoint para ELIMINAR un proveedor existente ---
+@router.delete(
+    "/api/proveedores/{proveedor_id}",
+    status_code=status.HTTP_204_NO_CONTENT, # Respuesta estándar para eliminación exitosa
+    summary="Eliminar un proveedor existente",
+    tags=["Proveedores"]
+)
+def delete_existing_proveedor(proveedor_id: int):
+    """
+    Elimina un proveedor de la base de datos usando su 'id_proveedor'.
+    Retorna 204 No Content si la eliminación es exitosa, o 404 si el proveedor no se encuentra.
+    """
+    # Llama a la función CRUD para realizar la eliminación
+    success = crud_proveedores.delete_proveedor(proveedor_id=proveedor_id)
+    
+    # Si la función CRUD retorna False, el proveedor no fue encontrado
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado para eliminar")
+        
+    # Si success es True, FastAPI retorna automáticamente 204 No Content
+    # porque no hay un valor de retorno explícito y el status_code está definido.
+    return None
