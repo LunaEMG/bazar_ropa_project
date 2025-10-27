@@ -8,7 +8,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     
     // --- Configuración ---
-    const API_URL = 'http://127.0.0.1:8000'; 
+    const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; 
 
     // Referencias a elementos del DOM
     const listaDeProductos = document.getElementById('productos-lista');
