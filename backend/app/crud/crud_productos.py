@@ -214,4 +214,4 @@ def delete_producto(producto_id: int):
             conn.close()
             
     # Retorna True solo si se eliminó exactamente una fila de la tabla 'producto'
-    return rows_deleted_total == 1
+    return rows_deleted_total # Retorna el número directamente (0, 1, -1, -2)

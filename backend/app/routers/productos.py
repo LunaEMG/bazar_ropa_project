@@ -88,20 +88,27 @@ def delete_existing_producto(producto_id: int):
     Retorna 404 Not Found si el producto no existe.
     Retorna 409 Conflict si el producto no se puede eliminar debido a referencias 
     en otras tablas (ej. 'detalle_venta').
+    Retorna 500 Internal Server Error para otros errores de base de datos.
     """
-    # Llama a la función CRUD para eliminar
-    delete_result = crud_productos.delete_producto(producto_id=producto_id)
+    # Llama a la función CRUD para eliminar, ahora retorna 1, 0, -1, o -2
+    delete_result_code = crud_productos.delete_producto(producto_id=producto_id)
     
-    # Analiza el resultado de la función CRUD
-    if delete_result == True:
-        # Éxito: Retorna 204 No Content (automático)
+    # Analiza el código de resultado devuelto por la función CRUD
+    if delete_result_code == 1:
+        # Éxito (1 fila eliminada): Retorna 204 No Content (automático)
         return None 
-    elif delete_result == -2: # <-- *** NUEVA VERIFICACIÓN *** Código específico para error de FK
-        # Error de Clave Foránea: El producto está en uso
+    elif delete_result_code == -2: 
+        # Error de Clave Foránea (-2)
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, # 409 Conflict es más apropiado
+            status_code=status.HTTP_409_CONFLICT, 
             detail="No se puede eliminar el producto porque está referenciado en una o más ventas."
         )
-    else: # Incluye el caso donde delete_result es False (no encontrado) o -1 (otro error)
-        # Error: Producto no encontrado u otro error
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado para eliminar")
+    elif delete_result_code == 0:
+        # No encontrado (0 filas eliminadas)
+         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado para eliminar")
+    else: # Incluye el caso -1 (otro error SQL) o cualquier otro inesperado
+        # Error genérico del servidor
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Error interno del servidor al intentar eliminar el producto."
+        )
