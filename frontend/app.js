@@ -5,12 +5,14 @@
  * y operaciones CRUD para clientes, proveedores, direcciones y ventas.
  */
 
+// Espera a que el DOM esté completamente cargado.
 document.addEventListener("DOMContentLoaded", () => {
     
     // --- Configuración ---
+    /** URL base de la API backend desplegada. */
     const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; 
 
-    // Referencias a elementos del DOM
+    // Referencias a elementos clave del DOM.
     const listaDeProductos = document.getElementById('productos-lista');
     const listaDeClientesContenedor = document.getElementById('clientes-lista-contenedor'); 
     const formNuevoCliente = document.getElementById('form-nuevo-cliente');
@@ -37,42 +39,70 @@ document.addEventListener("DOMContentLoaded", () => {
     const editClienteMensaje = document.getElementById('edit-cliente-mensaje');
     const cerrarModalClienteBtn = document.getElementById('cerrar-modal-cliente');
 
-    // --- Estado ---
+    // --- Estado de la Aplicación ---
+    /** Almacena los items del carrito: { id_producto, nombre, precio, cantidad } */
     let carrito = []; 
+    /** Almacena el ID del cliente seleccionado para gestión de direcciones. */
     let clienteSeleccionadoId = null; 
 
-    // --- Auxiliares ---
+    // --- Funciones Auxiliares ---
+
+    /** Muestra un mensaje temporal (éxito/error) en un elemento DOM. */
     function mostrarMensaje(elemento, mensaje, exito = true) {
-        if (!elemento) return;
+        if (!elemento) { console.warn("Elemento para mensaje no encontrado:", elemento); return; }
         elemento.textContent = mensaje;
         elemento.className = exito ? 'mensaje exito visible' : 'mensaje error visible';
         setTimeout(() => {
-            elemento.textContent = '';
-            elemento.className = 'mensaje';
+            if (elemento) { 
+                elemento.textContent = '';
+                elemento.className = 'mensaje';
+            }
         }, 3500);
     }
 
-    async function fetchData(url, options = {}) {
+    /** Realiza una petición fetch genérica con manejo de errores básico. */
+async function fetchData(url, options = {}) {
         try {
             const response = await fetch(url, options);
+            
+            // Si la respuesta NO fue exitosa (status no es 2xx)
             if (!response.ok) {
-                let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`;
+                let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`; // Mensaje por defecto
                 try {
+                    // Intenta obtener el mensaje 'detail' del JSON de error de FastAPI
                     const errJson = await response.json();
-                    if (errJson && errJson.detail) errorDetail = errJson.detail;
-                } catch (_) {}
-                throw new Error(errorDetail);
+                    // Si hay un campo 'detail' en el JSON, úsalo como mensaje de error
+                    if (errJson && errJson.detail) {
+                        errorDetail = errJson.detail; 
+                    }
+                } catch (e) { 
+                    // Si el cuerpo de la respuesta no es JSON o no tiene 'detail', 
+                    // se usará el mensaje por defecto (status + statusText)
+                    console.warn("No se pudo parsear el cuerpo del error como JSON o no contiene 'detail'.");
+                }
+                // Lanza un error con el mensaje detallado obtenido
+                throw new Error(errorDetail); 
             }
-            if (response.status === 204) return null;
-            return await response.json();
+
+            // Si la respuesta fue 204 No Content (típico de DELETE exitoso), retorna null
+            if (response.status === 204) { 
+                return null; 
+            }
+            
+            // Si fue exitosa y tiene contenido, retorna el JSON parseado
+            return await response.json(); 
+            
         } catch (error) {
-            console.error(`Error en fetch a ${url}:`, error);
-            throw error;
+            // Loggea el error completo en la consola para depuración
+            console.error(`Error en fetch a ${url} con opciones ${JSON.stringify(options)}:`, error);
+            // Relanza el error para que la función que llamó a fetchData lo maneje
+            throw error; 
         }
     }
 
-    // --- Carga y Renderizado ---
+    // --- Funciones de Carga y Renderizado ---
 
+    /** Carga y muestra la lista de productos. */
     async function cargarProductos() {
         if (!listaDeProductos) return;
         listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
@@ -91,14 +121,20 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p class="precio">$${producto.precio.toFixed(2)}</p>
                     <button class="btn-accion btn-add-carrito" data-id="${producto.id_producto}" data-nombre="${producto.nombre}" data-precio="${producto.precio}">Añadir al Carrito</button>
                 `;
-                item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick); 
+                const addButton = item.querySelector('.btn-add-carrito'); 
+                if (addButton) {
+                    addButton.addEventListener('click', handleAddCarritoClick); 
+                } else {
+                    console.error(`Error: Botón 'Añadir al Carrito' no encontrado para producto ID: ${producto.id_producto}`);
+                }
                 listaDeProductos.appendChild(item);
             });
         } catch (error) {
-            listaDeProductos.innerHTML = `<p style="color:red;">Error al cargar productos: ${error.message}</p>`;
+            listaDeProductos.innerHTML = `<p style="color: red;">Error al cargar productos: ${error.message}</p>`;
         }
     }
 
+    /** Carga y muestra la lista de clientes y puebla el selector. */
     async function cargarClientes() {
         if (!listaDeClientesContenedor || !selectorCliente) return;
         listaDeClientesContenedor.innerHTML = '<p>Cargando clientes...</p>';
@@ -106,9 +142,8 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const clientes = await fetchData(`${API_URL}/api/clientes`);
             listaDeClientesContenedor.innerHTML = ''; 
-            if (!clientes.length) {
-                listaDeClientesContenedor.innerHTML = '<p>No hay clientes registrados.</p>'; return;
-            }
+            if (!clientes || clientes.length === 0) { listaDeClientesContenedor.innerHTML = '<p>No hay clientes registrados.</p>'; return; }
+            
             const ul = document.createElement('ul');
             clientes.forEach(cliente => {
                 const li = document.createElement('li'); 
@@ -123,29 +158,30 @@ document.addEventListener("DOMContentLoaded", () => {
                         <button class="btn-accion btn-eliminar-cliente" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre}">Eliminar</button>
                     </div>
                 `;
+                // Añadir listeners a los botones de acciones
                 li.querySelector('.btn-ver-direcciones').addEventListener('click', handleVerDireccionesClick);
                 li.querySelector('.btn-editar-cliente').addEventListener('click', handleEditarClienteClick);
                 li.querySelector('.btn-eliminar-cliente').addEventListener('click', handleDeleteClienteClick);
                 ul.appendChild(li);
-                const option = document.createElement('option'); 
-                option.value = cliente.id_cliente; option.textContent = cliente.nombre;
+
+                // Añadir al selector
+                const option = document.createElement('option'); option.value = cliente.id_cliente; option.textContent = cliente.nombre;
                 selectorCliente.appendChild(option);
             });
             listaDeClientesContenedor.appendChild(ul); 
         } catch (error) {
-            listaDeClientesContenedor.innerHTML = `<p style="color:red;">Error al cargar clientes: ${error.message}</p>`;
+            listaDeClientesContenedor.innerHTML = `<p style="color: red;">Error al cargar clientes: ${error.message}</p>`;
         }
     }
 
+    /** Carga y muestra la lista de proveedores. */
     async function cargarProveedores() {
         if (!listaDeProveedores) return; 
         listaDeProveedores.innerHTML = '<p>Cargando proveedores...</p>';
         try {
             const proveedores = await fetchData(`${API_URL}/api/proveedores`);
             listaDeProveedores.innerHTML = ''; 
-            if (!proveedores.length) {
-                listaDeProveedores.innerHTML = '<p>No hay proveedores registrados.</p>'; return;
-            }
+            if (!proveedores || proveedores.length === 0) { listaDeProveedores.innerHTML = '<p>No hay proveedores registrados.</p>'; return; }
             const ul = document.createElement('ul');
             proveedores.forEach(proveedor => {
                 const li = document.createElement('li');
@@ -155,29 +191,27 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span>${proveedor.telefono || 'Sin teléfono'}</span>
                     </div>
                     <div class="item-acciones">
-                        <button class="btn-accion btn-editar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}" data-telefono="${proveedor.telefono || ''}">Editar</button>
-                        <button class="btn-accion btn-eliminar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}">Eliminar</button>
+                         <button class="btn-accion btn-editar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}" data-telefono="${proveedor.telefono || ''}">Editar</button>
+                         <button class="btn-accion btn-eliminar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}">Eliminar</button>
                     </div>
                 `;
-                li.querySelector('.btn-editar-proveedor').addEventListener('click', handleEditarProveedorClick);
-                li.querySelector('.btn-eliminar-proveedor').addEventListener('click', handleDeleteProveedorClick);
+                // --- TODO: Añadir listeners para handleEditarProveedorClick y handleDeleteProveedorClick ---
                 ul.appendChild(li);
             });
             listaDeProveedores.appendChild(ul);
         } catch (error) {
-            listaDeProveedores.innerHTML = `<p style="color:red;">Error al cargar proveedores: ${error.message}</p>`;
+            listaDeProveedores.innerHTML = `<p style="color: red;">Error al cargar proveedores: ${error.message}</p>`;
         }
     }
 
+    /** Carga y muestra las direcciones de un cliente específico. */
     async function cargarDireccionesCliente(clienteId) {
         if (!listaDireccionesCliente) return;
         listaDireccionesCliente.innerHTML = '<p>Cargando direcciones...</p>';
         try {
             const direcciones = await fetchData(`${API_URL}/api/clientes/${clienteId}/direcciones`);
             listaDireccionesCliente.innerHTML = ''; 
-            if (!direcciones.length) {
-                listaDireccionesCliente.innerHTML = '<p>Este cliente no tiene direcciones.</p>'; return;
-            }
+            if (!direcciones || direcciones.length === 0) { listaDireccionesCliente.innerHTML = '<p>Este cliente no tiene direcciones registradas.</p>'; return; }
             const ul = document.createElement('ul');
             direcciones.forEach(dir => {
                 const li = document.createElement('li');
@@ -186,245 +220,250 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span>${dir.calle}</span>
                         <span>${dir.ciudad}, CP ${dir.codigo_postal}</span>
                     </div>
-                `;
+                    <div class="item-acciones">
+                        <!-- Botones Editar/Eliminar para direcciones irían aquí -->
+                    </div>
+                    `; 
                 ul.appendChild(li);
             });
             listaDireccionesCliente.appendChild(ul);
         } catch (error) {
-            listaDireccionesCliente.innerHTML = `<p style="color:red;">Error al cargar direcciones: ${error.message}</p>`;
+            listaDireccionesCliente.innerHTML = `<p style="color: red;">Error al cargar direcciones: ${error.message}</p>`;
         }
     }
 
-    // --- UI ---
+    // --- Funciones de Lógica de UI ---
+
+    /** Muestra la sección de direcciones para un cliente específico. */
     function mostrarSeccionDirecciones(clienteId, nombreCliente) {
-        clienteSeleccionadoId = clienteId; 
-        nombreClienteSeleccionadoSpan.textContent = nombreCliente; 
-        idClienteDireccionInput.value = clienteId; 
-        direccionesClienteDiv.style.display = 'block'; 
-        cargarDireccionesCliente(clienteId); 
+         if (!direccionesClienteDiv || !nombreClienteSeleccionadoSpan || !idClienteDireccionInput) return;
+         clienteSeleccionadoId = clienteId; 
+         nombreClienteSeleccionadoSpan.textContent = nombreCliente; 
+         idClienteDireccionInput.value = clienteId; 
+         direccionesClienteDiv.style.display = 'block'; 
+         cargarDireccionesCliente(clienteId); 
     }
 
+    /** Muestra el modal de edición de cliente con los datos precargados. */
     function mostrarModalEditarCliente(clienteId, nombre, telefono) {
+        if (!modalEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput) return;
         editClienteIdInput.value = clienteId;
         editNombreClienteInput.value = nombre;
         editTelefonoClienteInput.value = telefono || ''; 
         editClienteMensaje.textContent = ''; 
+        editClienteMensaje.className = 'mensaje';
         modalEditarCliente.style.display = 'block'; 
     }
 
+    /** Oculta el modal de edición de cliente. */
     function ocultarModalEditarCliente() {
-        modalEditarCliente.style.display = 'none'; 
+        if (modalEditarCliente) {
+            modalEditarCliente.style.display = 'none'; 
+        }
     }
 
-    // --- Carrito ---
+    // --- Funciones del Carrito ---
+
+    /** Actualiza la vista del carrito en el HTML y calcula el total. */
     function renderizarCarrito() { 
+        if (!carritoItemsDiv || !carritoTotalSpan || !btnFinalizarCompra) return;
         carritoItemsDiv.innerHTML = ''; 
         let total = 0;
-        if (carrito.length === 0) { 
-            carritoItemsDiv.innerHTML = '<p>El carrito está vacío.</p>'; 
-            btnFinalizarCompra.disabled = true; 
-        } else {
+        if (carrito.length === 0) { carritoItemsDiv.innerHTML = '<p>El carrito está vacío.</p>'; btnFinalizarCompra.disabled = true; } 
+        else {
             carrito.forEach(item => {
                 const itemDiv = document.createElement('div'); 
                 itemDiv.className = 'carrito-item'; 
-                itemDiv.innerHTML = `<span>${item.nombre}</span><span>x${item.cantidad}</span><span>$${(item.precio * item.cantidad).toFixed(2)}</span><button class="btn-remove-carrito" data-id="${item.id_producto}">X</button>`;
-                itemDiv.querySelector('.btn-remove-carrito').addEventListener('click', handleRemoveCarritoClick);
-                carritoItemsDiv.appendChild(itemDiv); 
-                total += item.precio * item.cantidad;
+                itemDiv.innerHTML = `<span class="item-nombre">${item.nombre}</span><span class="item-cantidad">x ${item.cantidad}</span><span class="item-precio">$${(item.precio * item.cantidad).toFixed(2)}</span><button class="btn-remove-carrito" data-id="${item.id_producto}" style="color: red; background: none; border: none; cursor: pointer;">X</button>`;
+                const removeButton = itemDiv.querySelector('.btn-remove-carrito'); 
+                if (removeButton) { removeButton.addEventListener('click', handleRemoveCarritoClick); } 
+                else { console.error("Error: Botón remover no encontrado para item:", item); }
+                carritoItemsDiv.appendChild(itemDiv); total += item.precio * item.cantidad;
             });
             btnFinalizarCompra.disabled = false; 
         }
         carritoTotalSpan.textContent = total.toFixed(2); 
     }
 
-    function handleAddCarritoClick(e) {
-        const { id, nombre, precio } = e.target.dataset;
-        const itemExistente = carrito.find(i => i.id_producto === parseInt(id));
-        if (itemExistente) itemExistente.cantidad++;
-        else carrito.push({ id_producto: parseInt(id), nombre, precio: parseFloat(precio), cantidad: 1 });
-        renderizarCarrito();
+    /** Maneja el clic en "Añadir al Carrito". */
+    function handleAddCarritoClick(event) {
+        const button = event.target;
+        const idProducto = parseInt(button.dataset.id); 
+        const nombre = button.dataset.nombre;
+        const precio = parseFloat(button.dataset.precio); 
+        // console.log("Añadiendo al carrito:", { idProducto, nombre, precio }); // Log de depuración
+
+        const itemExistente = carrito.find(item => item.id_producto === idProducto);
+        if (itemExistente) {
+            itemExistente.cantidad++; 
+        } else {
+            carrito.push({ id_producto: idProducto, nombre, precio, cantidad: 1 });
+        }
+        renderizarCarrito(); // Actualiza la vista
     }
 
-    function handleRemoveCarritoClick(e) {
-        const id = parseInt(e.target.dataset.id);
-        carrito = carrito.filter(i => i.id_producto !== id);
-        renderizarCarrito();
+    /** Maneja el clic en el botón "X" para remover item del carrito. */
+    function handleRemoveCarritoClick(event) {
+        const button = event.target; 
+        const idProducto = parseInt(button.dataset.id);
+        carrito = carrito.filter(item => item.id_producto !== idProducto); 
+        renderizarCarrito(); 
     }
 
-    // --- Eventos Clientes ---
-    function handleVerDireccionesClick(e) {
-        const b = e.target;
-        mostrarSeccionDirecciones(parseInt(b.dataset.id), b.dataset.nombre);
+    // --- Manejadores de Eventos ---
+
+    /** Maneja el clic en "Ver/Añadir Direcciones". */
+    function handleVerDireccionesClick(event) {
+        const button = event.target;
+        const clienteId = parseInt(button.dataset.id);
+        const nombreCliente = button.dataset.nombre;
+        mostrarSeccionDirecciones(clienteId, nombreCliente);
     }
 
-    function handleEditarClienteClick(e) {
-        const b = e.target;
-        mostrarModalEditarCliente(parseInt(b.dataset.id), b.dataset.nombre, b.dataset.telefono);
+    /** Maneja el clic en "Editar Cliente". */
+    function handleEditarClienteClick(event) {
+        const button = event.target;
+        const clienteId = parseInt(button.dataset.id);
+        const nombre = button.dataset.nombre;
+        const telefono = button.dataset.telefono; 
+        mostrarModalEditarCliente(clienteId, nombre, telefono);
     }
 
-    async function handleDeleteClienteClick(e) {
-        const b = e.target;
-        const id = parseInt(b.dataset.id);
-        if (!confirm(`¿Eliminar cliente "${b.dataset.nombre}"?`)) return;
+    /** Maneja el clic en "Eliminar Cliente". */
+    async function handleDeleteClienteClick(event) {
+        const button = event.target;
+        const clienteId = parseInt(button.dataset.id);
+        const nombreCliente = button.dataset.nombre;
+
+        // Confirmación antes de proceder
+        if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombreCliente}"?`)) {
+            return; 
+        }
+
         try {
-            await fetchData(`${API_URL}/api/clientes/${id}`, { method: 'DELETE' });
-            mostrarMensaje(clienteMensaje, `Cliente eliminado con éxito.`, true);
-            cargarClientes();
-        } catch (err) {
-            mostrarMensaje(clienteMensaje, `Error: ${err.message}`, false);
+            // Llama al endpoint DELETE usando fetchData
+            await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
+                method: 'DELETE',
+            });
+            // Si fetchData no lanzó error, la eliminación fue exitosa (status 204)
+            mostrarMensaje(clienteMensaje, `Cliente "${nombreCliente}" eliminado con éxito.`, true);
+            cargarClientes(); // Recarga la lista actualizada
+            // Opcional: Ocultar sección de direcciones si era del cliente eliminado
+            if (clienteSeleccionadoId === clienteId && direccionesClienteDiv) {
+                direccionesClienteDiv.style.display = 'none';
+                clienteSeleccionadoId = null;
+            }
+        } catch (error) {
+            // Muestra el mensaje de error DETALLADO obtenido por fetchData (ej. 409 Conflict)
+            mostrarMensaje(clienteMensaje, `Error al eliminar cliente: ${error.message}`, false); 
         }
     }
 
-    async function handleEditarClienteSubmit(e) {
-        e.preventDefault();
-        const id = parseInt(editClienteIdInput.value);
+    /** Maneja el envío del formulario de edición de cliente. */
+    async function handleEditarClienteSubmit(event) {
+        event.preventDefault();
+        if (!formEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput || !editClienteMensaje) return;
+
+        const clienteId = parseInt(editClienteIdInput.value);
         const nombre = editNombreClienteInput.value;
         const telefono = editTelefonoClienteInput.value || null; 
-        const btn = formEditarCliente.querySelector('button[type="submit"]');
-        btn.disabled = true; btn.textContent = 'Guardando...';
+
+        const submitButton = formEditarCliente.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Guardando...';
+
         try {
-            const actualizado = await fetchData(`${API_URL}/api/clientes/${id}`, {
+            // Llama al endpoint PUT usando fetchData
+            const clienteActualizado = await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, telefono })
+                body: JSON.stringify({ nombre, telefono }), 
             });
-            mostrarMensaje(editClienteMensaje, `Cliente "${actualizado.nombre}" actualizado.`, true);
+            mostrarMensaje(editClienteMensaje, `Cliente "${clienteActualizado.nombre}" actualizado!`, true);
             ocultarModalEditarCliente(); 
             cargarClientes(); 
-        } catch (err) {
-            mostrarMensaje(editClienteMensaje, `Error: ${err.message}`, false);
+        } catch (error) {
+            mostrarMensaje(editClienteMensaje, `Error al actualizar: ${error.message}`, false);
         } finally {
-            btn.disabled = false; btn.textContent = 'Guardar Cambios';
+            submitButton.disabled = false;
+            submitButton.textContent = 'Guardar Cambios';
         }
     }
 
-    // --- Eventos Proveedores (añadidos) ---
-    function handleEditarProveedorClick(event) {
-        const b = event.target;
-        const id = parseInt(b.dataset.id);
-        const nombre = b.dataset.nombre;
-        const telefono = b.dataset.telefono;
-        alert(`Editar proveedor:\nID: ${id}\nNombre: ${nombre}\nTeléfono: ${telefono}`);
-    }
-
-    async function handleDeleteProveedorClick(event) {
-        const b = event.target;
-        const id = parseInt(b.dataset.id);
-        const nombre = b.dataset.nombre;
-        if (!confirm(`¿Eliminar proveedor "${nombre}"?`)) return;
+    /** Maneja el envío del formulario para crear un nuevo cliente. */
+    async function handleNuevoClienteSubmit(event) { 
+        event.preventDefault(); if (!formNuevoCliente || !clienteMensaje) return;
+        const formData = new FormData(formNuevoCliente); const nombre = formData.get('nombre'); const telefono = formData.get('telefono') || null; 
+        const submitButton = formNuevoCliente.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Registrando...';
         try {
-            await fetchData(`${API_URL}/api/proveedores/${id}`, { method: 'DELETE' });
-            mostrarMensaje(proveedorMensaje, `Proveedor "${nombre}" eliminado.`, true);
-            cargarProveedores();
-        } catch (err) {
-            mostrarMensaje(proveedorMensaje, `Error al eliminar: ${err.message}`, false);
-        }
+            const nuevoCliente = await fetchData(`${API_URL}/api/clientes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono }), });
+            mostrarMensaje(clienteMensaje, `Cliente "${nuevoCliente.nombre}" registrado!`, true); formNuevoCliente.reset(); cargarClientes(); 
+        } catch (error) { mostrarMensaje(clienteMensaje, `Error: ${error.message}`, false); } 
+        finally { submitButton.disabled = false; submitButton.textContent = 'Registrar Cliente'; }
     }
 
-    // --- Formularios ---
-    async function handleNuevoClienteSubmit(e) {
-        e.preventDefault();
-        const fd = new FormData(formNuevoCliente);
-        const nombre = fd.get('nombre'); const telefono = fd.get('telefono') || null;
-        const btn = formNuevoCliente.querySelector('button[type="submit"]');
-        btn.disabled = true; btn.textContent = 'Registrando...';
+    /** Maneja el envío del formulario para crear un nuevo proveedor. */
+    async function handleNuevoProveedorSubmit(event) { 
+        event.preventDefault(); if (!formNuevoProveedor || !proveedorMensaje) return; 
+        const formData = new FormData(formNuevoProveedor); const nombre = formData.get('nombre'); const telefono = formData.get('telefono') || null; 
+        const submitButton = formNuevoProveedor.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Registrando...';
         try {
-            const nuevo = await fetchData(`${API_URL}/api/clientes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, telefono }),
-            });
-            mostrarMensaje(clienteMensaje, `Cliente "${nuevo.nombre}" registrado.`, true);
-            formNuevoCliente.reset(); cargarClientes();
-        } catch (err) {
-            mostrarMensaje(clienteMensaje, `Error: ${err.message}`, false);
-        } finally {
-            btn.disabled = false; btn.textContent = 'Registrar Cliente';
-        }
+            const nuevoProveedor = await fetchData(`${API_URL}/api/proveedores`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono }), });
+            mostrarMensaje(proveedorMensaje, `Proveedor "${nuevoProveedor.nombre}" registrado!`, true); formNuevoProveedor.reset(); cargarProveedores(); 
+        } catch (error) { mostrarMensaje(proveedorMensaje, `Error: ${error.message}`, false); } 
+        finally { submitButton.disabled = false; submitButton.textContent = 'Registrar Proveedor'; }
     }
-
-    async function handleNuevoProveedorSubmit(e) {
-        e.preventDefault();
-        const fd = new FormData(formNuevoProveedor);
-        const nombre = fd.get('nombre'); const telefono = fd.get('telefono') || null;
-        const btn = formNuevoProveedor.querySelector('button[type="submit"]');
-        btn.disabled = true; btn.textContent = 'Registrando...';
+    
+    /** Maneja el envío del formulario para añadir una dirección. */
+    async function handleNuevaDireccionSubmit(event) { 
+        event.preventDefault(); if (!formNuevaDireccion || !direccionMensaje || clienteSeleccionadoId === null) return;
+        const formData = new FormData(formNuevaDireccion); const calle = formData.get('calle'); const ciudad = formData.get('ciudad'); const codigo_postal = formData.get('codigo_postal');
+        const submitButton = formNuevaDireccion.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Añadiendo...';
         try {
-            const nuevo = await fetchData(`${API_URL}/api/proveedores`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, telefono }),
-            });
-            mostrarMensaje(proveedorMensaje, `Proveedor "${nuevo.nombre}" registrado.`, true);
-            formNuevoProveedor.reset(); cargarProveedores();
-        } catch (err) {
-            mostrarMensaje(proveedorMensaje, `Error: ${err.message}`, false);
-        } finally {
-            btn.disabled = false; btn.textContent = 'Registrar Proveedor';
-        }
+            const nuevaDireccion = await fetchData(`${API_URL}/api/clientes/${clienteSeleccionadoId}/direcciones`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ calle, ciudad, codigo_postal }), });
+            mostrarMensaje(direccionMensaje, `Dirección añadida!`, true); formNuevaDireccion.reset(); cargarDireccionesCliente(clienteSeleccionadoId); 
+        } catch (error) { mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false); } 
+        finally { submitButton.disabled = false; submitButton.textContent = 'Añadir Dirección'; }
     }
 
-    async function handleNuevaDireccionSubmit(e) { 
-        e.preventDefault(); 
-        if (clienteSeleccionadoId === null) return;
-        const fd = new FormData(formNuevaDireccion);
-        const data = {
-            calle: fd.get('calle'),
-            ciudad: fd.get('ciudad'),
-            codigo_postal: fd.get('codigo_postal'),
-        };
-        const btn = formNuevaDireccion.querySelector('button[type="submit"]');
-        btn.disabled = true; btn.textContent = 'Añadiendo...';
-        try {
-            await fetchData(`${API_URL}/api/clientes/${clienteSeleccionadoId}/direcciones`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            mostrarMensaje(direccionMensaje, `Dirección añadida.`, true);
-            formNuevaDireccion.reset(); cargarDireccionesCliente(clienteSeleccionadoId);
-        } catch (err) {
-            mostrarMensaje(direccionMensaje, `Error: ${err.message}`, false);
-        } finally {
-            btn.disabled = false; btn.textContent = 'Añadir Dirección';
-        }
-    }
-
+    /** Maneja el clic en "Finalizar Compra". */
     async function handleFinalizarCompraClick() { 
-        const idCliente = selectorCliente.value;
-        if (!idCliente) return mostrarMensaje(compraMensaje, "Seleccione un cliente.", false);
-        if (!carrito.length) return mostrarMensaje(compraMensaje, "El carrito está vacío.", false);
-        const data = {
-            id_cliente: parseInt(idCliente),
-            detalles: carrito.map(p => ({ id_producto: p.id_producto, cantidad: p.cantidad })),
-        };
+        if (!selectorCliente || !btnFinalizarCompra || !compraMensaje) return;
+        const idClienteSeleccionado = selectorCliente.value;
+        if (!idClienteSeleccionado) { mostrarMensaje(compraMensaje, "Seleccione un cliente.", false); return; }
+        if (carrito.length === 0) { mostrarMensaje(compraMensaje, "El carrito está vacío.", false); return; }
+        const ventaData = { id_cliente: parseInt(idClienteSeleccionado), detalles: carrito.map(item => ({ id_producto: item.id_producto, cantidad: item.cantidad, precio_unitario: item.precio })) };
         btnFinalizarCompra.disabled = true; btnFinalizarCompra.textContent = 'Procesando...';
         try {
-            const venta = await fetchData(`${API_URL}/api/ventas`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            mostrarMensaje(compraMensaje, `Compra registrada con ID: ${venta.id_venta}`, true);
-            carrito = []; renderizarCarrito();
-        } catch (err) {
-            mostrarMensaje(compraMensaje, `Error: ${err.message}`, false);
-        } finally {
-            btnFinalizarCompra.disabled = false; btnFinalizarCompra.textContent = 'Finalizar Compra';
-        }
+            const ventaCreada = await fetchData(`${API_URL}/api/ventas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ventaData), });
+            mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada! Total: $${ventaCreada.monto_total.toFixed(2)}`, true); carrito = []; renderizarCarrito(); selectorCliente.value = ""; 
+        } catch (error) { mostrarMensaje(compraMensaje, `Error: ${error.message}`, false); } 
+        finally { btnFinalizarCompra.textContent = 'Finalizar Compra'; renderizarCarrito(); }
     }
 
-    // --- Listeners ---
+    // --- Inicialización y Asignación de Eventos ---
+
+    // Carga inicial de datos.
+    cargarProductos();
+    cargarClientes(); 
+    cargarProveedores(); 
+
+    // Asigna manejadores de eventos a formularios y botones estáticos.
     if (formNuevoCliente) formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
+    if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
+    if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit); 
+    if (btnFinalizarCompra) btnFinalizarCompra.addEventListener('click', handleFinalizarCompraClick);
     if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarClienteSubmit);
     if (cerrarModalClienteBtn) cerrarModalClienteBtn.addEventListener('click', ocultarModalEditarCliente);
-    if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
-    if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit);
-    if (btnFinalizarCompra) btnFinalizarCompra.addEventListener('click', handleFinalizarCompraClick);
-
-    // --- Inicialización ---
-    cargarProductos();
-    cargarClientes();
-    cargarProveedores();
+    if (modalEditarCliente) {
+        modalEditarCliente.addEventListener('click', (event) => {
+            if (event.target === modalEditarCliente) { 
+                ocultarModalEditarCliente();
+            }
+        });
+    }
+    
+    // Renderiza el estado inicial del carrito.
     renderizarCarrito();
-});
+
+}); // Fin del addEventListener DOMContentLoaded
