@@ -1,8 +1,11 @@
-// Espera a que el DOM esté completamente cargado.
+// Espera a que el DOM esté completamente cargado antes de ejecutar el script.
 document.addEventListener("DOMContentLoaded", () => {
     
     // --- Configuración ---
+    // URL base de la API desplegada en Render.
     const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; 
+
+    // Referencias a los elementos del DOM.
     const listaDeProductos = document.getElementById('productos-lista');
     const listaDeClientes = document.getElementById('clientes-lista');
     const formNuevoCliente = document.getElementById('form-nuevo-cliente');
@@ -13,24 +16,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const compraMensaje = document.getElementById('compra-mensaje');
     const selectorCliente = document.getElementById('selector-cliente');
 
-    // --- Estado de la Aplicación (Carrito) ---
-    let carrito = []; // Array para almacenar los items { id_producto, nombre, precio, cantidad }
+    // --- Estado de la Aplicación ---
+    let carrito = []; // Almacena items: { id_producto, nombre, precio, cantidad }
 
     // --- Funciones Auxiliares ---
 
-    /** Muestra un mensaje temporal (éxito/error) en un área específica. */
+    /** Muestra un mensaje temporal (éxito/error). */
     function mostrarMensaje(elemento, mensaje, exito = true) {
+        if (!elemento) return; // Verifica si el elemento existe
         elemento.textContent = mensaje;
         elemento.className = exito ? 'mensaje exito visible' : 'mensaje error visible';
         setTimeout(() => {
             elemento.textContent = '';
             elemento.className = 'mensaje';
-        }, 3500); // Aumentado a 3.5 segundos
+        }, 3500);
     }
 
     // --- Funciones de Carga de Datos ---
 
-    /** Carga y muestra la lista de productos desde la API. */
+    /** Carga y muestra la lista de productos. */
     function cargarProductos() {
         if (!listaDeProductos) return;
         listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
@@ -55,8 +59,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p class="precio">$${producto.precio.toFixed(2)}</p>
                         <button class="btn-add-carrito" data-id="${producto.id_producto}" data-nombre="${producto.nombre}" data-precio="${producto.precio}">Añadir al Carrito</button>
                     `;
-                    // Añade el event listener al botón recién creado
-                    item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick);
+                    // Asigna el listener al botón de añadir
+                    const addButton = item.querySelector('.btn-add-carrito');
+                    if (addButton) {
+                        addButton.addEventListener('click', handleAddCarritoClick);
+                    }
                     listaDeProductos.appendChild(item);
                 });
             })
@@ -66,12 +73,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
     }
 
-    /** Carga y muestra la lista de clientes desde la API y llena el selector. */
+    /** Carga y muestra la lista de clientes y puebla el selector. */
     function cargarClientes() {
         if (!listaDeClientes || !selectorCliente) return;
 
         listaDeClientes.innerHTML = '<p>Cargando clientes...</p>';
-        selectorCliente.innerHTML = '<option value="">Seleccione un cliente...</option>'; // Limpia y añade opción por defecto
+        selectorCliente.innerHTML = '<option value="">Seleccione un cliente...</option>'; 
 
         fetch(`${API_URL}/api/clientes`)
             .then(response => {
@@ -86,11 +93,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 const ul = document.createElement('ul');
                 clientes.forEach(cliente => {
-                    // Añade cliente a la lista visible
+                    // Añade a la lista visible
                     const li = document.createElement('li');
                     li.innerHTML = `<span>${cliente.nombre}</span> <span>${cliente.telefono || 'Sin teléfono'}</span>`;
                     ul.appendChild(li);
-                    // Añade cliente como opción en el selector
+                    // Añade al selector
                     const option = document.createElement('option');
                     option.value = cliente.id_cliente;
                     option.textContent = cliente.nombre;
@@ -106,63 +113,72 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Funciones del Carrito ---
 
-    /** Actualiza la visualización del carrito en el HTML y el total. */
+    /** Actualiza la vista del carrito en el HTML y calcula el total. */
     function renderizarCarrito() {
-        carritoItemsDiv.innerHTML = ''; // Limpia la vista actual
+        if (!carritoItemsDiv || !carritoTotalSpan || !btnFinalizarCompra) return;
+
+        carritoItemsDiv.innerHTML = ''; 
         let total = 0;
 
         if (carrito.length === 0) {
             carritoItemsDiv.innerHTML = '<p>El carrito está vacío.</p>';
-            btnFinalizarCompra.disabled = true; // Deshabilita el botón si no hay items
+            btnFinalizarCompra.disabled = true; 
         } else {
             carrito.forEach(item => {
                 const itemDiv = document.createElement('div');
-                item.className = 'carrito-item';
-                item.innerHTML = `
+                // *** CORRECCIÓN APLICADA AQUÍ ***
+                itemDiv.className = 'carrito-item'; // Asigna la clase CSS al div principal del item
+
+                itemDiv.innerHTML = `
                     <span class="item-nombre">${item.nombre}</span>
                     <span class="item-cantidad">x ${item.cantidad}</span>
                     <span class="item-precio">$${(item.precio * item.cantidad).toFixed(2)}</span>
                     <button class="btn-remove-carrito" data-id="${item.id_producto}" style="color: red; background: none; border: none; cursor: pointer;">X</button> 
                 `;
-                // Añade event listener al botón de remover
-                itemDiv.querySelector('.btn-remove-carrito').addEventListener('click', handleRemoveCarritoClick);
+                
+                // Busca el botón "X" DENTRO del itemDiv recién creado
+                const removeButton = itemDiv.querySelector('.btn-remove-carrito');
+                
+                // Añade el event listener al botón (si se encontró)
+                if (removeButton) {
+                     removeButton.addEventListener('click', handleRemoveCarritoClick);
+                } else {
+                     // Solo para depuración si algo falla inesperadamente
+                     console.error("Error: No se encontró el botón de remover para el item:", item); 
+                }
+                
                 carritoItemsDiv.appendChild(itemDiv);
                 total += item.precio * item.cantidad;
             });
-            btnFinalizarCompra.disabled = false; // Habilita el botón si hay items
+            btnFinalizarCompra.disabled = false; 
         }
-        carritoTotalSpan.textContent = total.toFixed(2); // Actualiza el total en el HTML
+        carritoTotalSpan.textContent = total.toFixed(2); 
     }
 
-    /** Manejador para el clic en "Añadir al Carrito". */
+    /** Maneja el clic en "Añadir al Carrito". */
     function handleAddCarritoClick(event) {
         const button = event.target;
-        const idProducto = parseInt(button.dataset.id); // Convierte a número
+        const idProducto = parseInt(button.dataset.id); 
         const nombre = button.dataset.nombre;
-        const precio = parseFloat(button.dataset.precio); // Convierte a número flotante
+        const precio = parseFloat(button.dataset.precio); 
 
-        // Busca si el producto ya está en el carrito
         const itemExistente = carrito.find(item => item.id_producto === idProducto);
 
         if (itemExistente) {
-            itemExistente.cantidad++; // Si existe, incrementa la cantidad
+            itemExistente.cantidad++; 
         } else {
-            // Si no existe, lo añade al carrito
             carrito.push({ id_producto: idProducto, nombre, precio, cantidad: 1 });
         }
         
-        renderizarCarrito(); // Actualiza la vista del carrito
+        renderizarCarrito(); // Actualiza la vista
     }
 
-     /** Manejador para el clic en el botón "X" para remover item del carrito. */
+    /** Maneja el clic en el botón "X" para remover item del carrito. */
     function handleRemoveCarritoClick(event) {
         const button = event.target;
         const idProducto = parseInt(button.dataset.id);
-
-        // Filtra el carrito, manteniendo todos los items EXCEPTO el que coincide con el ID
         carrito = carrito.filter(item => item.id_producto !== idProducto);
-
-        renderizarCarrito(); // Actualiza la vista del carrito
+        renderizarCarrito(); // Actualiza la vista
     }
 
 
@@ -190,7 +206,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(nuevoCliente => {
             mostrarMensaje(clienteMensaje, `Cliente "${nuevoCliente.nombre}" registrado!`, true);
             formNuevoCliente.reset(); 
-            cargarClientes(); // Recarga la lista Y el selector de clientes
+            cargarClientes(); // Recarga lista y selector
         })
         .catch(error => {
             console.error('Error al registrar cliente:', error);
@@ -202,11 +218,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    /** Maneja el clic en el botón "Finalizar Compra". */
+    /** Maneja el clic en "Finalizar Compra". */
     function handleFinalizarCompraClick() {
+        if (!selectorCliente || !btnFinalizarCompra || !compraMensaje) return;
+
         const idClienteSeleccionado = selectorCliente.value;
 
-        // Validación simple
         if (!idClienteSeleccionado) {
             mostrarMensaje(compraMensaje, "Por favor, seleccione un cliente.", false);
             return;
@@ -216,17 +233,15 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Prepara los datos para enviar a la API según el schema VentaCreate
         const ventaData = {
             id_cliente: parseInt(idClienteSeleccionado),
             detalles: carrito.map(item => ({
                 id_producto: item.id_producto,
                 cantidad: item.cantidad,
-                precio_unitario: item.precio // Usa el precio guardado en el carrito
+                precio_unitario: item.precio 
             }))
         };
 
-        // Deshabilita botón durante el proceso
         btnFinalizarCompra.disabled = true;
         btnFinalizarCompra.textContent = 'Procesando...';
 
@@ -237,48 +252,41 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .then(response => {
              if (!response.ok) {
-                // Intenta obtener más detalles del error si la API los envía
                 return response.json().then(err => { 
                     throw new Error(err.detail || `Error ${response.status}: No se pudo registrar la venta.`);
                 });
             }
-            return response.json(); // La API devuelve la venta creada
+            return response.json(); 
         })
         .then(ventaCreada => {
-            mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada con éxito! Total: $${ventaCreada.monto_total.toFixed(2)}`, true);
-            carrito = []; // Vacía el carrito local
-            renderizarCarrito(); // Actualiza la vista del carrito (ahora vacío)
-            selectorCliente.value = ""; // Resetea el selector de cliente
+            mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada! Total: $${ventaCreada.monto_total.toFixed(2)}`, true);
+            carrito = []; 
+            renderizarCarrito(); 
+            selectorCliente.value = ""; 
         })
         .catch(error => {
             console.error('Error al finalizar compra:', error);
             mostrarMensaje(compraMensaje, `Error: ${error.message}`, false);
         })
         .finally(() => {
-            // Vuelve a habilitar el botón
-            // (Se re-habilitará automáticamente por renderizarCarrito si el carrito no está vacío)
-            if (carrito.length > 0) btnFinalizarCompra.disabled = false; 
-            btnFinalizarCompra.textContent = 'Finalizar Compra';
+            // Se re-habilita/deshabilita según el estado del carrito en renderizarCarrito()
+            btnFinalizarCompra.textContent = 'Finalizar Compra'; 
+            renderizarCarrito(); // Asegura estado correcto del botón
         });
     }
 
     // --- Inicialización y Asignación de Eventos ---
 
-    // Carga inicial de datos al cargar la página.
     cargarProductos();
-    cargarClientes(); // Carga clientes en la lista y en el selector desplegable
+    cargarClientes(); 
 
-    // Asigna el manejador de eventos al formulario de nuevo cliente.
     if (formNuevoCliente) {
         formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
     }
-
-    // Asigna el manejador de eventos al botón de finalizar compra.
     if (btnFinalizarCompra) {
         btnFinalizarCompra.addEventListener('click', handleFinalizarCompraClick);
     }
 
-    // Llama a renderizarCarrito una vez al inicio para mostrar "El carrito está vacío."
-    renderizarCarrito();
+    renderizarCarrito(); // Llama inicial para mostrar estado vacío
 
-}); // Fin del addEventListener DOMContentLoaded
+});
