@@ -40,29 +40,56 @@
         <hr>
 
         <section>
-            <h2>Registrar Nuevo Cliente</h2>
-            <form id="form-nuevo-cliente">
-                <div class="form-group">
-                    <label for="nombre-cliente">Nombre:</label>
-                    <input type="text" id="nombre-cliente" name="nombre" required>
-                </div>
-                <div class="form-group">
-                    <label for="telefono-cliente">Teléfono (Opcional):</label>
-                    <input type="tel" id="telefono-cliente" name="telefono">
-                </div>
-                <button type="submit">Registrar Cliente</button>
-                <p id="cliente-mensaje" class="mensaje"></p>
-            </form>
-        </section>
+            <h2>Gestión de Clientes</h2>
 
-        <hr>
+            <div class="sub-section">
+                <h3>Registrar Nuevo Cliente</h3>
+                <form id="form-nuevo-cliente">
+                    <div class="form-group">
+                        <label for="nombre-cliente">Nombre:</label>
+                        <input type="text" id="nombre-cliente" name="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono-cliente">Teléfono (Opcional):</label>
+                        <input type="tel" id="telefono-cliente" name="telefono">
+                    </div>
+                    <button type="submit">Registrar Cliente</button>
+                    <p id="cliente-mensaje" class="mensaje"></p>
+                </form>
+            </div>
 
-        <section>
-            <h2>Lista de Clientes</h2>
-            <div id="clientes-lista">
-                <p>Cargando clientes...</p>
+            <div class="sub-section">
+                <h3>Lista de Clientes</h3>
+                <div id="clientes-lista">
+                    <p>Cargando clientes...</p>
+                </div>
+            </div>
+
+            <div class="sub-section" id="direcciones-cliente" style="display: none;"> <h3>Direcciones de <span id="nombre-cliente-seleccionado"></span></h3>
+                <div id="lista-direcciones-cliente">
+                    </div>
+
+                <h4>Añadir Nueva Dirección</h4>
+                <form id="form-nueva-direccion">
+                    <input type="hidden" id="id-cliente-direccion" name="id_cliente">
+                    <div class="form-group">
+                        <label for="calle-direccion">Calle y Número:</label>
+                        <input type="text" id="calle-direccion" name="calle" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ciudad-direccion">Ciudad:</label>
+                        <input type="text" id="ciudad-direccion" name="ciudad" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cp-direccion">Código Postal:</label>
+                        <input type="text" id="cp-direccion" name="codigo_postal" required>
+                    </div>
+                    <button type="submit">Añadir Dirección</button>
+                    <p id="direccion-mensaje" class="mensaje"></p>
+                </form>
             </div>
         </section>
+
 
         <hr> 
 
