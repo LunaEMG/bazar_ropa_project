@@ -74,11 +74,10 @@ def update_existing_producto(producto_id: int, producto_update: ProductoUpdate):
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado tras actualización")
     return updated_full_producto
 
-
-# --- NUEVO Endpoint para ELIMINAR un producto existente ---
+# --- Endpoint DELETE ---
 @router.delete(
     "/api/productos/{producto_id}",
-    status_code=status.HTTP_204_NO_CONTENT, # Respuesta estándar para DELETE exitoso
+    status_code=status.HTTP_204_NO_CONTENT, 
     summary="Eliminar un producto existente",
     tags=["Productos"]
 )
@@ -87,20 +86,22 @@ def delete_existing_producto(producto_id: int):
     Elimina un producto y su registro asociado en la tabla de subtipo.
     Retorna 204 No Content si la eliminación es exitosa.
     Retorna 404 Not Found si el producto no existe.
-    Retorna 409 Conflict si el producto no se puede eliminar debido a restricciones 
-    de clave foránea (ej. está referenciado en 'detalle_venta').
+    Retorna 409 Conflict si el producto no se puede eliminar debido a referencias 
+    en otras tablas (ej. 'detalle_venta').
     """
     # Llama a la función CRUD para eliminar
     delete_result = crud_productos.delete_producto(producto_id=producto_id)
     
     # Analiza el resultado de la función CRUD
     if delete_result == True:
-        # Éxito: Retorna 204 No Content (automático por status_code y no retornar nada)
+        # Éxito: Retorna 204 No Content (automático)
         return None 
-    elif delete_result == -2: # Código específico para error de FK
+    elif delete_result == -2: # <-- *** NUEVA VERIFICACIÓN *** Código específico para error de FK
+        # Error de Clave Foránea: El producto está en uso
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, 
-            detail="No se puede eliminar el producto porque está referenciado en una venta existente."
+            status_code=status.HTTP_409_CONFLICT, # 409 Conflict es más apropiado
+            detail="No se puede eliminar el producto porque está referenciado en una o más ventas."
         )
     else: # Incluye el caso donde delete_result es False (no encontrado) o -1 (otro error)
+        # Error: Producto no encontrado u otro error
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado para eliminar")
