@@ -23,30 +23,30 @@ class ClienteBase(BaseModel):
     telefono: Optional[str] = None
 
 class ClienteCreate(ClienteBase):
-    """Schema para crear un nuevo Cliente (no requiere ID)."""
+    """Schema para crear un nuevo Cliente."""
     pass
 
 class Cliente(ClienteBase):
-    """Schema para leer un Cliente (incluye ID)."""
+    """Schema para leer un Cliente."""
     id_cliente: int
 
     class Config:
         orm_mode = True
 
-# --- NUEVOS Schemas para Ventas ---
+# --- Schemas de Ventas (Existentes) ---
 
 class DetalleVentaBase(BaseModel):
     """Schema base para un item dentro de una venta."""
     id_producto: int
-    cantidad: int = Field(gt=0) # Asegura que la cantidad sea mayor que 0
-    precio_unitario: float = Field(ge=0) # Asegura que el precio no sea negativo
+    cantidad: int = Field(gt=0) 
+    precio_unitario: float = Field(ge=0) 
 
 class DetalleVentaCreate(DetalleVentaBase):
-    """Schema para crear un detalle de venta (no requiere id_venta)."""
+    """Schema para crear un detalle de venta."""
     pass
 
 class DetalleVenta(DetalleVentaBase):
-    """Schema para leer un detalle de venta (incluye id_venta)."""
+    """Schema para leer un detalle de venta."""
     id_venta: int
 
     class Config:
@@ -55,20 +55,36 @@ class DetalleVenta(DetalleVentaBase):
 class VentaBase(BaseModel):
     """Schema base para Venta."""
     id_cliente: int
-    fecha: date # Usamos el tipo 'date' de datetime
-    # monto_total se calculará en el backend, no se recibe directamente
+    fecha: date 
 
 class VentaCreate(BaseModel):
-    """Schema para crear una nueva Venta. Recibe el id_cliente y la lista de detalles."""
+    """Schema para crear una nueva Venta."""
     id_cliente: int
-    detalles: List[DetalleVentaCreate] # Una lista de items del carrito
+    detalles: List[DetalleVentaCreate] 
 
 class Venta(VentaBase):
-    """Schema para leer una Venta (incluye ID y monto_total calculado)."""
+    """Schema para leer una Venta."""
     id_venta: int
     monto_total: float
-    # Opcional: Podrías incluir los detalles aquí si quieres devolver la venta completa
-    # detalles: List[DetalleVenta] = [] 
+    # detalles: List[DetalleVenta] = [] # Opcional incluir detalles
 
     class Config:
         orm_mode = True
+
+# --- NUEVOS Schemas para Proveedores ---
+
+class ProveedorBase(BaseModel):
+    """Schema base para Proveedor, campos comunes."""
+    nombre: str
+    telefono: Optional[str] = None
+
+class ProveedorCreate(ProveedorBase):
+    """Schema para crear un nuevo Proveedor."""
+    pass
+
+class Proveedor(ProveedorBase):
+    """Schema para leer un Proveedor (incluye ID)."""
+    id_proveedor: int
+
+    class Config:
+        orm_mode = True # Permite mapeo directo desde objetos de base de datos
