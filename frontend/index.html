@@ -14,29 +14,17 @@
     <main class="container">
         <section>
             <h2>Catálogo de Productos</h2>
-            <div id="productos-lista" class="grid-container">
-                <p>Cargando productos...</p>
-            </div>
+            <div id="productos-lista" class="grid-container"><p>Cargando productos...</p></div>
         </section>
-
         <hr>
-
         <section id="carrito-seccion">
             <h2>Carrito de Compras</h2>
-            <div id="carrito-items">
-                <p>El carrito está vacío.</p>
-            </div>
+            <div id="carrito-items"><p>El carrito está vacío.</p></div>
             <p class="carrito-total">Total: $<span id="carrito-total">0.00</span></p>
-            <div class="form-group" style="margin-top: 15px;">
-                <label for="selector-cliente">Comprar como:</label>
-                <select id="selector-cliente" name="cliente_id" required>
-                    <option value="">Seleccione un cliente...</option>
-                </select>
-            </div>
+            <div class="form-group" style="margin-top: 15px;"><label for="selector-cliente">Comprar como:</label><select id="selector-cliente" name="cliente_id" required><option value="">Seleccione un cliente...</option></select></div>
             <button id="btn-finalizar-compra" disabled>Finalizar Compra</button>
             <p id="compra-mensaje" class="mensaje"></p>
         </section>
-
         <hr>
 
         <section>
@@ -45,14 +33,8 @@
             <div class="sub-section">
                 <h3>Registrar Nuevo Cliente</h3>
                 <form id="form-nuevo-cliente">
-                    <div class="form-group">
-                        <label for="nombre-cliente">Nombre:</label>
-                        <input type="text" id="nombre-cliente" name="nombre" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="telefono-cliente">Teléfono (Opcional):</label>
-                        <input type="tel" id="telefono-cliente" name="telefono">
-                    </div>
+                    <div class="form-group"><label for="nombre-cliente">Nombre:</label><input type="text" id="nombre-cliente" name="nombre" required></div>
+                    <div class="form-group"><label for="telefono-cliente">Teléfono (Opcional):</label><input type="tel" id="telefono-cliente" name="telefono"></div>
                     <button type="submit">Registrar Cliente</button>
                     <p id="cliente-mensaje" class="mensaje"></p>
                 </form>
@@ -60,68 +42,61 @@
 
             <div class="sub-section">
                 <h3>Lista de Clientes</h3>
-                <div id="clientes-lista">
+                <div id="clientes-lista-contenedor"> 
                     <p>Cargando clientes...</p>
-                </div>
+                    </div>
             </div>
 
-            <div class="sub-section" id="direcciones-cliente" style="display: none;"> <h3>Direcciones de <span id="nombre-cliente-seleccionado"></span></h3>
-                <div id="lista-direcciones-cliente">
-                    </div>
-
+            <div class="sub-section" id="direcciones-cliente" style="display: none;">
+                <h3>Direcciones de <span id="nombre-cliente-seleccionado"></span></h3>
+                <div id="lista-direcciones-cliente"></div>
                 <h4>Añadir Nueva Dirección</h4>
                 <form id="form-nueva-direccion">
                     <input type="hidden" id="id-cliente-direccion" name="id_cliente">
-                    <div class="form-group">
-                        <label for="calle-direccion">Calle y Número:</label>
-                        <input type="text" id="calle-direccion" name="calle" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="ciudad-direccion">Ciudad:</label>
-                        <input type="text" id="ciudad-direccion" name="ciudad" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="cp-direccion">Código Postal:</label>
-                        <input type="text" id="cp-direccion" name="codigo_postal" required>
-                    </div>
+                    <div class="form-group"><label for="calle-direccion">Calle y Número:</label><input type="text" id="calle-direccion" name="calle" required></div>
+                    <div class="form-group"><label for="ciudad-direccion">Ciudad:</label><input type="text" id="ciudad-direccion" name="ciudad" required></div>
+                    <div class="form-group"><label for="cp-direccion">Código Postal:</label><input type="text" id="cp-direccion" name="codigo_postal" required></div>
                     <button type="submit">Añadir Dirección</button>
                     <p id="direccion-mensaje" class="mensaje"></p>
                 </form>
             </div>
-        </section>
 
-
-        <hr> 
-
+            <div id="modal-editar-cliente" class="modal" style="display: none;">
+                <div class="modal-contenido">
+                    <span class="cerrar-modal" id="cerrar-modal-cliente">&times;</span>
+                    <h3>Editar Cliente</h3>
+                    <form id="form-editar-cliente">
+                        <input type="hidden" id="edit-cliente-id" name="id_cliente">
+                        <div class="form-group">
+                            <label for="edit-nombre-cliente">Nombre:</label>
+                            <input type="text" id="edit-nombre-cliente" name="nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-telefono-cliente">Teléfono (Opcional):</label>
+                            <input type="tel" id="edit-telefono-cliente" name="telefono">
+                        </div>
+                        <button type="submit">Guardar Cambios</button>
+                        <p id="edit-cliente-mensaje" class="mensaje"></p>
+                    </form>
+                </div>
+            </div>
+            
+        </section> <hr> 
         <section>
             <h2>Proveedores</h2> 
-            
             <form id="form-nuevo-proveedor" style="margin-bottom: 30px;">
                  <h3>Registrar Nuevo Proveedor</h3>
-                 <div class="form-group">
-                    <label for="nombre-proveedor">Nombre:</label>
-                    <input type="text" id="nombre-proveedor" name="nombre" required>
-                </div>
-                <div class="form-group">
-                    <label for="telefono-proveedor">Teléfono (Opcional):</label>
-                    <input type="tel" id="telefono-proveedor" name="telefono">
-                </div>
-                <button type="submit">Registrar Proveedor</button>
-                <p id="proveedor-mensaje" class="mensaje"></p> 
+                 <div class="form-group"><label for="nombre-proveedor">Nombre:</label><input type="text" id="nombre-proveedor" name="nombre" required></div>
+                 <div class="form-group"><label for="telefono-proveedor">Teléfono (Opcional):</label><input type="tel" id="telefono-proveedor" name="telefono"></div>
+                 <button type="submit">Registrar Proveedor</button>
+                 <p id="proveedor-mensaje" class="mensaje"></p> 
             </form>
-
             <h3>Lista de Proveedores</h3>
-            <div id="proveedores-lista">
-                <p>Cargando proveedores...</p>
-            </div>
+            <div id="proveedores-lista"><p>Cargando proveedores...</p></div>
         </section>
-
     </main>
 
-    <footer>
-        <p>&copy; 2025 Bazar de Ropa</p> 
-    </footer>
-
+    <footer><p>&copy; 2025 Bazar de Ropa</p></footer>
     <script src="app.js"></script>
 </body>
 </html>

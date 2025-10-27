@@ -6,7 +6,7 @@ body {
     background-color: #f4f4f9;
     color: #333;
     margin: 0;
-    padding: 0; 
+    padding: 0;
     line-height: 1.6;
 }
 
@@ -14,28 +14,28 @@ body {
 header {
     background-color: #34495e;
     color: #ffffff;
-    padding: 15px 20px; 
+    padding: 15px 20px;
     text-align: center;
     margin-bottom: 30px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 header h1 {
     margin: 0;
-    font-size: 1.8em; 
+    font-size: 1.8em;
 }
 
 /* Contenedor principal */
 .container {
     max-width: 960px;
     margin: 0 auto;
-    padding: 0 20px; 
+    padding: 0 20px;
 }
 
 /* Estilos de secciones principales */
 section {
     margin-bottom: 40px;
-    padding: 25px; 
+    padding: 25px;
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -47,36 +47,32 @@ section h2 {
     border-bottom: 2px solid #ecf0f1;
     padding-bottom: 10px;
     margin-bottom: 20px;
-    font-size: 1.5em; 
+    font-size: 1.5em;
 }
 
-/* Estilos para subsecciones (dentro de una sección) */
+/* Estilos para subsecciones */
 .sub-section {
-    margin-top: 30px; /* Espacio entre subsecciones */
+    margin-top: 30px;
     padding-top: 20px;
-    border-top: 1px solid #eee; /* Línea separadora sutil */
+    border-top: 1px solid #eee;
 }
-
 .sub-section:first-child {
-    margin-top: 0; /* Sin margen superior para la primera subsección */
+    margin-top: 0;
     padding-top: 0;
-    border-top: none; /* Sin línea superior para la primera */
+    border-top: none;
 }
-
 .sub-section h3 {
     margin-top: 0;
     margin-bottom: 15px;
-    color: #3498db; /* Azul distintivo para subtítulos */
+    color: #3498db;
     font-size: 1.3em;
 }
-
-.sub-section h4 { /* Para títulos de formularios dentro de subsecciones */
+.sub-section h4 {
     margin-top: 25px;
     margin-bottom: 10px;
     color: #555;
     font-size: 1.1em;
 }
-
 
 /* Contenedor Grid (para productos) */
 .grid-container {
@@ -94,204 +90,145 @@ section h2 {
     display: flex;
     flex-direction: column;
 }
-
-.producto-item h3 {
-    margin-top: 0;
-    color: #3498db;
-    font-size: 1.2em;
-}
-
-.producto-item p {
-    font-size: 0.9em;
-    margin-bottom: 10px;
-    flex-grow: 1; 
-}
-
-.producto-item .precio {
-    font-weight: bold;
-    color: #27ae60;
-    font-size: 1.2em;
-    margin-top: auto;
-    text-align: right;
-}
-
-.producto-item button.btn-add-carrito { 
-    background-color: #2ecc71; 
-    color: white;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
-    margin-top: 15px; 
-    transition: background-color 0.2s ease;
-}
-
-.producto-item button.btn-add-carrito:hover {
-    background-color: #27ae60; 
-}
-
+.producto-item h3 { margin-top: 0; color: #3498db; font-size: 1.2em; }
+.producto-item p { font-size: 0.9em; margin-bottom: 10px; flex-grow: 1; }
+.producto-item .precio { font-weight: bold; color: #27ae60; font-size: 1.2em; margin-top: auto; text-align: right; }
+.producto-item button.btn-add-carrito { background-color: #2ecc71; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; margin-top: 15px; transition: background-color 0.2s ease; }
+.producto-item button.btn-add-carrito:hover { background-color: #27ae60; }
 
 /* Estilos de formularios */
-.form-group {
-    margin-bottom: 15px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #555;
-}
-
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
 .form-group input[type="text"],
 .form-group input[type="tel"],
-.form-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box; 
-}
+.form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
 
 /* Estilo unificado para botones de acción */
-button[type="submit"],
-#btn-finalizar-compra {
-    background-color: #3498db; 
-    color: white;
+button,
+input[type="button"],
+input[type="submit"] { /* Estilo base para botones */
     padding: 10px 15px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
 }
-
+button[type="submit"],
+#btn-finalizar-compra { background-color: #3498db; color: white; } /* Botones principales (Azul) */
 button[type="submit"]:hover,
-#btn-finalizar-compra:hover:not(:disabled) { 
-    background-color: #2980b9; 
-}
+#btn-finalizar-compra:hover:not(:disabled) { background-color: #2980b9; }
+button:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; }
 
-button:disabled {
-    background-color: #bdc3c7; 
-    cursor: not-allowed;
+/* Estilos para botones secundarios (editar, eliminar, ver) */
+.btn-accion {
+    padding: 5px 10px;
+    font-size: 0.85em;
+    margin-left: 8px; /* Espacio entre botones */
 }
+.btn-editar { background-color: #f39c12; color: white; } /* Naranja */
+.btn-editar:hover { background-color: #e67e22; }
+.btn-eliminar { background-color: #e74c3c; color: white; } /* Rojo */
+.btn-eliminar:hover { background-color: #c0392b; }
+.btn-ver-direcciones { background-color: #95a5a6; color: white; } /* Gris */
+.btn-ver-direcciones:hover { background-color: #7f8c8d; }
 
 
 /* Estilos para el carrito */
-#carrito-seccion {
-    border: 1px dashed #3498db;
-    background-color: #fdfdfe;
-}
-
-#carrito-items .carrito-item {
-    background-color: #f9f9f9;
-    padding: 8px 12px;
-    margin-bottom: 5px;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #eee;
-}
-
-#carrito-items .carrito-item span {
-    margin: 0 5px;
-}
-
-#carrito-items .item-nombre {
-    flex-grow: 1;
-}
-
-#carrito-items .item-cantidad {
-    font-weight: bold;
-}
-
-#carrito-items .item-precio {
-    min-width: 70px;
-    text-align: right;
-}
-
-.carrito-total {
-    font-size: 1.3em;
-    font-weight: bold;
-    text-align: right;
-    margin-top: 20px;
-    color: #2c3e50;
-}
+#carrito-seccion { border: 1px dashed #3498db; background-color: #fdfdfe; }
+#carrito-items .carrito-item { background-color: #f9f9f9; padding: 8px 12px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; }
+#carrito-items .carrito-item span { margin: 0 5px; }
+#carrito-items .item-nombre { flex-grow: 1; }
+#carrito-items .item-cantidad { font-weight: bold; }
+#carrito-items .item-precio { min-width: 70px; text-align: right; }
+.carrito-total { font-size: 1.3em; font-weight: bold; text-align: right; margin-top: 20px; color: #2c3e50; }
 
 /* Estilos para mensajes (éxito/error) */
-.mensaje {
-    margin-top: 10px;
-    padding: 10px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    display: none; /* Oculto por defecto */
-}
-.mensaje.visible {
-    display: block; /* Muestra el mensaje */
-}
-.mensaje.exito {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-.mensaje.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
+.mensaje { margin-top: 10px; padding: 10px; border-radius: 4px; font-size: 0.9em; display: none; }
+.mensaje.visible { display: block; }
+.mensaje.exito { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.mensaje.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
 /* Estilos para listas (Clientes, Proveedores, Direcciones) */
-#clientes-lista ul,
+#clientes-lista-contenedor ul, /* Actualizado ID */
 #proveedores-lista ul,
-#lista-direcciones-cliente ul { /* Aplica a todas las listas */
-    list-style: none;
-    padding: 0;
-    margin: 0; 
-}
+#lista-direcciones-cliente ul { list-style: none; padding: 0; margin: 0; }
 
-#clientes-lista li,
+#clientes-lista-contenedor li, /* Actualizado ID */
 #proveedores-lista li,
-#lista-direcciones-cliente li { /* Aplica a todos los items de lista */
-    background-color: #ecf0f1;
-    margin-bottom: 10px;
-    padding: 12px 15px; 
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap; /* Permite que el contenido se ajuste si es necesario */
+#lista-direcciones-cliente li { background-color: #ecf0f1; margin-bottom: 10px; padding: 12px 15px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+
+/* Contenedor para info del item (nombre/calle + telefono/ciudad) */
+.item-info {
+    flex-grow: 1; /* Ocupa el espacio disponible a la izquierda */
+    margin-right: 15px; /* Espacio antes de los botones */
+}
+.item-info span:first-child { font-weight: bold; display: block; } /* Nombre/Calle en negritas y línea propia */
+.item-info span:not(:first-child) { color: #555; font-size: 0.9em; } /* Teléfono/Ciudad más pequeño */
+
+/* Contenedor para los botones de acción a la derecha */
+.item-acciones {
+    display: flex; /* Alinea botones horizontalmente */
+    flex-shrink: 0; /* Evita que los botones se encojan */
 }
 
-/* Estilo para el primer elemento (nombre usualmente) */
-#clientes-lista li span:first-child,
-#proveedores-lista li span:first-child,
-#lista-direcciones-cliente li span:first-child { 
+/* Estilos específicos para dirección */
+#lista-direcciones-cliente li .item-info span:not(:first-child) { display: block; } /* Ciudad y CP en líneas separadas */
+
+
+/* --- NUEVOS Estilos para el Modal --- */
+.modal {
+    display: none; /* Oculto por defecto */
+    position: fixed; /* Fijo en la pantalla */
+    z-index: 1000; /* Por encima de todo */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Permite scroll si el contenido es largo */
+    background-color: rgba(0, 0, 0, 0.6); /* Fondo semi-transparente oscuro */
+}
+
+.modal-contenido {
+    background-color: #fefefe; /* Fondo blanco */
+    margin: 10% auto; /* Centrado vertical y horizontal */
+    padding: 30px;
+    border: 1px solid #888;
+    width: 80%; /* Ancho del modal */
+    max-width: 500px; /* Ancho máximo */
+    border-radius: 8px;
+    position: relative; /* Para posicionar el botón de cerrar */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.cerrar-modal {
+    color: #aaa;
+    position: absolute; /* Posición absoluta respecto al modal-contenido */
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
     font-weight: bold;
-    margin-right: 10px; /* Espacio a la derecha del nombre/calle */
+    cursor: pointer;
 }
 
-/* Estilo específico para dirección (muestra ciudad y CP en otra línea si es necesario) */
-#lista-direcciones-cliente li span:not(:first-child) {
-    color: #555;
-    font-size: 0.9em;
+.cerrar-modal:hover,
+.cerrar-modal:focus {
+    color: black;
+    text-decoration: none;
 }
+
+#modal-editar-cliente h3 { /* Estilo para el título del modal */
+     margin-top: 0;
+     color: #3498db;
+     border-bottom: 1px solid #eee;
+     padding-bottom: 10px;
+}
+
+/* -------------------------------------- */
 
 
 /* Línea divisoria */
-hr {
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 40px 0;
-}
+hr { border: none; border-top: 1px solid #eee; margin: 40px 0; }
 
 /* Pie de página */
-footer {
-    text-align: center;
-    margin-top: 40px;
-    padding: 20px; 
-    border-top: 1px solid #ddd;
-    color: #777;
-    font-size: 0.9em;
-}
+footer { text-align: center; margin-top: 40px; padding: 20px; border-top: 1px solid #ddd; color: #777; font-size: 0.9em; }
