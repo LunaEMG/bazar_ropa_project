@@ -105,30 +105,45 @@ def update_cliente(cliente_id: int, cliente_update: ClienteUpdate):
             
     return updated_cliente # Retorna el cliente actualizado o None si no se encontró/hubo error
 
-# --- NUEVA Función ---
+
 # ELIMINAR (Delete): Borrar un cliente existente
 def delete_cliente(cliente_id: int):
     """
     Elimina un cliente de la base de datos por su ID.
-    Retorna True si la eliminación fue exitosa, False en caso contrario.
+    Retorna:
+        1: si la eliminación fue exitosa.
+        0: si el cliente no fue encontrado.
+       -1: si ocurrió un error genérico de base de datos.
+       -2: si ocurrió un error de violación de clave foránea.
     """
     conn = get_db_connection()
-    if conn is None: return False
+    if conn is None: 
+        print("Error: No se pudo conectar a la DB para eliminar cliente.")
+        return -1 # Indica error de conexión
 
-    rows_deleted = 0
+    rows_deleted_code = 0 # Valor por defecto si no se encuentra
     try:
         with conn.cursor() as cur, conn.transaction():
-            # Ejecuta la eliminación
             cur.execute("DELETE FROM cliente WHERE id_cliente = %s", (cliente_id,))
-            # rowcount indica cuántas filas fueron afectadas
-            rows_deleted = cur.rowcount 
-            # Commit automático
+            rows_deleted_code = cur.rowcount # Será 1 si se borró, 0 si no existía
+            if rows_deleted_code == 0:
+                 # Si no se borró nada, no es necesario hacer commit/rollback
+                 pass # Se retornará 0
+            # Commit automático si rowcount fue 1
             
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al eliminar cliente {cliente_id}: {error}")
+    except psycopg.errors.ForeignKeyViolation as fk_error:
+        # Error específico si el cliente está referenciado (ej. en venta o direccion)
+        print(f"Error de FK al eliminar cliente {cliente_id}: {fk_error}")
         # Rollback automático
+        rows_deleted_code = -2 # Código para FK violation
+        
+    except (Exception, psycopg.Error) as error:
+        print(f"Error SQL al eliminar cliente {cliente_id}: {error}")
+        # Rollback automático
+        rows_deleted_code = -1 # Código para error genérico
     finally:
-        if conn: conn.close()
+        if conn: 
+            conn.close()
             
-    # Retorna True si se eliminó exactamente una fila
-    return rows_deleted == 1
+    # Retorna el código numérico resultado de la operación
+    return rows_deleted_code

@@ -62,7 +62,7 @@ def read_cliente(cliente_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
     return db_cliente
 
-# --- NUEVO Endpoint para ACTUALIZAR un cliente existente ---
+# --- Endpoint para ACTUALIZAR un cliente existente ---
 @router.put(
     "/api/clientes/{cliente_id}",
     response_model=Cliente,
@@ -75,35 +75,47 @@ def update_existing_cliente(cliente_id: int, cliente_update: ClienteUpdate):
     Solo actualiza los campos proporcionados en el cuerpo de la petición.
     Retorna los datos del cliente actualizado o 404 si no se encuentra.
     """
-    # Llama a la función CRUD para actualizar, pasando el ID y los datos a actualizar
     updated_cliente = crud_clientes.update_cliente(cliente_id=cliente_id, cliente_update=cliente_update)
-    
-    # Verifica si la actualización fue exitosa (si el cliente existía)
     if updated_cliente is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado para actualizar")
-        
     return updated_cliente
 
-# --- NUEVO Endpoint para ELIMINAR un cliente existente ---
+# --- Endpoint para ELIMINAR un cliente existente (Corregido) ---
 @router.delete(
     "/api/clientes/{cliente_id}",
-    status_code=status.HTTP_204_NO_CONTENT, # Código estándar para eliminación exitosa sin contenido de respuesta
+    status_code=status.HTTP_204_NO_CONTENT, 
     summary="Eliminar un cliente existente",
     tags=["Clientes"]
 )
 def delete_existing_cliente(cliente_id: int):
     """
     Elimina un cliente de la base de datos usando su 'id_cliente'.
-    Retorna 204 No Content si la eliminación es exitosa, o 404 si el cliente no se encuentra.
+    Retorna 204 No Content si la eliminación es exitosa.
+    Retorna 404 Not Found si el cliente no existe.
+    Retorna 409 Conflict si el cliente no se puede eliminar debido a referencias 
+    en otras tablas (ej. 'venta', 'direccion').
+    Retorna 500 Internal Server Error para otros errores de base de datos.
     """
-    # Llama a la función CRUD para eliminar
-    success = crud_clientes.delete_cliente(cliente_id=cliente_id)
+    # Llama a la función CRUD para eliminar, ahora retorna 1, 0, -1, o -2
+    delete_result_code = crud_clientes.delete_cliente(cliente_id=cliente_id)
     
-    # Si la función CRUD retorna False, el cliente no existía
-    if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado para eliminar")
-        
-    # Si la eliminación fue exitosa (success=True), FastAPI automáticamente
-    # retorna la respuesta 204 No Content porque no hay un 'return' explícito
-    # y el status_code está definido en el decorador.
-    return None # Opcional: return Response(status_code=status.HTTP_204_NO_CONTENT)
+    # *** LÓGICA CORREGIDA PARA INTERPRETAR LOS CÓDIGOS ***
+    if delete_result_code == 1:
+        # Éxito (1 fila eliminada): Retorna 204 No Content (automático)
+        return None 
+    elif delete_result_code == -2: 
+        # Error de Clave Foránea (-2)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, # 409 Conflict
+            # Mensaje específico para FK de cliente
+            detail="No se puede eliminar el cliente porque tiene ventas o direcciones asociadas." 
+        )
+    elif delete_result_code == 0:
+        # No encontrado (0 filas eliminadas)
+         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado para eliminar")
+    else: # Incluye el caso -1 (otro error SQL) o cualquier otro inesperado
+        # Error genérico del servidor
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Error interno del servidor al intentar eliminar el cliente."
+        )
