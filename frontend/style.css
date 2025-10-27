@@ -1,20 +1,110 @@
-/* --- Estilos Adicionales para Carrito y Formularios --- */
+/* style.css */
 
-/* Ajuste al contenedor principal si es necesario */
-.container {
-    max-width: 960px; /* Ancho máximo */
-    margin: 0 auto; /* Centrado */
-    /* Remueve el display: grid si lo tenías directo aquí */
+/* Estilos generales */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 0; /* Quitamos padding del body para que header ocupe todo */
+    line-height: 1.6;
 }
 
-/* Contenedor específico para grids (productos, etc.) */
+/* Encabezado */
+header {
+    background-color: #34495e;
+    color: #ffffff;
+    padding: 15px 20px; /* Ajuste de padding */
+    text-align: center;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Sombra sutil */
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8em; /* Tamaño ajustado */
+}
+
+/* Contenedor principal */
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 20px; /* Padding horizontal para el contenido */
+}
+
+/* Estilos de secciones */
+section {
+    margin-bottom: 40px;
+    padding: 25px; /* Padding incrementado */
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+section h2 {
+    margin-top: 0;
+    color: #34495e;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-size: 1.5em; /* Tamaño ajustado */
+}
+
+/* Contenedor Grid (para productos) */
 .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: 20px;
 }
 
-/* Estilos para el formulario genérico */
+/* Tarjeta de producto */
+.producto-item {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.producto-item h3 {
+    margin-top: 0;
+    color: #3498db;
+    font-size: 1.2em;
+}
+
+.producto-item p {
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    flex-grow: 1; /* Para que la descripción ocupe espacio */
+}
+
+.producto-item .precio {
+    font-weight: bold;
+    color: #27ae60;
+    font-size: 1.2em;
+    margin-top: auto;
+    text-align: right;
+}
+
+.producto-item button.btn-add-carrito { /* Estilo específico para el botón de añadir */
+    background-color: #2ecc71; /* Color verde */
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-top: 15px; /* Espacio arriba del botón */
+    transition: background-color 0.2s ease;
+}
+
+.producto-item button.btn-add-carrito:hover {
+    background-color: #27ae60; /* Verde más oscuro */
+}
+
+
+/* Estilos de formularios */
 .form-group {
     margin-bottom: 15px;
 }
@@ -28,38 +118,44 @@
 
 .form-group input[type="text"],
 .form-group input[type="tel"],
-.form-group select { /* Añadido select */
+.form-group select {
     width: 100%;
     padding: 10px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    box-sizing: border-box;
+    box-sizing: border-box; /* Importante para el ancho */
 }
 
+/* Estilo unificado para botones de acción */
 button[type="submit"],
-#btn-finalizar-compra { /* Estilo unificado para botones */
-    background-color: #3498db;
+#btn-finalizar-compra {
+    background-color: #3498db; /* Azul */
     color: white;
     padding: 10px 15px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.2s ease; /* Transición suave */
+    transition: background-color 0.2s ease;
 }
 
 button[type="submit"]:hover,
-#btn-finalizar-compra:hover {
-    background-color: #2980b9;
+#btn-finalizar-compra:hover:not(:disabled) { /* Evita hover en disabled */
+    background-color: #2980b9; /* Azul más oscuro */
 }
 
-button:disabled { /* Estilo para botones deshabilitados */
-    background-color: #bdc3c7;
+button:disabled {
+    background-color: #bdc3c7; /* Gris para deshabilitado */
     cursor: not-allowed;
 }
 
 
-/* Estilos específicos para la sección del carrito */
+/* Estilos para el carrito */
+#carrito-seccion {
+    border: 1px dashed #3498db;
+    background-color: #fdfdfe;
+}
+
 #carrito-items .carrito-item {
     background-color: #f9f9f9;
     padding: 8px 12px;
@@ -76,7 +172,7 @@ button:disabled { /* Estilo para botones deshabilitados */
 }
 
 #carrito-items .item-nombre {
-    flex-grow: 1; /* Ocupa el espacio disponible */
+    flex-grow: 1;
 }
 
 #carrito-items .item-cantidad {
@@ -84,7 +180,7 @@ button:disabled { /* Estilo para botones deshabilitados */
 }
 
 #carrito-items .item-precio {
-    min-width: 70px; /* Asegura espacio para el precio */
+    min-width: 70px;
     text-align: right;
 }
 
@@ -96,12 +192,7 @@ button:disabled { /* Estilo para botones deshabilitados */
     color: #2c3e50;
 }
 
-#carrito-seccion {
-    border: 1px dashed #3498db; /* Borde distintivo para el carrito */
-    background-color: #fdfdfe;
-}
-
-/* Estilos para mensajes de estado */
+/* Estilos para mensajes (éxito/error) */
 .mensaje {
     margin-top: 10px;
     padding: 10px;
@@ -110,7 +201,7 @@ button:disabled { /* Estilo para botones deshabilitados */
     display: none; /* Oculto por defecto */
 }
 .mensaje.visible {
-    display: block; /* Visible cuando se añade la clase */
+    display: block; /* Muestra el mensaje */
 }
 .mensaje.exito {
     background-color: #d4edda;
@@ -123,23 +214,27 @@ button:disabled { /* Estilo para botones deshabilitados */
     border: 1px solid #f5c6cb;
 }
 
-/* Estilos para la lista de clientes */
-#clientes-lista ul {
+/* Estilos para listas (Clientes, Proveedores) */
+#clientes-lista ul,
+#proveedores-lista ul { /* Aplica a ambas listas */
     list-style: none;
     padding: 0;
+    margin: 0; /* Quita margen por defecto de ul */
 }
 
-#clientes-lista li {
+#clientes-lista li,
+#proveedores-lista li { /* Aplica a ambas listas */
     background-color: #ecf0f1;
     margin-bottom: 10px;
-    padding: 10px 15px;
+    padding: 12px 15px; /* Padding ajustado */
     border-radius: 4px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-#clientes-lista li span:first-child { /* Estilo para el nombre */
+#clientes-lista li span:first-child,
+#proveedores-lista li span:first-child { /* Nombre en negritas */
     font-weight: bold;
 }
 
@@ -148,4 +243,14 @@ hr {
     border: none;
     border-top: 1px solid #eee;
     margin: 40px 0;
+}
+
+/* Pie de página */
+footer {
+    text-align: center;
+    margin-top: 40px;
+    padding: 20px; /* Padding añadido */
+    border-top: 1px solid #ddd;
+    color: #777;
+    font-size: 0.9em;
 }

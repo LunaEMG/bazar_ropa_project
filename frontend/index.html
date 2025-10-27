@@ -27,12 +27,14 @@
                 <p>El carrito está vacío.</p>
             </div>
             <p class="carrito-total">Total: $<span id="carrito-total">0.00</span></p>
-            <button id="btn-finalizar-compra" disabled>Finalizar Compra</button> <p id="compra-mensaje" class="mensaje"></p> <div class="form-group" style="margin-top: 15px;">
+            <div class="form-group" style="margin-top: 15px;">
                 <label for="selector-cliente">Comprar como:</label>
                 <select id="selector-cliente" name="cliente_id" required>
                     <option value="">Seleccione un cliente...</option>
-                    </select>
+                </select>
             </div>
+            <button id="btn-finalizar-compra" disabled>Finalizar Compra</button>
+            <p id="compra-mensaje" class="mensaje"></p>
         </section>
 
         <hr>
@@ -62,10 +64,35 @@
             </div>
         </section>
 
+        <hr> 
+
+        <section>
+            <h2>Proveedores</h2> 
+            
+            <form id="form-nuevo-proveedor" style="margin-bottom: 30px;">
+                 <h3>Registrar Nuevo Proveedor</h3>
+                 <div class="form-group">
+                    <label for="nombre-proveedor">Nombre:</label>
+                    <input type="text" id="nombre-proveedor" name="nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefono-proveedor">Teléfono (Opcional):</label>
+                    <input type="tel" id="telefono-proveedor" name="telefono">
+                </div>
+                <button type="submit">Registrar Proveedor</button>
+                <p id="proveedor-mensaje" class="mensaje"></p> 
+            </form>
+
+            <h3>Lista de Proveedores</h3>
+            <div id="proveedores-lista">
+                <p>Cargando proveedores...</p>
+            </div>
+        </section>
+
     </main>
 
     <footer>
-        <p>&copy; 2025 Bazar de Ropa</p>
+        <p>&copy; 2025 Bazar de Ropa</p> 
     </footer>
 
     <script src="app.js"></script>
