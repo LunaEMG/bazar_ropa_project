@@ -2,7 +2,7 @@
  * @file app.js
  * @description Script principal para la interfaz del Bazar de Ropa.
  * Maneja la carga de datos, interacciones del carrito,
- * y operaciones CRUD para clientes, proveedores y ventas.
+ * y operaciones CRUD para clientes, proveedores, direcciones y ventas.
  */
 
 // Espera a que el DOM esté completamente cargado.
@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Referencias a elementos clave del DOM.
     const listaDeProductos = document.getElementById('productos-lista');
-    const listaDeClientesContenedor = document.getElementById('clientes-lista-contenedor'); // Actualizado
+    const listaDeClientesContenedor = document.getElementById('clientes-lista-contenedor'); 
     const formNuevoCliente = document.getElementById('form-nuevo-cliente');
     const clienteMensaje = document.getElementById('cliente-mensaje');
     const carritoItemsDiv = document.getElementById('carrito-items');
@@ -31,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const direccionMensaje = document.getElementById('direccion-mensaje');
     const nombreClienteSeleccionadoSpan = document.getElementById('nombre-cliente-seleccionado');
     const idClienteDireccionInput = document.getElementById('id-cliente-direccion');
-    // Referencias para el modal de edición de cliente
     const modalEditarCliente = document.getElementById('modal-editar-cliente');
     const formEditarCliente = document.getElementById('form-editar-cliente');
     const editClienteIdInput = document.getElementById('edit-cliente-id');
@@ -50,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /** Muestra un mensaje temporal (éxito/error) en un elemento DOM. */
     function mostrarMensaje(elemento, mensaje, exito = true) {
-        if (!elemento) { console.warn("Elemento para mensaje no encontrado"); return; }
+        if (!elemento) { console.warn("Elemento para mensaje no encontrado:", elemento); return; }
         elemento.textContent = mensaje;
         elemento.className = exito ? 'mensaje exito visible' : 'mensaje error visible';
         setTimeout(() => {
@@ -66,22 +65,18 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const response = await fetch(url, options);
             if (!response.ok) {
-                // Intenta obtener detalles del error del cuerpo JSON si es posible
-                let errorDetail = `HTTP error! status: ${response.status}`;
+                let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`;
                 try {
                     const errJson = await response.json();
-                    errorDetail = errJson.detail || errorDetail;
+                    errorDetail = errJson.detail || errorDetail; 
                 } catch (e) { /* Ignora si el cuerpo no es JSON */ }
-                throw new Error(errorDetail);
+                throw new Error(errorDetail); 
             }
-            // Si el status es 204 No Content, no hay cuerpo JSON para parsear
-            if (response.status === 204) {
-                return null; 
-            }
-            return await response.json(); // Parsea el cuerpo JSON
+            if (response.status === 204) { return null; } 
+            return await response.json(); 
         } catch (error) {
             console.error(`Error en fetch a ${url}:`, error);
-            throw error; // Relanza el error para manejo posterior
+            throw error; 
         }
     }
 
@@ -98,9 +93,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 listaDeProductos.innerHTML = '<p>No hay productos disponibles.</p>'; return;
             }
             productos.forEach(producto => {
-                const item = document.createElement('div'); item.className = 'producto-item';
-                item.innerHTML = `<h3>${producto.nombre}</h3><p>${producto.descripcion || 'Sin descripción'}</p><p class="precio">$${producto.precio.toFixed(2)}</p><button class="btn-accion btn-add-carrito" data-id="${producto.id_producto}" data-nombre="${producto.nombre}" data-precio="${producto.precio}">Añadir al Carrito</button>`;
-                const addButton = item.querySelector('.btn-add-carrito'); if (addButton) { addButton.addEventListener('click', handleAddCarritoClick); }
+                const item = document.createElement('div'); 
+                item.className = 'producto-item';
+                item.innerHTML = `
+                    <h3>${producto.nombre}</h3>
+                    <p>${producto.descripcion || 'Sin descripción'}</p>
+                    <p class="precio">$${producto.precio.toFixed(2)}</p>
+                    <button class="btn-accion btn-add-carrito" data-id="${producto.id_producto}" data-nombre="${producto.nombre}" data-precio="${producto.precio}">Añadir al Carrito</button>
+                `;
+                const addButton = item.querySelector('.btn-add-carrito'); 
+                if (addButton) {
+                    addButton.addEventListener('click', handleAddCarritoClick); 
+                } else {
+                    console.error(`Error: Botón 'Añadir al Carrito' no encontrado para producto ID: ${producto.id_producto}`);
+                }
                 listaDeProductos.appendChild(item);
             });
         } catch (error) {
@@ -142,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const option = document.createElement('option'); option.value = cliente.id_cliente; option.textContent = cliente.nombre;
                 selectorCliente.appendChild(option);
             });
-            listaDeClientesContenedor.appendChild(ul); // Añade la lista completa al contenedor
+            listaDeClientesContenedor.appendChild(ul); 
         } catch (error) {
             listaDeClientesContenedor.innerHTML = `<p style="color: red;">Error al cargar clientes: ${error.message}</p>`;
         }
@@ -165,8 +171,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span>${proveedor.telefono || 'Sin teléfono'}</span>
                     </div>
                     <div class="item-acciones">
-                        </div>
+                         <button class="btn-accion btn-editar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}" data-telefono="${proveedor.telefono || ''}">Editar</button>
+                         <button class="btn-accion btn-eliminar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}">Eliminar</button>
+                    </div>
                 `;
+                // --- TODO: Añadir listeners para handleEditarProveedorClick y handleDeleteProveedorClick ---
                 ul.appendChild(li);
             });
             listaDeProveedores.appendChild(ul);
@@ -192,7 +201,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span>${dir.ciudad}, CP ${dir.codigo_postal}</span>
                     </div>
                     <div class="item-acciones">
-                        </div>
+                        <!-- Botones Editar/Eliminar para direcciones irían aquí -->
+                    </div>
                     `; 
                 ul.appendChild(li);
             });
@@ -210,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
          clienteSeleccionadoId = clienteId; 
          nombreClienteSeleccionadoSpan.textContent = nombreCliente; 
          idClienteDireccionInput.value = clienteId; 
-         direccionesClienteDiv.style.display = 'block'; // Muestra la sección
+         direccionesClienteDiv.style.display = 'block'; 
          cargarDireccionesCliente(clienteId); 
     }
 
@@ -219,23 +229,66 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!modalEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput) return;
         editClienteIdInput.value = clienteId;
         editNombreClienteInput.value = nombre;
-        editTelefonoClienteInput.value = telefono || ''; // Usa string vacío si es null/undefined
-        editClienteMensaje.textContent = ''; // Limpia mensajes previos
+        editTelefonoClienteInput.value = telefono || ''; 
+        editClienteMensaje.textContent = ''; 
         editClienteMensaje.className = 'mensaje';
-        modalEditarCliente.style.display = 'block'; // Muestra el modal
+        modalEditarCliente.style.display = 'block'; 
     }
 
     /** Oculta el modal de edición de cliente. */
     function ocultarModalEditarCliente() {
         if (modalEditarCliente) {
-            modalEditarCliente.style.display = 'none'; // Oculta el modal
+            modalEditarCliente.style.display = 'none'; 
         }
     }
 
     // --- Funciones del Carrito ---
-    function renderizarCarrito() { /* ... (código existente sin cambios) ... */ }
-    function handleAddCarritoClick(event) { /* ... (código existente sin cambios) ... */ }
-    function handleRemoveCarritoClick(event) { /* ... (código existente sin cambios) ... */ }
+
+    /** Actualiza la vista del carrito en el HTML y calcula el total. */
+    function renderizarCarrito() { 
+        if (!carritoItemsDiv || !carritoTotalSpan || !btnFinalizarCompra) return;
+        carritoItemsDiv.innerHTML = ''; 
+        let total = 0;
+        if (carrito.length === 0) { carritoItemsDiv.innerHTML = '<p>El carrito está vacío.</p>'; btnFinalizarCompra.disabled = true; } 
+        else {
+            carrito.forEach(item => {
+                const itemDiv = document.createElement('div'); 
+                itemDiv.className = 'carrito-item'; 
+                itemDiv.innerHTML = `<span class="item-nombre">${item.nombre}</span><span class="item-cantidad">x ${item.cantidad}</span><span class="item-precio">$${(item.precio * item.cantidad).toFixed(2)}</span><button class="btn-remove-carrito" data-id="${item.id_producto}" style="color: red; background: none; border: none; cursor: pointer;">X</button>`;
+                const removeButton = itemDiv.querySelector('.btn-remove-carrito'); 
+                if (removeButton) { removeButton.addEventListener('click', handleRemoveCarritoClick); } 
+                else { console.error("Error: Botón remover no encontrado para item:", item); }
+                carritoItemsDiv.appendChild(itemDiv); total += item.precio * item.cantidad;
+            });
+            btnFinalizarCompra.disabled = false; 
+        }
+        carritoTotalSpan.textContent = total.toFixed(2); 
+    }
+
+    /** Maneja el clic en "Añadir al Carrito". */
+    function handleAddCarritoClick(event) {
+        const button = event.target;
+        const idProducto = parseInt(button.dataset.id); 
+        const nombre = button.dataset.nombre;
+        const precio = parseFloat(button.dataset.precio); 
+        // console.log("Añadiendo al carrito:", { idProducto, nombre, precio }); // Log de depuración
+
+        const itemExistente = carrito.find(item => item.id_producto === idProducto);
+        if (itemExistente) {
+            itemExistente.cantidad++; 
+        } else {
+            carrito.push({ id_producto: idProducto, nombre, precio, cantidad: 1 });
+        }
+        renderizarCarrito(); // Actualiza la vista
+    }
+
+    /** Maneja el clic en el botón "X" para remover item del carrito. */
+    function handleRemoveCarritoClick(event) {
+        const button = event.target; 
+        const idProducto = parseInt(button.dataset.id);
+        carrito = carrito.filter(item => item.id_producto !== idProducto); 
+        renderizarCarrito(); 
+    }
 
     // --- Manejadores de Eventos ---
 
@@ -252,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const button = event.target;
         const clienteId = parseInt(button.dataset.id);
         const nombre = button.dataset.nombre;
-        const telefono = button.dataset.telefono; // Puede ser string vacío
+        const telefono = button.dataset.telefono; 
         mostrarModalEditarCliente(clienteId, nombre, telefono);
     }
 
@@ -262,27 +315,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const clienteId = parseInt(button.dataset.id);
         const nombreCliente = button.dataset.nombre;
 
-        // Confirmación antes de eliminar
-        if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombreCliente}"? Esta acción no se puede deshacer.`)) {
-            return; // No hacer nada si el usuario cancela
+        if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombreCliente}"?`)) {
+            return; 
         }
 
         try {
-            // Llama al endpoint DELETE de la API
+            // Llama al endpoint DELETE usando fetchData para manejo de errores
             await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
                 method: 'DELETE',
             });
-            // Si la llamada fue exitosa (no lanzó error), actualiza la UI
+            // Éxito (status 204)
             mostrarMensaje(clienteMensaje, `Cliente "${nombreCliente}" eliminado con éxito.`, true);
-            cargarClientes(); // Recarga la lista de clientes
-            // Opcional: Si el cliente eliminado era el seleccionado para direcciones, ocultar esa sección
+            cargarClientes(); // Recarga la lista
+            // Oculta sección de direcciones si era del cliente eliminado
             if (clienteSeleccionadoId === clienteId && direccionesClienteDiv) {
                 direccionesClienteDiv.style.display = 'none';
                 clienteSeleccionadoId = null;
             }
         } catch (error) {
-            // Muestra error si la API devuelve un problema (ej. 404, 500)
-            mostrarMensaje(clienteMensaje, `Error al eliminar cliente: ${error.message}`, false);
+            // Muestra el mensaje de error DETALLADO que viene de la API
+            mostrarMensaje(clienteMensaje, `Error al eliminar cliente: ${error.message}`, false); 
         }
     }
 
@@ -293,22 +345,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const clienteId = parseInt(editClienteIdInput.value);
         const nombre = editNombreClienteInput.value;
-        const telefono = editTelefonoClienteInput.value || null; // Enviar null si está vacío
+        const telefono = editTelefonoClienteInput.value || null; 
 
         const submitButton = formEditarCliente.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.textContent = 'Guardando...';
 
         try {
-            // Llama al endpoint PUT de la API
+            // Llama al endpoint PUT usando fetchData
             const clienteActualizado = await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, telefono }), // Envía solo los campos a actualizar
+                body: JSON.stringify({ nombre, telefono }), 
             });
-            mostrarMensaje(editClienteMensaje, `Cliente "${clienteActualizado.nombre}" actualizado con éxito!`, true);
-            ocultarModalEditarCliente(); // Cierra el modal
-            cargarClientes(); // Recarga la lista de clientes
+            mostrarMensaje(editClienteMensaje, `Cliente "${clienteActualizado.nombre}" actualizado!`, true);
+            ocultarModalEditarCliente(); 
+            cargarClientes(); 
         } catch (error) {
             mostrarMensaje(editClienteMensaje, `Error al actualizar: ${error.message}`, false);
         } finally {
@@ -317,9 +369,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-
     /** Maneja el envío del formulario para crear un nuevo cliente. */
-    async function handleNuevoClienteSubmit(event) { /* ... (lógica existente refactorizada a async/await) ... */ 
+    async function handleNuevoClienteSubmit(event) { 
         event.preventDefault(); if (!formNuevoCliente || !clienteMensaje) return;
         const formData = new FormData(formNuevoCliente); const nombre = formData.get('nombre'); const telefono = formData.get('telefono') || null; 
         const submitButton = formNuevoCliente.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Registrando...';
@@ -331,7 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /** Maneja el envío del formulario para crear un nuevo proveedor. */
-    async function handleNuevoProveedorSubmit(event) { /* ... (lógica existente refactorizada a async/await) ... */ 
+    async function handleNuevoProveedorSubmit(event) { 
         event.preventDefault(); if (!formNuevoProveedor || !proveedorMensaje) return; 
         const formData = new FormData(formNuevoProveedor); const nombre = formData.get('nombre'); const telefono = formData.get('telefono') || null; 
         const submitButton = formNuevoProveedor.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Registrando...';
@@ -343,19 +394,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     /** Maneja el envío del formulario para añadir una dirección. */
-    async function handleNuevaDireccionSubmit(event) { /* ... (lógica existente refactorizada a async/await) ... */ 
+    async function handleNuevaDireccionSubmit(event) { 
         event.preventDefault(); if (!formNuevaDireccion || !direccionMensaje || clienteSeleccionadoId === null) return;
         const formData = new FormData(formNuevaDireccion); const calle = formData.get('calle'); const ciudad = formData.get('ciudad'); const codigo_postal = formData.get('codigo_postal');
         const submitButton = formNuevaDireccion.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Añadiendo...';
         try {
             const nuevaDireccion = await fetchData(`${API_URL}/api/clientes/${clienteSeleccionadoId}/direcciones`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ calle, ciudad, codigo_postal }), });
-            mostrarMensaje(direccionMensaje, `Dirección añadida con éxito!`, true); formNuevaDireccion.reset(); cargarDireccionesCliente(clienteSeleccionadoId); 
+            mostrarMensaje(direccionMensaje, `Dirección añadida!`, true); formNuevaDireccion.reset(); cargarDireccionesCliente(clienteSeleccionadoId); 
         } catch (error) { mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false); } 
         finally { submitButton.disabled = false; submitButton.textContent = 'Añadir Dirección'; }
     }
 
     /** Maneja el clic en "Finalizar Compra". */
-    async function handleFinalizarCompraClick() { /* ... (lógica existente refactorizada a async/await) ... */ 
+    async function handleFinalizarCompraClick() { 
         if (!selectorCliente || !btnFinalizarCompra || !compraMensaje) return;
         const idClienteSeleccionado = selectorCliente.value;
         if (!idClienteSeleccionado) { mostrarMensaje(compraMensaje, "Seleccione un cliente.", false); return; }
@@ -381,14 +432,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
     if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit); 
     if (btnFinalizarCompra) btnFinalizarCompra.addEventListener('click', handleFinalizarCompraClick);
-    // Event listener para el formulario de edición en el modal
     if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarClienteSubmit);
-    // Event listener para cerrar el modal
     if (cerrarModalClienteBtn) cerrarModalClienteBtn.addEventListener('click', ocultarModalEditarCliente);
-    // Cierra el modal si se hace clic fuera del contenido
     if (modalEditarCliente) {
         modalEditarCliente.addEventListener('click', (event) => {
-            if (event.target === modalEditarCliente) { // Si el clic fue en el fondo oscuro
+            if (event.target === modalEditarCliente) { 
                 ocultarModalEditarCliente();
             }
         });
