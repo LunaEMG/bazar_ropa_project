@@ -1,6 +1,7 @@
 # Importaciones de FastAPI y tipos necesarios
 from fastapi import APIRouter, HTTPException, status
 from typing import List 
+
 # Importa las funciones CRUD para ventas
 from app.crud import crud_ventas 
 # Importa los schemas Pydantic para validar entrada y salida
@@ -41,4 +42,35 @@ def create_new_venta(venta: VentaCreate):
     # Si la creación fue exitosa, retorna los datos de la venta creada
     return db_venta
 
-# --- (Endpoints para LEER ventas (GET /api/ventas, GET /api/ventas/{id}) se añadirían aquí) ---
+# --- NUEVO Endpoint para LEER todas las ventas ---
+@router.get(
+    "/api/ventas", 
+    response_model=List[Venta], # Retorna una lista de Ventas
+    summary="Obtener historial de ventas",
+    tags=["Ventas"]
+)
+def read_ventas():
+    """
+    Obtiene una lista de todas las ventas registradas, ordenadas por fecha descendente.
+    Cada venta incluye sus detalles asociados.
+    """
+    ventas = crud_ventas.get_all_ventas()
+    return ventas
+
+# --- NUEVO Endpoint para LEER una venta específica por ID ---
+@router.get(
+    "/api/ventas/{venta_id}", 
+    response_model=Venta, # Retorna una sola Venta
+    summary="Obtener una venta por ID",
+    tags=["Ventas"]
+)
+def read_venta(venta_id: int):
+    """
+    Obtiene los detalles de una venta específica usando su 'id_venta',
+    incluyendo todos sus items (detalles) asociados.
+    Retorna 404 Not Found si la venta no existe.
+    """
+    db_venta = crud_ventas.get_venta_by_id(venta_id)
+    if db_venta is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Venta no encontrada")
+    return db_venta

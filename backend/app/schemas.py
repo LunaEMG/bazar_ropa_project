@@ -1,42 +1,34 @@
 # Importaciones necesarias de Pydantic y tipos estándar
 from pydantic import BaseModel, Field
-from typing import Optional, List, Any # 'Any' permite flexibilidad para detalles_subtipo
+from typing import Optional, List, Any 
 from datetime import date 
 
 # --- Schemas de Producto ---
-
 class ProductoBase(BaseModel):
     """Schema base para Producto, define campos comunes."""
     nombre: str
     descripcion: Optional[str] = None
-    precio: float = Field(ge=0) # Validación: precio >= 0
-    cantidad_stock: int = Field(ge=0) # Validación: stock >= 0
+    precio: float = Field(ge=0) 
+    cantidad_stock: int = Field(ge=0) 
     id_proveedor: int
 
 class ProductoUpdate(BaseModel):
     """Schema para actualizar un Producto. Todos los campos son opcionales."""
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
-    precio: Optional[float] = Field(None, ge=0) # Permite None, pero valida si se proporciona
+    precio: Optional[float] = Field(None, ge=0) 
     cantidad_stock: Optional[int] = Field(None, ge=0)
     id_proveedor: Optional[int] = None
-    # Los detalles específicos del subtipo (talla, material_suela, etc.) 
-    # se manejarían a través de endpoints específicos si fuera necesario actualizarlos.
 
 class Producto(ProductoBase):
-    """Schema para leer/retornar un Producto, incluye ID y opcionalmente detalles del subtipo."""
+    """Schema para leer/retornar un Producto, incluye ID y detalles del subtipo."""
     id_producto: int
-    # Este campo se puede poblar con un diccionario que contenga 
-    # los atributos específicos de la tabla de subtipo (ropa, calzado, accesorios).
     detalles_subtipo: Optional[Any] = None 
 
     class Config:
-        # Habilita el mapeo desde objetos ORM o diccionarios que actúan como tal.
-        # En Pydantic V2, usar 'from_attributes = True'.
         orm_mode = True 
 
 # --- Schemas de Cliente ---
-
 class ClienteBase(BaseModel):
     """Schema base para Cliente."""
     nombre: str
@@ -47,7 +39,7 @@ class ClienteCreate(ClienteBase):
     pass
 
 class ClienteUpdate(BaseModel):
-    """Schema para validar los datos al actualizar un Cliente (campos opcionales)."""
+    """Schema para validar los datos al actualizar un Cliente."""
     nombre: Optional[str] = None
     telefono: Optional[str] = None
 
@@ -58,21 +50,23 @@ class Cliente(ClienteBase):
     class Config:
         orm_mode = True 
 
-# --- Schemas de Ventas ---
+# --- Schemas de Ventas (Actualizados) ---
 
 class DetalleVentaBase(BaseModel):
     """Schema base para un item de detalle de venta."""
     id_producto: int
-    cantidad: int = Field(gt=0) # Validación: cantidad > 0
-    precio_unitario: float = Field(ge=0) # Validación: precio >= 0
+    cantidad: int = Field(gt=0) 
+    precio_unitario: float = Field(ge=0) 
 
 class DetalleVentaCreate(DetalleVentaBase):
     """Schema para validar los datos al crear un nuevo detalle de venta."""
     pass
 
 class DetalleVenta(DetalleVentaBase):
-    """Schema para leer/retornar un detalle de venta."""
+    """Schema para leer/retornar un detalle de venta (incluye ID de venta)."""
     id_venta: int
+    # Opcional: Podríamos añadir campos del producto (nombre, etc.) aquí
+    # producto: Optional[Producto] = None # Requeriría un JOIN complejo en el CRUD
 
     class Config:
         orm_mode = True 
@@ -83,20 +77,23 @@ class VentaBase(BaseModel):
     fecha: date 
 
 class VentaCreate(BaseModel):
-    """Schema para validar los datos al crear una nueva Venta (recibe detalles)."""
+    """Schema para validar los datos al crear una nueva Venta."""
     id_cliente: int
-    detalles: List[DetalleVentaCreate] # Espera una lista de detalles válidos
+    detalles: List[DetalleVentaCreate] 
 
 class Venta(VentaBase):
-    """Schema para leer/retornar una Venta."""
+    """Schema para leer/retornar una Venta (incluye campos generados y detalles)."""
     id_venta: int
     monto_total: float
+    # --- MODIFICACIÓN CLAVE ---
+    # Incluimos la lista de detalles asociados a esta venta.
+    # Se poblará usando la lógica en crud_ventas.py
+    detalles: List[DetalleVenta] = [] 
 
     class Config:
         orm_mode = True 
 
 # --- Schemas de Proveedores ---
-
 class ProveedorBase(BaseModel):
     """Schema base para Proveedor."""
     nombre: str
@@ -119,7 +116,6 @@ class Proveedor(ProveedorBase):
         orm_mode = True 
 
 # --- Schemas de Direcciones ---
-
 class DireccionBase(BaseModel):
     """Schema base para Direccion."""
     calle: str
