@@ -214,6 +214,67 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    async function cargarHistorialVentas() {
+        if (!historialVentasLista) return;
+        historialVentasLista.innerHTML = '<p>Cargando historial de ventas...</p>';
+        
+        try {
+            // Llama al endpoint GET /api/ventas
+            const ventas = await fetchData(`${API_URL}/api/ventas`);
+            historialVentasLista.innerHTML = '';
+            
+            if (!ventas || ventas.length === 0) {
+                historialVentasLista.innerHTML = '<p>No hay ventas registradas.</p>';
+                return;
+            }
+            
+            const ul = document.createElement('ul');
+            // Itera sobre las ventas (vienen ordenadas por fecha desde el backend)
+            ventas.forEach(venta => {
+                const li = document.createElement('li');
+                li.className = 'venta-item'; // (Añadiremos este estilo en CSS)
+                
+                // Formatea la fecha para que sea más legible
+                const fechaFormateada = new Date(venta.fecha).toLocaleDateString('es-ES', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+
+                // Header de la venta
+                let ventaHTML = `
+                    <div class="venta-header">
+                        <span><strong>Venta #${venta.id_venta}</strong></span>
+                        <span>${fechaFormateada}</span>
+                        <span class="venta-total">Total: $${venta.monto_total.toFixed(2)}</span>
+                    </div>
+                    <p>ID Cliente: ${venta.id_cliente}</p>
+                    <div class="venta-detalles">
+                        <h4>Detalles de la Venta:</h4>
+                        <ul>
+                `;
+                
+                // Itera sobre los detalles (productos) de esa venta
+                venta.detalles.forEach(detalle => {
+                    // NOTA: Tu API de ventas devuelve id_producto, no el nombre.
+                    // (Ver nota al final para cómo mejorar esto)
+                    ventaHTML += `
+                        <li class="detalle-item">
+                            <span>(ID Producto: ${detalle.id_producto})</span>
+                            <span>Cant: ${detalle.cantidad}</span>
+                            <span>@ $${detalle.precio_unitario.toFixed(2)} c/u</span>
+                        </li>
+                    `;
+                });
+                
+                ventaHTML += `</ul></div>`;
+                li.innerHTML = ventaHTML;
+                ul.appendChild(li);
+            });
+            historialVentasLista.appendChild(ul);
+
+        } catch (error) {
+            historialVentasLista.innerHTML = `<p style="color: red;">Error al cargar el historial de ventas: ${error.message}</p>`;
+        }
+    }
     // --- Funciones de Lógica de UI ---
 
     /** Muestra la sección de direcciones para un cliente específico. */
@@ -494,26 +555,96 @@ async function handleEditarSubmit(event) {
     }
 
     /** Maneja el clic en "Finalizar Compra". */
-    async function handleFinalizarCompraClick() { 
-        if (!selectorCliente || !btnFinalizarCompra || !compraMensaje) return;
-        const idClienteSeleccionado = selectorCliente.value;
-        if (!idClienteSeleccionado) { mostrarMensaje(compraMensaje, "Seleccione un cliente.", false); return; }
-        if (carrito.length === 0) { mostrarMensaje(compraMensaje, "El carrito está vacío.", false); return; }
-        const ventaData = { id_cliente: parseInt(idClienteSeleccionado), detalles: carrito.map(item => ({ id_producto: item.id_producto, cantidad: item.cantidad, precio_unitario: item.precio })) };
-        btnFinalizarCompra.disabled = true; btnFinalizarCompra.textContent = 'Procesando...';
-        try {
-            const ventaCreada = await fetchData(`${API_URL}/api/ventas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ventaData), });
-            mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada! Total: $${ventaCreada.monto_total.toFixed(2)}`, true); carrito = []; renderizarCarrito(); selectorCliente.value = ""; 
-        } catch (error) { mostrarMensaje(compraMensaje, `Error: ${error.message}`, false); } 
-        finally { btnFinalizarCompra.textContent = 'Finalizar Compra'; renderizarCarrito(); }
+    async function handleFinalizarCompraClick() {
+        // --- 1. Guard Clauses ---
+    // Asegura que los elementos críticos del DOM estén presentes antes de operar.
+    if (!selectorCliente || !btnFinalizarCompra || !compraMensaje) {
+        console.error("Componentes críticos del carrito no encontrados en el DOM.");
+        return;
     }
 
+    // --- 2. Validación de Entrada (Input Validation) ---
+    const idClienteSeleccionado = selectorCliente.value;
+    
+    // Valida que se haya seleccionado un cliente.
+    if (!idClienteSeleccionado) { 
+        mostrarMensaje(compraMensaje, "Seleccione un cliente.", false); 
+        return; // Detiene la ejecución si no es válido
+    }
+    
+    // Valida que el carrito no esté vacío.
+    if (carrito.length === 0) { 
+        mostrarMensaje(compraMensaje, "El carrito está vacío.", false); 
+        return; // Detiene la ejecución si no es válido
+    }
+    
+    // --- 3. Preparación del Payload (Data Shaping) ---
+    // Mapea el estado del carrito local (Array `carrito`) al formato 
+    // requerido por el schema `VentaCreate` de la API (backend).
+    const ventaData = { 
+        id_cliente: parseInt(idClienteSeleccionado), 
+        detalles: carrito.map(item => ({ 
+            id_producto: item.id_producto, 
+            cantidad: item.cantidad, 
+            precio_unitario: item.precio 
+        })) 
+    };
+    
+    // --- 4. Gestión de Estado UI (Loading State) ---
+    // Deshabilita el botón para prevenir envíos múltiples (doble clic)
+    // mientras la petición asíncrona está en curso.
+    btnFinalizarCompra.disabled = true; 
+    btnFinalizarCompra.textContent = 'Procesando...';
+    
+    try {
+        // --- 5. Petición Asíncrona (API Call) ---
+        // Envía la nueva venta al endpoint del backend.
+        const ventaCreada = await fetchData(`${API_URL}/api/ventas`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(ventaData), 
+        });
+        
+        // --- 6. Manejo de Éxito (Success Handler) ---
+        // La petición fue exitosa (status 201).
+        
+        // Informa al usuario sobre el éxito.
+        mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada! Total: $${ventaCreada.monto_total.toFixed(2)}`, true); 
+        
+        // Resetea el estado de la aplicación local tras el éxito.
+        carrito = []; // Vacía el array del carrito
+        selectorCliente.value = ""; // Limpia el selector de cliente
+        
+        // Actualiza los componentes de la UI para reflejar el nuevo estado.
+        renderizarCarrito(); // Renderiza el carrito (ahora vacío)
+        cargarHistorialVentas(); // Refresca la lista de historial de ventas
+        
+    } catch (error) { 
+        // --- 7. Manejo de Errores (Error Handler) ---
+        // La petición `fetchData` lanzó un error (ej. error de red, 500, 409).
+        // `fetchData` ya formatea el `error.message` con el detalle de la API.
+        mostrarMensaje(compraMensaje, `Error: ${error.message}`, false);
+    } 
+    finally { 
+        // --- 8. Limpieza (Cleanup) ---
+        // Este bloque se ejecuta SIEMPRE, tanto en éxito como en error.
+        
+        // Restaura el texto original del botón.
+        btnFinalizarCompra.textContent = 'Finalizar Compra'; 
+        
+        // Vuelve a llamar a renderizarCarrito(). Esto es crucial porque:
+        // 1. Si la compra fue exitosa: `carrito` está vacío -> renderizarCarrito() mantendrá el botón DESHABILITADO.
+        // 2. Si la compra falló: `carrito` AÚN tiene items -> renderizarCarrito() RE-HABILITARÁ el botón.
+        renderizarCarrito(); 
+    }
+}
     // --- Inicialización y Asignación de Eventos ---
 
     // Carga inicial de datos.
     cargarProductos();
     cargarClientes(); 
     cargarProveedores(); 
+    cargarHistorialVentas();
 
     // Asigna manejadores de eventos a formularios y botones estáticos.
     if (formNuevoCliente) formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
