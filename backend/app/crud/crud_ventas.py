@@ -133,32 +133,35 @@ def get_venta_by_id(venta_id: int):
             
     return venta # Retorna la venta (con detalles) o None
 
-# --- NUEVA Función ---
 def get_all_ventas():
     """
     Obtiene todas las ventas registradas, incluyendo sus respectivos detalles.
-    ADVERTENCIA: Esto puede ser ineficiente (problema N+1) si hay muchas ventas.
-    Para producción, se preferiría paginación o un JOIN más complejo.
-
-    Returns:
-        List[dict]: Una lista de diccionarios de ventas, cada uno con sus detalles.
     """
     conn = get_db_connection()
     if conn is None:
         return []
 
-    ventas = []
+    ventas_dict = {} # Usar un diccionario para agrupar
+    
     try:
         with conn.cursor() as cur:
             # 1. Obtener todas las ventas principales
             cur.execute("SELECT id_venta, id_cliente, fecha, monto_total FROM venta ORDER BY fecha DESC")
             ventas_rows = cur.fetchall()
             
-            # 2. Para cada venta, obtener sus detalles
+            # Guardamos los nombres de columna de 'venta' ANTES de hacer más consultas
+            venta_column_names = [desc[0] for desc in cur.description] 
+
+            # 2. Procesar cada venta y obtener sus detalles
             for venta_row in ventas_rows:
-                venta = row_to_dict(cur, venta_row)
-                venta['detalles'] = get_detalles_for_venta(cur, venta['id_venta'])
-                ventas.append(venta)
+                # Convertir la fila de venta a diccionario USANDO los nombres de columna guardados
+                venta_dict = dict(zip(venta_column_names, venta_row))
+                venta_id = venta_dict['id_venta']
+                
+                # Obtener los detalles para esta venta (esto reutiliza el cursor 'cur')
+                venta_dict['detalles'] = get_detalles_for_venta(cur, venta_id)
+                
+                ventas_dict[venta_id] = venta_dict
                 
     except (Exception, psycopg.Error) as error:
         print(f"Error al obtener todas las ventas: {error}")
@@ -166,4 +169,5 @@ def get_all_ventas():
         if conn:
             conn.close()
             
-    return ventas
+    # Convertir el diccionario de ventas de nuevo a una lista
+    return list(ventas_dict.values())
