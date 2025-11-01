@@ -38,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const editTelefonoClienteInput = document.getElementById('edit-telefono-cliente');
     const editClienteMensaje = document.getElementById('edit-cliente-mensaje');
     const cerrarModalClienteBtn = document.getElementById('cerrar-modal-cliente');
+    const historialVentasLista = document.getElementById('historial-ventas-lista');
 
     // --- Estado de la Aplicación ---
     /** Almacena los items del carrito: { id_producto, nombre, precio, cantidad } */
