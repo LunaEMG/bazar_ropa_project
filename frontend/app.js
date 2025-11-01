@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // --- Configuración ---
     /** URL base de la API backend desplegada. */
-    const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; 
+    const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; //https://bazar-ropa-project-lunaemg.onrender.com
 
     // Referencias a elementos clave del DOM.
     const listaDeProductos = document.getElementById('productos-lista');
