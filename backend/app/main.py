@@ -11,12 +11,15 @@ app = FastAPI(title="API del Bazar de Ropa", version="0.1.0")
 # --- Configuración de CORS ---
 # Define los orígenes permitidos para las peticiones cross-origin.
 origins = [
-    # URL del frontend desplegado en Render
+# URL del frontend desplegado en Render
     "https://bazar-ropa-project-web.onrender.com", 
     # Orígenes para desarrollo local
     "http://localhost", 
     "http://127.0.0.1",
-    "null", # Permite peticiones desde 'file:///'
+    "http://localhost:8080",     # Para 'python -m http.server'
+    "http://127.0.0.1:8080",    # Para 'python -m http.server'
+    "http://127.0.0.1:5500",    # Para VS Code Live Server
+    "null",
 ]
 
 app.add_middleware(
