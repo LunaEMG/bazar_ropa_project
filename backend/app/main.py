@@ -2,8 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware 
 
-# Importación de los módulos de routers para las diferentes entidades
-# Se incluye el nuevo router 'direcciones'
+# Importación de los módulos de routers para todas las entidades
 from app.routers import productos, clientes, ventas, proveedores, direcciones 
 
 # Inicialización de la aplicación FastAPI
@@ -30,11 +29,12 @@ app.add_middleware(
 
 # --- Inclusión de Routers ---
 # Registra los endpoints definidos en cada módulo router.
+# Cada router agrupa rutas relacionadas con una entidad.
 app.include_router(productos.router)
 app.include_router(clientes.router) 
-app.include_router(ventas.router) 
+app.include_router(ventas.router) # <-- Asegura que este router esté incluido
 app.include_router(proveedores.router) 
-app.include_router(direcciones.router) # <-- Se añade el router de direcciones
+app.include_router(direcciones.router) 
 
 # --- Endpoint Raíz ---
 @app.get("/", tags=["Root"]) 
@@ -43,4 +43,4 @@ def read_root():
     Endpoint raíz de la API. Proporciona un mensaje de bienvenida
     e indica la ruta a la documentación interactiva.
     """
-    return {"mensaje": "Bienvenido a la API del Bazar de Ropa. Visita /docs para la documentación."}
+    return {"mensaje": "Bienvenido a la API del Bazar de RDopa. Visita /docs para la documentación."}
