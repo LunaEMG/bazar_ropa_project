@@ -6,7 +6,7 @@ body {
     background-color: #f4f4f9;
     color: #333;
     margin: 0;
-    padding: 0;
+    padding: 0; 
     line-height: 1.6;
 }
 
@@ -14,28 +14,28 @@ body {
 header {
     background-color: #34495e;
     color: #ffffff;
-    padding: 15px 20px;
+    padding: 15px 20px; 
     text-align: center;
     margin-bottom: 30px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
 }
 
 header h1 {
     margin: 0;
-    font-size: 1.8em;
+    font-size: 1.8em; 
 }
 
 /* Contenedor principal */
 .container {
     max-width: 960px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 20px; 
 }
 
 /* Estilos de secciones principales */
 section {
     margin-bottom: 40px;
-    padding: 25px;
+    padding: 25px; 
     background-color: #ffffff;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -47,27 +47,27 @@ section h2 {
     border-bottom: 2px solid #ecf0f1;
     padding-bottom: 10px;
     margin-bottom: 20px;
-    font-size: 1.5em;
+    font-size: 1.5em; 
 }
 
 /* Estilos para subsecciones */
 .sub-section {
-    margin-top: 30px;
+    margin-top: 30px; 
     padding-top: 20px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid #eee; 
 }
 .sub-section:first-child {
-    margin-top: 0;
+    margin-top: 0; 
     padding-top: 0;
-    border-top: none;
+    border-top: none; 
 }
 .sub-section h3 {
     margin-top: 0;
     margin-bottom: 15px;
-    color: #3498db;
+    color: #3498db; 
     font-size: 1.3em;
 }
-.sub-section h4 {
+.sub-section h4 { 
     margin-top: 25px;
     margin-bottom: 10px;
     color: #555;
@@ -124,7 +124,7 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; 
 .btn-accion {
     padding: 5px 10px;
     font-size: 0.85em;
-    margin-left: 8px; /* Espacio entre botones */
+    margin-left: 8px; 
 }
 .btn-editar { background-color: #f39c12; color: white; } /* Naranja */
 .btn-editar:hover { background-color: #e67e22; }
@@ -150,81 +150,100 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; 
 .mensaje.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
 /* Estilos para listas (Clientes, Proveedores, Direcciones) */
-#clientes-lista-contenedor ul, /* Actualizado ID */
+#clientes-lista-contenedor ul, 
 #proveedores-lista ul,
 #lista-direcciones-cliente ul { list-style: none; padding: 0; margin: 0; }
 
-#clientes-lista-contenedor li, /* Actualizado ID */
+#clientes-lista-contenedor li, 
 #proveedores-lista li,
 #lista-direcciones-cliente li { background-color: #ecf0f1; margin-bottom: 10px; padding: 12px 15px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
 
 /* Contenedor para info del item (nombre/calle + telefono/ciudad) */
 .item-info {
-    flex-grow: 1; /* Ocupa el espacio disponible a la izquierda */
-    margin-right: 15px; /* Espacio antes de los botones */
+    flex-grow: 1; 
+    margin-right: 15px; 
 }
-.item-info span:first-child { font-weight: bold; display: block; } /* Nombre/Calle en negritas y línea propia */
-.item-info span:not(:first-child) { color: #555; font-size: 0.9em; } /* Teléfono/Ciudad más pequeño */
+.item-info span:first-child { font-weight: bold; display: block; } 
+.item-info span:not(:first-child) { color: #555; font-size: 0.9em; } 
 
 /* Contenedor para los botones de acción a la derecha */
 .item-acciones {
-    display: flex; /* Alinea botones horizontalmente */
-    flex-shrink: 0; /* Evita que los botones se encojan */
+    display: flex; 
+    flex-shrink: 0; 
 }
 
-/* Estilos específicos para dirección */
-#lista-direcciones-cliente li .item-info span:not(:first-child) { display: block; } /* Ciudad y CP en líneas separadas */
+/* Estilo específico para dirección */
+#lista-direcciones-cliente li .item-info span:not(:first-child) { display: block; } 
 
 
-/* --- NUEVOS Estilos para el Modal --- */
-.modal {
-    display: none; /* Oculto por defecto */
-    position: fixed; /* Fijo en la pantalla */
-    z-index: 1000; /* Por encima de todo */
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto; /* Permite scroll si el contenido es largo */
-    background-color: rgba(0, 0, 0, 0.6); /* Fondo semi-transparente oscuro */
+/* --- NUEVOS Estilos para el Historial de Ventas --- */
+#historial-ventas-lista .venta-item {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
 }
 
-.modal-contenido {
-    background-color: #fefefe; /* Fondo blanco */
-    margin: 10% auto; /* Centrado vertical y horizontal */
-    padding: 30px;
-    border: 1px solid #888;
-    width: 80%; /* Ancho del modal */
-    max-width: 500px; /* Ancho máximo */
-    border-radius: 8px;
-    position: relative; /* Para posicionar el botón de cerrar */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-.cerrar-modal {
-    color: #aaa;
-    position: absolute; /* Posición absoluta respecto al modal-contenido */
-    top: 10px;
-    right: 20px;
-    font-size: 28px;
+#historial-ventas-lista .venta-header {
+    background-color: #f9f9f9;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-weight: bold;
-    cursor: pointer;
+    color: #333;
+    cursor: pointer; /* Indica que se puede hacer clic para expandir */
 }
 
-.cerrar-modal:hover,
-.cerrar-modal:focus {
-    color: black;
-    text-decoration: none;
+#historial-ventas-lista .venta-header span {
+    font-size: 0.9em;
+    color: #555;
 }
 
-#modal-editar-cliente h3 { /* Estilo para el título del modal */
-     margin-top: 0;
-     color: #3498db;
-     border-bottom: 1px solid #eee;
-     padding-bottom: 10px;
+#historial-ventas-lista .venta-detalles {
+    padding: 15px;
+    background-color: #fafafa;
+    border-top: 1px solid #eee;
+    /* display: none; */ /* Se controlará con JS para efecto acordeón */
 }
 
-/* -------------------------------------- */
+#historial-ventas-lista .detalle-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 0.9em;
+    border-bottom: 1px dotted #ccc;
+}
+#historial-ventas-lista .detalle-item:last-child {
+    border-bottom: none;
+}
+#historial-ventas-lista .detalle-item .nombre-producto {
+    flex-grow: 1;
+    color: #111;
+}
+#historial-ventas-lista .detalle-item .cantidad-producto {
+    min-width: 50px;
+    text-align: right;
+    color: #555;
+}
+#historial-ventas-lista .detalle-item .precio-producto {
+    min-width: 80px;
+    text-align: right;
+    font-weight: bold;
+    color: #111;
+}
+
+/* ------------------------------------------------ */
+
+
+/* Estilos para el Modal */
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0, 0, 0, 0.6); }
+.modal-contenido { background-color: #fefefe; margin: 10% auto; padding: 30px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+.cerrar-modal { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+.cerrar-modal:hover, .cerrar-modal:focus { color: black; text-decoration: none; }
+#modal-editar-cliente h3 { margin-top: 0; color: #3498db; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
 
 /* Línea divisoria */

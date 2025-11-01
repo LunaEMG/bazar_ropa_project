@@ -14,17 +14,29 @@
     <main class="container">
         <section>
             <h2>Catálogo de Productos</h2>
-            <div id="productos-lista" class="grid-container"><p>Cargando productos...</p></div>
+            <div id="productos-lista" class="grid-container">
+                <p>Cargando productos...</p>
+            </div>
         </section>
+
         <hr>
+
         <section id="carrito-seccion">
             <h2>Carrito de Compras</h2>
-            <div id="carrito-items"><p>El carrito está vacío.</p></div>
+            <div id="carrito-items">
+                <p>El carrito está vacío.</p>
+            </div>
             <p class="carrito-total">Total: $<span id="carrito-total">0.00</span></p>
-            <div class="form-group" style="margin-top: 15px;"><label for="selector-cliente">Comprar como:</label><select id="selector-cliente" name="cliente_id" required><option value="">Seleccione un cliente...</option></select></div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="selector-cliente">Comprar como:</label>
+                <select id="selector-cliente" name="cliente_id" required>
+                    <option value="">Seleccione un cliente...</option>
+                </select>
+            </div>
             <button id="btn-finalizar-compra" disabled>Finalizar Compra</button>
             <p id="compra-mensaje" class="mensaje"></p>
         </section>
+
         <hr>
 
         <section>
@@ -44,7 +56,7 @@
                 <h3>Lista de Clientes</h3>
                 <div id="clientes-lista-contenedor"> 
                     <p>Cargando clientes...</p>
-                    </div>
+                </div>
             </div>
 
             <div class="sub-section" id="direcciones-cliente" style="display: none;">
@@ -65,8 +77,7 @@
                 <div class="modal-contenido">
                     <span class="cerrar-modal" id="cerrar-modal-cliente">&times;</span>
                     <h3>Editar Cliente</h3>
-                    <form id="form-editar-cliente">
-                        <input type="hidden" id="edit-cliente-id" name="id_cliente">
+                    <form id="form-editar-cliente" data-target-entity=""> <input type="hidden" id="edit-cliente-id" name="id_cliente">
                         <div class="form-group">
                             <label for="edit-nombre-cliente">Nombre:</label>
                             <input type="text" id="edit-nombre-cliente" name="nombre" required>
@@ -82,6 +93,7 @@
             </div>
             
         </section> <hr> 
+
         <section>
             <h2>Proveedores</h2> 
             <form id="form-nuevo-proveedor" style="margin-bottom: 30px;">
@@ -94,9 +106,22 @@
             <h3>Lista de Proveedores</h3>
             <div id="proveedores-lista"><p>Cargando proveedores...</p></div>
         </section>
+
+        <hr>
+
+        <section>
+            <h2>Historial de Ventas</h2>
+            <div id="historial-ventas-lista">
+                <p>Cargando historial de ventas...</p>
+            </div>
+        </section>
+
     </main>
 
-    <footer><p>&copy; 2025 Bazar de Ropa</p></footer>
+    <footer>
+        <p>&copy; 2025 Bazar de Ropa</p> 
+    </footer>
+
     <script src="app.js"></script>
 </body>
 </html>
