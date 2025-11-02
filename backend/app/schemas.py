@@ -100,7 +100,7 @@ class Cliente(ClienteBase):
     id_cliente: int
 
     class Config:
-        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
+        from_attributes = True 
 
 # --- Schemas de Ventas (Actualizados) ---
 
@@ -117,9 +117,10 @@ class DetalleVentaCreate(DetalleVentaBase):
 class DetalleVenta(DetalleVentaBase):
     """Schema para leer/retornar un detalle de venta (incluye ID de venta)."""
     id_venta: int
+    nombre_producto: Optional[str] = None
 
     class Config:
-        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
+        from_attributes = True 
 
 class VentaBase(BaseModel):
     """Schema base para Venta."""
@@ -136,14 +137,13 @@ class Venta(VentaBase):
     id_venta: int
     monto_total: float
 
-    # --- MODIFICACIÓN CLAVE (PARA CLIENTES ELIMINADOS) ---
     # Sobrescribimos id_cliente para permitir que sea None
     id_cliente: Optional[int] = None 
 
     detalles: List[DetalleVenta] = [] 
 
     class Config:
-        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
+        from_attributes = True 
 
 # --- Schemas de Proveedores ---
 class ProveedorBase(BaseModel):
@@ -165,7 +165,7 @@ class Proveedor(ProveedorBase):
     id_proveedor: int
 
     class Config:
-        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
+        from_attributes = True 
 
 # --- Schemas de Direcciones ---
 class DireccionBase(BaseModel):
@@ -190,4 +190,4 @@ class Direccion(DireccionBase):
     id_cliente: int 
 
     class Config:
-        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
+        from_attributes = True 
