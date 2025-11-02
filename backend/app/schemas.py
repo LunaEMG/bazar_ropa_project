@@ -139,6 +139,7 @@ class Venta(VentaBase):
 
     # Sobrescribimos id_cliente para permitir que sea None
     id_cliente: Optional[int] = None 
+    nombre_cliente: Optional[str] = None
 
     detalles: List[DetalleVenta] = [] 
 

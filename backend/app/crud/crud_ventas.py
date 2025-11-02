@@ -190,7 +190,14 @@ def get_all_ventas():
     try:
         with conn.cursor() as cur:
             # 1. Obtener todas las ventas principales
-            cur.execute("SELECT id_venta, id_cliente, fecha, monto_total FROM venta ORDER BY fecha DESC")
+            cur.execute("""
+                SELECT 
+                    v.id_venta, v.id_cliente, v.fecha, v.monto_total, 
+                    c.nombre AS nombre_cliente
+                FROM venta v
+                LEFT JOIN cliente c ON v.id_cliente = c.id_cliente
+                ORDER BY v.fecha DESC
+            """)
             ventas_rows = cur.fetchall()
             
             # Guardamos los nombres de columna de 'venta' ANTES de hacer más consultas
