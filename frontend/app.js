@@ -350,6 +350,59 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /** Carga y muestra el reporte de productos con bajo stock. */
+    async function cargarReporteBajoStock() {
+        const contenedor = document.getElementById('reporte-bajo-stock');
+        if (!contenedor) return;
+        contenedor.innerHTML = '<p>Cargando reporte...</p>';
+        try {
+            const data = await fetchData(`${API_URL}/api/reportes/bajo-stock`);
+            if (!data || data.length === 0) {
+                contenedor.innerHTML = '<p>No hay productos con bajo stock.</p>'; return;
+            }
+
+            let tablaHTML = '<table class="reporte-tabla"><thead><tr><th>ID</th><th>Nombre</th><th class="numero">Stock</th></tr></thead><tbody>';
+            data.forEach(item => {
+                tablaHTML += `<tr><td>${item.id_producto}</td><td>${item.nombre}</td><td class="numero">${item.cantidad_stock}</td></tr>`;
+            });
+            tablaHTML += '</tbody></table>';
+            contenedor.innerHTML = tablaHTML;
+
+        } catch (error) {
+            contenedor.innerHTML = `<p style="color: red;">Error al cargar reporte: ${error.message}</p>`;
+        }
+    }
+
+
+    /** Carga y muestra el reporte de ventas por cliente. */
+    async function cargarReporteVentasCliente() {
+        const contenedor = document.getElementById('reporte-ventas-cliente');
+        if (!contenedor) return;
+        contenedor.innerHTML = '<p>Cargando reporte...</p>';
+        try {
+            const data = await fetchData(`${API_URL}/api/reportes/ventas-cliente`);
+            if (!data || data.length === 0) {
+                contenedor.innerHTML = '<p>No hay ventas registradas para mostrar.</p>'; return;
+            }
+
+        let tablaHTML = '<table class="reporte-tabla"><thead><tr><th>Cliente (ID)</th><th>Nombre</th><th class="numero">Total Compras</th><th class="numero">Gasto Total</th></tr></thead><tbody>';
+        data.forEach(item => {
+            tablaHTML += `
+                <tr>
+                    <td>${item.id_cliente}</td>
+                    <td>${item.nombre}</td>
+                    <td class="numero">${item.total_compras}</td>
+                    <td class="numero">$${item.gasto_total.toFixed(2)}</td>
+                </tr>`;
+        });
+        tablaHTML += '</tbody></table>';
+        contenedor.innerHTML = tablaHTML;
+
+    } catch (error) {
+        contenedor.innerHTML = `<p style="color: red;">Error al cargar reporte: ${error.message}</p>`;
+    }
+}
+
     // --- Funciones de Lógica de UI ---
 
     /** Muestra la sección de direcciones para un cliente específico. */
@@ -1066,6 +1119,8 @@ async function handleNuevoProductoSubmit(event) {
     cargarClientes(); 
     cargarProveedores(); // Esta función ahora también llena el selector de productos
     cargarHistorialVentas();
+    cargarReporteBajoStock();
+    cargarReporteVentasCliente();
 
     // Asigna manejadores de eventos a formularios y botones estáticos.
     if (formNuevoCliente) formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
