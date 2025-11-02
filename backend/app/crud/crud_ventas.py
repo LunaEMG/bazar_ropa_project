@@ -123,13 +123,23 @@ def get_detalles_for_venta(cursor, venta_id: int):
     usando un cursor existente.
     """
     cursor.execute(
-        "SELECT id_venta, id_producto, cantidad, precio_unitario FROM detalle_venta WHERE id_venta = %s",
+        """
+        SELECT 
+            dv.id_venta, 
+            dv.id_producto, 
+            dv.cantidad, 
+            dv.precio_unitario,
+            p.nombre AS nombre_producto
+        FROM detalle_venta dv
+        JOIN producto p ON dv.id_producto = p.id_producto 
+        WHERE dv.id_venta = %s
+        """,
         (venta_id,)
     )
     detalles_rows = cursor.fetchall()
     return [row_to_dict(cursor, row) for row in detalles_rows]
 
-# --- Función ---
+# --- Función obtiene venta por ID---
 def get_venta_by_id(venta_id: int):
     """
     Obtiene una venta específica por su ID, incluyendo sus detalles.

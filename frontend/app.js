@@ -135,7 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 // Listener Añadir
                 item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick); 
 
-                // --- NUEVO: Listener de Editar ---
+                // --- Listener de Editar ---
                 const editButton = item.querySelector('.btn-editar-producto');
                 if (editButton) {
                     editButton.addEventListener('click', () => handleEditarProductoClick(producto.id_producto));
@@ -312,11 +312,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 // Itera sobre los detalles (productos) de esa venta
                 venta.detalles.forEach(detalle => {
-                    // NOTA: Tu API de ventas devuelve id_producto, no el nombre.
-                    // (Ver nota al final para cómo mejorar esto)
                     ventaHTML += `
                         <li class="detalle-item">
-                            <span>(ID Producto: ${detalle.id_producto})</span>
+                            <span>${detalle.nombre_producto || '(Producto no disponible)'}</span>
                             <span>Cant: ${detalle.cantidad}</span>
                             <span>@ $${detalle.precio_unitario.toFixed(2)} c/u</span>
                         </li>
