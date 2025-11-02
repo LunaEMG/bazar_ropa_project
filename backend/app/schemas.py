@@ -10,7 +10,8 @@ class ProductoBase(BaseModel):
     descripcion: Optional[str] = None
     precio: float = Field(ge=0) 
     cantidad_stock: int = Field(ge=0) 
-    id_proveedor: int
+    # Mantenemos 'int' aquí para que ProductoCreate lo herede como requerido
+    id_proveedor: int 
 
 class ProductoUpdate(BaseModel):
     """Schema para actualizar un Producto. Todos los campos son opcionales."""
@@ -20,13 +21,19 @@ class ProductoUpdate(BaseModel):
     cantidad_stock: Optional[int] = Field(None, ge=0)
     id_proveedor: Optional[int] = None
 
-class Producto(ProductoBase):
+class Producto(ProductoBase): # <-- Este es el schema de RESPUESTA
     """Schema para leer/retornar un Producto, incluye ID y detalles del subtipo."""
     id_producto: int
+    
+    # --- MODIFICACIÓN CLAVE ---
+    # Sobrescribimos id_proveedor aquí para PERMITIR que sea None en la respuesta.
+    # Esto es necesario para los productos cuyo proveedor fue eliminado (ON DELETE SET NULL).
+    id_proveedor: Optional[int] = None 
+    
     detalles_subtipo: Optional[Any] = None 
 
     class Config:
-        orm_mode = True 
+        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
 
 # --- Schemas para Detalles de Subtipos (NUEVO) ---
 class RopaDetalles(BaseModel):
@@ -70,6 +77,7 @@ class ProductoCreate(ProductoBase):
     Schema para crear un producto. Incluye un campo 'tipo_producto' 
     y un campo de detalles que es una unión de los posibles subtipos.
     """
+    # Hereda id_proveedor: int de ProductoBase, por lo que sigue siendo requerido al crear.
     tipo_producto: str # "ropa", "calzado", o "accesorios"
     detalles_subtipo: Union[RopaDetalles, CalzadoDetalles, AccesoriosDetalles]
 
@@ -93,7 +101,7 @@ class Cliente(ClienteBase):
     id_cliente: int
 
     class Config:
-        orm_mode = True 
+        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
 
 # --- Schemas de Ventas (Actualizados) ---
 
@@ -112,7 +120,7 @@ class DetalleVenta(DetalleVentaBase):
     id_venta: int
 
     class Config:
-        orm_mode = True 
+        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
 
 class VentaBase(BaseModel):
     """Schema base para Venta."""
@@ -129,10 +137,14 @@ class Venta(VentaBase):
     id_venta: int
     monto_total: float
 
+    # --- MODIFICACIÓN CLAVE (PARA CLIENTES ELIMINADOS) ---
+    # Sobrescribimos id_cliente para permitir que sea None
+    id_cliente: Optional[int] = None 
+
     detalles: List[DetalleVenta] = [] 
 
     class Config:
-        orm_mode = True 
+        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
 
 # --- Schemas de Proveedores ---
 class ProveedorBase(BaseModel):
@@ -154,7 +166,7 @@ class Proveedor(ProveedorBase):
     id_proveedor: int
 
     class Config:
-        orm_mode = True 
+        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
 
 # --- Schemas de Direcciones ---
 class DireccionBase(BaseModel):
@@ -179,4 +191,4 @@ class Direccion(DireccionBase):
     id_cliente: int 
 
     class Config:
-        orm_mode = True
+        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
