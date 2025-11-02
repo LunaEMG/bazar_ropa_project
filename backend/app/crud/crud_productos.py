@@ -145,69 +145,71 @@ def get_all_productos():
 # LEER (Read): Obtener un solo producto por ID (Modificada para incluir detalles de subtipo)
 def get_producto_by_id(producto_id: int):
     """
-    Obtiene un producto específico por su 'id_producto', incluyendo 
-    los detalles de su tabla de subtipo correspondiente (ropa, calzado, accesorios).
-    Retorna siempre el campo 'tipo_producto'.
+    Obtiene un producto por su ID, incluyendo:
+      - datos base de 'producto'
+      - detalles del subtipo correspondiente (ropa, calzado o accesorios)
+      - tipo_producto siempre presente
     """
     conn = get_db_connection()
     if conn is None:
-        return None 
-        
+        return None
+
     producto = None
+    tipo_detectado = None
+
     try:
         with conn.cursor() as cur:
-            # 1️⃣ Detectar tipo de producto y obtener datos base
+            # 1 Obtener los datos base del producto
             cur.execute("""
-                SELECT 
-                    p.id_producto, p.nombre, p.descripcion, p.precio, 
-                    p.cantidad_stock, p.id_proveedor,
-                    CASE 
-                        WHEN r.id_producto IS NOT NULL THEN 'ropa'
-                        WHEN c.id_producto IS NOT NULL THEN 'calzado'
-                        WHEN a.id_producto IS NOT NULL THEN 'accesorios'
-                        ELSE 'desconocido'
-                    END AS tipo_producto
-                FROM producto p
-                LEFT JOIN ropa r ON p.id_producto = r.id_producto
-                LEFT JOIN calzado c ON p.id_producto = c.id_producto
-                LEFT JOIN accesorios a ON p.id_producto = a.id_producto
-                WHERE p.id_producto = %s
+                SELECT id_producto, nombre, descripcion, precio, cantidad_stock, id_proveedor
+                FROM producto
+                WHERE id_producto = %s
             """, (producto_id,))
-            
-            producto_row = cur.fetchone()
-            if not producto_row:
-                return None
-                
-            producto = row_to_dict(cur, producto_row)
-            tipo = producto.get("tipo_producto")
+            row = cur.fetchone()
 
-            # 2️⃣ Obtener detalles según tipo
-            if tipo == "ropa":
-                cur.execute("SELECT material, tipo_corte, talla FROM ropa WHERE id_producto = %s", (producto_id,))
-                detalles = cur.fetchone()
-                producto["detalles_subtipo"] = row_to_dict(cur, detalles) if detalles else None
+            if not row:
+                return None  # No existe el producto
 
-            elif tipo == "calzado":
+            producto = row_to_dict(cur, row)
+
+            # 2 Buscar en cada subtipo hasta encontrar el correcto
+            cur.execute("SELECT material, tipo_corte, talla FROM ropa WHERE id_producto = %s", (producto_id,))
+            r = cur.fetchone()
+            if r:
+                producto["tipo_producto"] = "ropa"
+                producto["detalles_subtipo"] = row_to_dict(cur, r)
+                tipo_detectado = "ropa"
+
+            if not tipo_detectado:
                 cur.execute("SELECT talla_numerica, material_suela FROM calzado WHERE id_producto = %s", (producto_id,))
-                detalles = cur.fetchone()
-                producto["detalles_subtipo"] = row_to_dict(cur, detalles) if detalles else None
+                c = cur.fetchone()
+                if c:
+                    producto["tipo_producto"] = "calzado"
+                    producto["detalles_subtipo"] = row_to_dict(cur, c)
+                    tipo_detectado = "calzado"
 
-            elif tipo == "accesorios":
+            if not tipo_detectado:
                 cur.execute("SELECT material, dimensiones FROM accesorios WHERE id_producto = %s", (producto_id,))
-                detalles = cur.fetchone()
-                producto["detalles_subtipo"] = row_to_dict(cur, detalles) if detalles else None
+                a = cur.fetchone()
+                if a:
+                    producto["tipo_producto"] = "accesorios"
+                    producto["detalles_subtipo"] = row_to_dict(cur, a)
+                    tipo_detectado = "accesorios"
 
-            else:
+            # 3 Si no se encontró tipo, marcar como desconocido
+            if not tipo_detectado:
+                producto["tipo_producto"] = "desconocido"
                 producto["detalles_subtipo"] = None
 
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al obtener producto {producto_id}: {error}")
+    except Exception as e:
+        print(f" Error en get_producto_by_id({producto_id}): {e}")
         producto = None
     finally:
         if conn:
             conn.close()
-            
+
     return producto
+
 
 
 # ACTUALIZAR (Update): Modificar un producto existente (solo tabla base 'producto')
