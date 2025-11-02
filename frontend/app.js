@@ -473,66 +473,72 @@ document.addEventListener("DOMContentLoaded", () => {
     * formulario de "Registrar Producto" para entrar en modo edición.
     */
     async function handleEditarProductoClick(productoId) {
-    try {
-        // 1. Obtener los datos completos del producto (incluyendo subtipo)
-        const producto = await fetchData(`${API_URL}/api/productos/${productoId}`);
-        if (!producto) throw new Error("No se pudieron cargar los datos del producto.");
+        try {
+            // 1. Obtener los datos completos del producto (incluyendo subtipo)
+            const producto = await fetchData(`${API_URL}/api/productos/${productoId}`);
+            if (!producto) throw new Error("No se pudieron cargar los datos del producto.");
 
-        // 2. Llenar los campos base
-        productoIdEditInput.value = producto.id_producto;
-        document.getElementById('producto-nombre').value = producto.nombre;
-        document.getElementById('producto-descripcion').value = producto.descripcion || '';
-        document.getElementById('producto-precio').value = producto.precio;
-        document.getElementById('producto-stock').value = producto.cantidad_stock;
-        selectorProveedorProducto.value = producto.id_proveedor;
-        
-        // 3. Llenar los campos de subtipo
-        selectorTipoProducto.value = producto.tipo_producto;
-        handleTipoProductoChange(); // Muestra los campos correctos
-        
-        // Deshabilita el selector de tipo, no se puede cambiar el tipo de un producto
-        selectorTipoProducto.disabled = true; 
+            // 2. Llenar los campos base
+            productoIdEditInput.value = producto.id_producto;
+            document.getElementById('producto-nombre').value = producto.nombre;
+            document.getElementById('producto-descripcion').value = producto.descripcion || '';
+            document.getElementById('producto-precio').value = producto.precio;
+            document.getElementById('producto-stock').value = producto.cantidad_stock;
+            selectorProveedorProducto.value = producto.id_proveedor;
+            
+            // 3. Llenar los campos de subtipo
+            selectorTipoProducto.value = producto.tipo_producto;
+            handleTipoProductoChange(); // Muestra los campos correctos
+            
+            // Deshabilita el selector de tipo, no se puede cambiar el tipo de un producto
+            selectorTipoProducto.disabled = true; 
 
-        if (producto.tipo_producto === 'ropa' && producto.detalles_subtipo) {
-            document.getElementById('ropa-material').value = producto.detalles_subtipo.material;
-            document.getElementById('ropa-talla').value = producto.detalles_subtipo.talla;
-            document.getElementById('ropa-corte').value = producto.detalles_subtipo.tipo_corte || '';
-        } else if (producto.tipo_producto === 'calzado' && producto.detalles_subtipo) {
-            document.getElementById('calzado-talla').value = producto.detalles_subtipo.talla_numerica;
-            document.getElementById('calzado-suela').value = producto.detalles_subtipo.material_suela;
-        } else if (producto.tipo_producto === 'accesorios' && producto.detalles_subtipo) {
-            document.getElementById('accesorio-material').value = producto.detalles_subtipo.material;
-            document.getElementById('accesorio-dimensiones').value = producto.detalles_subtipo.dimensiones || '';
+            if (producto.tipo_producto === 'ropa' && producto.detalles_subtipo) {
+                document.getElementById('ropa-material').value = producto.detalles_subtipo.material;
+                document.getElementById('ropa-talla').value = producto.detalles_subtipo.talla;
+                document.getElementById('ropa-corte').value = producto.detalles_subtipo.tipo_corte || '';
+            } else if (producto.tipo_producto === 'calzado' && producto.detalles_subtipo) {
+                document.getElementById('calzado-talla').value = producto.detalles_subtipo.talla_numerica;
+                document.getElementById('calzado-suela').value = producto.detalles_subtipo.material_suela;
+            } else if (producto.tipo_producto === 'accesorios' && producto.detalles_subtipo) {
+                document.getElementById('accesorio-material').value = producto.detalles_subtipo.material;
+                document.getElementById('accesorio-dimensiones').value = producto.detalles_subtipo.dimensiones || '';
+            }
+
+            // 4. Poner el formulario en "Modo Edición"
+            
+            // --- LÍNEA CORREGIDA ---
+            // Busca la <section> más cercana (padre) y luego busca el <h2> dentro de ella.
+            formNuevoProducto.closest('section').querySelector('h2').textContent = "Editar Producto";
+            
+            formNuevoProducto.querySelector('button[type="submit"]').textContent = "Actualizar Producto";
+            btnCancelarEdicionProducto.style.display = 'inline-block'; // Muestra el botón de cancelar
+            
+            // Scroll para que el usuario vea el formulario
+            formNuevoProducto.scrollIntoView({ behavior: 'smooth' });
+
+        } catch (error) {
+            mostrarMensaje(productoMensaje, `Error al cargar producto para editar: ${error.message}`, false);
         }
-
-        // 4. Poner el formulario en "Modo Edición"
-        formNuevoProducto.querySelector('h2').textContent = "Editar Producto";
-        formNuevoProducto.querySelector('button[type="submit"]').textContent = "Actualizar Producto";
-        btnCancelarEdicionProducto.style.display = 'inline-block'; // Muestra el botón de cancelar
-        
-        // Scroll para que el usuario vea el formulario
-        formNuevoProducto.scrollIntoView({ behavior: 'smooth' });
-
-    } catch (error) {
-        mostrarMensaje(productoMensaje, `Error al cargar producto para editar: ${error.message}`, false);
     }
-}
 
     /**
     * @function resetFormularioProducto
     * @description Resetea el formulario de producto al estado "Crear".
     */
     function resetFormularioProducto() {
-    productoIdEditInput.value = ''; // Limpia el ID oculto
-    formNuevoProducto.reset(); // Limpia todos los campos
-    
-    handleTipoProductoChange(); // Oculta los campos de subtipo
-    
-    selectorTipoProducto.disabled = false; // Rehabilita el selector de tipo
-    
-    formNuevoProducto.querySelector('h2').textContent = "Registrar Nuevo Producto";
-    formNuevoProducto.querySelector('button[type="submit"]').textContent = "Registrar Producto";
-    btnCancelarEdicionProducto.style.display = 'none'; // Oculta el botón de cancelar
+        productoIdEditInput.value = ''; // Limpia el ID oculto
+        formNuevoProducto.reset(); // Limpia todos los campos
+        
+        handleTipoProductoChange(); // Oculta los campos de subtipo
+        
+        selectorTipoProducto.disabled = false; // Rehabilita el selector de tipo
+        
+        // Busca la <section> más cercana (padre) y luego busca el <h2> dentro de ella.
+        formNuevoProducto.closest('section').querySelector('h2').textContent = "Registrar Nuevo Producto";
+
+        formNuevoProducto.querySelector('button[type="submit"]').textContent = "Registrar Producto";
+        btnCancelarEdicionProducto.style.display = 'none'; // Oculta el botón de cancelar
     }
 
 
