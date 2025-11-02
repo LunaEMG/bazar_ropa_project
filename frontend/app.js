@@ -571,7 +571,7 @@ async function handleNuevoProductoSubmit(event) {
         return;
     }
 
-    console.log("🧩 Tipo de producto detectado:", tipoProducto);
+    console.log("Tipo de producto detectado:", tipoProducto);
 
     // 1. Datos comunes
     const payload = {
