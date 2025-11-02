@@ -261,8 +261,23 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span>${dir.ciudad}, CP ${dir.codigo_postal}</span>
                     </div>
                     <div class="item-acciones">
-                        </div>
-                    `; 
+                        <button class="btn-accion btn-editar-direccion btn-editar" 
+                            data-id-dir="${dir.id_direccion}" 
+                            data-calle="${dir.calle}"
+                            data-ciudad="${dir.ciudad}"
+                            data-cp="${dir.codigo_postal}"
+                        >Editar</button>
+                        <button class="btn-accion btn-eliminar-direccion btn-eliminar" 
+                            data-id-dir="${dir.id_direccion}" 
+                            data-id-cli="${dir.id_cliente}"
+                        >Eliminar</button>
+                    </div>
+                `;
+                
+                // Añadir listeners para los nuevos botones
+                li.querySelector('.btn-editar-direccion').addEventListener('click', handleEditarDireccionClick);
+                li.querySelector('.btn-eliminar-direccion').addEventListener('click', handleDeleteDireccionClick);
+
                 ul.appendChild(li);
             });
             listaDireccionesCliente.appendChild(ul);
@@ -344,6 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
          nombreClienteSeleccionadoSpan.textContent = nombreCliente; 
          idClienteDireccionInput.value = clienteId; 
          direccionesClienteDiv.style.display = 'block'; 
+         resetFormularioDireccion();
          cargarDireccionesCliente(clienteId); 
     }
 
@@ -551,7 +567,26 @@ async function handleEditarProductoClick(productoId) {
         btnCancelarEdicionProducto.style.display = 'none'; // Oculta el botón de cancelar
     }
 
+    /** Resetea el formulario de dirección al estado "Crear". */
+    function resetFormularioDireccion() {
+        document.getElementById('id-direccion-edit').value = '';
+        formNuevaDireccion.reset(); // Limpia los campos de texto
+        
+        // Restaura el ID del cliente (que se borra con reset())
+        if (clienteSeleccionadoId) {
+             document.getElementById('id-cliente-direccion').value = clienteSeleccionadoId;
+        }
+       
+        formNuevaDireccion.querySelector('h4').textContent = "Añadir Nueva Dirección";
+        formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Añadir Dirección";
+        document.getElementById('btn-cancelar-edicion-direccion').style.display = 'none';
+    }
 
+    // --- (Añade esto al final del archivo, en "Inicialización y Asignación de Eventos") ---
+    const btnCancelarEdicionDireccion = document.getElementById('btn-cancelar-edicion-direccion');
+    if (btnCancelarEdicionDireccion) {
+        btnCancelarEdicionDireccion.addEventListener('click', resetFormularioDireccion);
+    }
 
     /**
  * @function handleNuevoProductoSubmit
@@ -681,6 +716,28 @@ async function handleNuevoProductoSubmit(event) {
         mostrarModalEditarProveedor(proveedorId, nombre, telefono);
     }
 
+    /** Maneja el clic en "Editar Dirección". */
+    function handleEditarDireccionClick(event) {
+        const button = event.target;
+        const dirId = button.dataset.idDir;
+        const calle = button.dataset.calle;
+        const ciudad = button.dataset.ciudad;
+        const cp = button.dataset.cp;
+        
+        // Puebla el formulario
+        document.getElementById('id-direccion-edit').value = dirId;
+        document.getElementById('calle-direccion').value = calle;
+        document.getElementById('ciudad-direccion').value = ciudad;
+        document.getElementById('cp-direccion').value = cp;
+        
+        // Cambia la UI del formulario
+        formNuevaDireccion.querySelector('h4').textContent = "Editar Dirección";
+        formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Actualizar Dirección";
+        document.getElementById('btn-cancelar-edicion-direccion').style.display = 'inline-block';
+    }
+
+    
+
     /** Maneja el clic en "Eliminar Cliente". */
     async function handleDeleteClienteClick(event) {
         const button = event.target;
@@ -705,6 +762,28 @@ async function handleNuevoProductoSubmit(event) {
             mostrarMensaje(clienteMensaje, `Error al eliminar cliente: ${error.message}`, false); 
         }
     }
+
+    /** Maneja el clic en "Eliminar Dirección". */
+    async function handleDeleteDireccionClick(event) {
+        const button = event.target;
+        const direccionId = parseInt(button.dataset.idDir);
+        const clienteId = parseInt(button.dataset.idCli);
+
+        if (!confirm(`¿Estás seguro de que deseas eliminar esta dirección?`)) {
+            return; 
+        }
+
+        try {
+            await fetchData(`${API_URL}/api/clientes/${clienteId}/direcciones/${direccionId}`, {
+                method: 'DELETE',
+            });
+            mostrarMensaje(direccionMensaje, `Dirección eliminada con éxito.`, true);
+            cargarDireccionesCliente(clienteId); // Recarga la lista de direcciones
+        } catch (error) {
+            mostrarMensaje(direccionMensaje, `Error al eliminar dirección: ${error.message}`, false); 
+        }
+    }
+
     
     /** Maneja el clic en "Eliminar Proveedor". */
     async function handleDeleteProveedorClick(event) {
@@ -816,6 +895,8 @@ async function handleNuevoProductoSubmit(event) {
     }
 
 
+
+
     /** Maneja el envío del formulario para crear un nuevo cliente. */
     async function handleNuevoClienteSubmit(event) { 
         event.preventDefault(); if (!formNuevoCliente || !clienteMensaje) return;
@@ -840,16 +921,48 @@ async function handleNuevoProductoSubmit(event) {
         finally { submitButton.disabled = false; submitButton.textContent = 'Registrar Proveedor'; }
     }
     
-    /** Maneja el envío del formulario para añadir una dirección. */
+    /** Maneja el envío del formulario para AÑADIR o ACTUALIZAR una dirección. */
     async function handleNuevaDireccionSubmit(event) { 
-        event.preventDefault(); if (!formNuevaDireccion || !direccionMensaje || clienteSeleccionadoId === null) return;
-        const formData = new FormData(formNuevaDireccion); const calle = formData.get('calle'); const ciudad = formData.get('ciudad'); const codigo_postal = formData.get('codigo_postal');
-        const submitButton = formNuevaDireccion.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Añadiendo...';
+        event.preventDefault(); 
+        if (!formNuevaDireccion || !direccionMensaje || clienteSeleccionadoId === null) return;
+        
+        const direccionEditId = document.getElementById('id-direccion-edit').value;
+        const isEditMode = direccionEditId !== '';
+        
+        const formData = new FormData(formNuevaDireccion); 
+        const calle = formData.get('calle'); 
+        const ciudad = formData.get('ciudad'); 
+        const codigo_postal = formData.get('codigo_postal');
+        
+        const payload = { calle, ciudad, codigo_postal };
+        
+        const method = isEditMode ? 'PUT' : 'POST';
+        const endpoint = isEditMode 
+            ? `${API_URL}/api/clientes/${clienteSeleccionadoId}/direcciones/${direccionEditId}`
+            : `${API_URL}/api/clientes/${clienteSeleccionadoId}/direcciones`;
+
+        const submitButton = formNuevaDireccion.querySelector('button[type="submit"]'); 
+        submitButton.disabled = true; 
+        submitButton.textContent = isEditMode ? 'Actualizando...' : 'Añadiendo...';
+        
         try {
-            const nuevaDireccion = await fetchData(`${API_URL}/api/clientes/${clienteSeleccionadoId}/direcciones`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ calle, ciudad, codigo_postal }), });
-            mostrarMensaje(direccionMensaje, `Dirección añadida!`, true); formNuevaDireccion.reset(); cargarDireccionesCliente(clienteSeleccionadoId); 
-        } catch (error) { mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false); } 
-        finally { submitButton.disabled = false; submitButton.textContent = 'Añadir Dirección'; }
+            await fetchData(endpoint, { 
+                method: method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload), 
+            });
+            
+            mostrarMensaje(direccionMensaje, isEditMode ? 'Dirección actualizada!' : 'Dirección añadida!', true); 
+            resetFormularioDireccion(); // Limpia el formulario
+            cargarDireccionesCliente(clienteSeleccionadoId); // Recarga la lista
+            
+        } catch (error) { 
+            mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false); 
+        } 
+        finally { 
+            submitButton.disabled = false; 
+            // El texto del botón se restaura en resetFormularioDireccion()
+        }
     }
 
     /**
