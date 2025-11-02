@@ -577,7 +577,7 @@ async function handleEditarProductoClick(productoId) {
              document.getElementById('id-cliente-direccion').value = clienteSeleccionadoId;
         }
        
-        formNuevaDireccion.querySelector('h4').textContent = "Añadir Nueva Dirección";
+        formNuevaDireccion.parentElement.querySelector('h4').textContent = "Añadir Nueva Dirección";
         formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Añadir Dirección";
         document.getElementById('btn-cancelar-edicion-direccion').style.display = 'none';
     }
@@ -731,7 +731,7 @@ async function handleNuevoProductoSubmit(event) {
         document.getElementById('cp-direccion').value = cp;
         
         // Cambia la UI del formulario
-        formNuevaDireccion.querySelector('h4').textContent = "Editar Dirección";
+        formNuevaDireccion.parentElement.querySelector('h4').textContent = "Editar Dirección";
         formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Actualizar Dirección";
         document.getElementById('btn-cancelar-edicion-direccion').style.display = 'inline-block';
     }
