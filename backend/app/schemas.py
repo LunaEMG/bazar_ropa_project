@@ -192,3 +192,24 @@ class Direccion(DireccionBase):
 
     class Config:
         from_attributes = True 
+
+# --- Schemas de Reportes ---
+
+class ReporteStock(BaseModel):
+    """Schema para el reporte de productos con bajo stock."""
+    id_producto: int
+    nombre: str
+    cantidad_stock: int
+    
+    class Config:
+        from_attributes = True 
+
+class ReporteVentasCliente(BaseModel):
+    """Schema para el reporte de ventas por cliente."""
+    id_cliente: int
+    nombre: str
+    total_compras: int
+    gasto_total: float
+    
+    class Config:
+        from_attributes = True
