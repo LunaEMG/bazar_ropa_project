@@ -110,3 +110,5 @@ INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario) VAL
 INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario) VALUES
 (3, 4, 1, 799.00), -- 1 Pantalón
 (3, 6, 1, 349.90); -- 1 Cinturón
+
+SELECT setval(pg_get_serial_sequence('venta', 'id_venta'), (SELECT MAX(id_venta) FROM venta));
