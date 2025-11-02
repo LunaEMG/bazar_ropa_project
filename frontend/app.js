@@ -40,6 +40,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const cerrarModalClienteBtn = document.getElementById('cerrar-modal-cliente');
     const historialVentasLista = document.getElementById('historial-ventas-lista');
 
+    // --- NUEVAS REFERENCIAS PARA FORMULARIO DE PRODUCTOS ---
+    const formNuevoProducto = document.getElementById('form-nuevo-producto');
+    const productoMensaje = document.getElementById('producto-mensaje');
+    const selectorProveedorProducto = document.getElementById('producto-proveedor');
+    const selectorTipoProducto = document.getElementById('producto-tipo');
+    
+    // Contenedores de detalles
+    const detallesRopa = document.getElementById('detalles-ropa');
+    const detallesCalzado = document.getElementById('detalles-calzado');
+    const detallesAccesorios = document.getElementById('detalles-accesorios');
+
     // --- Estado de la Aplicación ---
     /** Almacena los items del carrito: { id_producto, nombre, precio, cantidad } */
     let carrito = []; 
@@ -157,12 +168,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /** Carga y muestra la lista de proveedores (Corregido listener). */
     async function cargarProveedores() {
-        if (!listaDeProveedores) return; 
+        // Añade el selector del formulario de productos a la comprobación
+        if (!listaDeProveedores || !selectorProveedorProducto) return; 
+        
         listaDeProveedores.innerHTML = '<p>Cargando proveedores...</p>';
+        
+        // --- MODIFICADO: Limpia el selector del formulario de productos ---
+        selectorProveedorProducto.innerHTML = '<option value="">Seleccione un proveedor...</option>';
+        
         try {
             const proveedores = await fetchData(`${API_URL}/api/proveedores`);
             listaDeProveedores.innerHTML = ''; 
-            if (!proveedores || proveedores.length === 0) { listaDeProveedores.innerHTML = '<p>No hay proveedores registrados.</p>'; return; }
+            if (!proveedores || proveedores.length === 0) { 
+                listaDeProveedores.innerHTML = '<p>No hay proveedores registrados.</p>'; 
+                // Asegúrate de que el selector también lo refleje
+                selectorProveedorProducto.innerHTML = '<option value="">No hay proveedores</option>';
+                return; 
+            }
+            
             const ul = document.createElement('ul');
             proveedores.forEach(proveedor => {
                 const li = document.createElement('li');
@@ -181,10 +204,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 li.querySelector('.btn-eliminar-proveedor').addEventListener('click', handleDeleteProveedorClick);
                 
                 ul.appendChild(li);
+
+                // --- MODIFICADO: Añadir al selector del formulario de productos ---
+                const option = document.createElement('option');
+                option.value = proveedor.id_proveedor;
+                option.textContent = proveedor.nombre;
+                selectorProveedorProducto.appendChild(option);
             });
             listaDeProveedores.appendChild(ul);
         } catch (error) {
             listaDeProveedores.innerHTML = `<p style="color: red;">Error al cargar proveedores: ${error.message}</p>`;
+            // --- MODIFICADO: Mostrar error en el selector ---
+            selectorProveedorProducto.innerHTML = '<option value="">Error al cargar</option>';
         }
     }
 
@@ -215,6 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /** Carga y muestra el historial de ventas. */
     async function cargarHistorialVentas() {
         if (!historialVentasLista) return;
         historialVentasLista.innerHTML = '<p>Cargando historial de ventas...</p>';
@@ -276,6 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
             historialVentasLista.innerHTML = `<p style="color: red;">Error al cargar el historial de ventas: ${error.message}</p>`;
         }
     }
+
     // --- Funciones de Lógica de UI ---
 
     /** Muestra la sección de direcciones para un cliente específico. */
@@ -379,6 +412,119 @@ document.addEventListener("DOMContentLoaded", () => {
         renderizarCarrito(); 
     }
 
+    // --- NUEVAS FUNCIONES PARA EL FORMULARIO DE PRODUCTOS ---
+
+    /**
+     * @function handleTipoProductoChange
+     * @description Muestra u oculta los campos de detalles de subtipo
+     * basado en la selección del usuario.
+     */
+    function handleTipoProductoChange() {
+        // Oculta todos los contenedores de detalles
+        if (detallesRopa) detallesRopa.style.display = 'none';
+        if (detallesCalzado) detallesCalzado.style.display = 'none';
+        if (detallesAccesorios) detallesAccesorios.style.display = 'none';
+        
+        // Pone todos los inputs de subtipos como no-requeridos
+        document.querySelectorAll('.detalles-subtipo input').forEach(input => input.required = false);
+
+        if (!selectorTipoProducto) return;
+        const tipo = selectorTipoProducto.value;
+
+        // Muestra el contenedor relevante y marca sus campos como 'required'
+        if (tipo === 'ropa') {
+            detallesRopa.style.display = 'block';
+            document.querySelector('#ropa-material').required = true;
+            document.querySelector('#ropa-talla').required = true;
+        } else if (tipo === 'calzado') {
+            detallesCalzado.style.display = 'block';
+            document.querySelector('#calzado-talla').required = true;
+            document.querySelector('#calzado-suela').required = true;
+        } else if (tipo === 'accesorios') {
+            detallesAccesorios.style.display = 'block';
+            document.querySelector('#accesorio-material').required = true;
+        }
+    }
+
+    /**
+     * @function handleNuevoProductoSubmit
+     * @description Maneja el envío del formulario de creación de producto.
+     * Construye el payload (incluyendo detalles de subtipo) y lo envía a la API.
+     */
+    async function handleNuevoProductoSubmit(event) {
+        event.preventDefault();
+        if (!formNuevoProducto || !productoMensaje) return;
+
+        // 1. Obtener datos comunes
+        const payload = {
+            nombre: document.getElementById('producto-nombre').value,
+            descripcion: document.getElementById('producto-descripcion').value || null,
+            precio: parseFloat(document.getElementById('producto-precio').value),
+            cantidad_stock: parseInt(document.getElementById('producto-stock').value),
+            id_proveedor: parseInt(selectorProveedorProducto.value),
+            tipo_producto: selectorTipoProducto.value,
+            detalles_subtipo: {}
+        };
+
+        // 2. Obtener datos del subtipo (según el tipo seleccionado)
+        try {
+            if (payload.tipo_producto === 'ropa') {
+                payload.detalles_subtipo = {
+                    material: document.getElementById('ropa-material').value,
+                    talla: document.getElementById('ropa-talla').value,
+                    tipo_corte: document.getElementById('ropa-corte').value || null
+                };
+            } else if (payload.tipo_producto === 'calzado') {
+                payload.detalles_subtipo = {
+                    talla_numerica: parseFloat(document.getElementById('calzado-talla').value),
+                    material_suela: document.getElementById('calzado-suela').value
+                };
+            } else if (payload.tipo_producto === 'accesorios') {
+                payload.detalles_subtipo = {
+                    material: document.getElementById('accesorio-material').value,
+                    dimensiones: document.getElementById('accesorio-dimensiones').value || null
+                };
+            } else {
+                throw new Error("Tipo de producto no válido.");
+            }
+            
+            // Verificación simple de datos
+            if (!payload.id_proveedor) throw new Error("Debe seleccionar un proveedor.");
+            if (payload.precio < 0 || isNaN(payload.precio)) throw new Error("Precio no válido.");
+            if (payload.cantidad_stock < 0 || isNaN(payload.cantidad_stock)) throw new Error("Stock no válido.");
+
+
+        } catch (error) {
+            mostrarMensaje(productoMensaje, `Error al leer datos del formulario: ${error.message}`, false);
+            return;
+        }
+        
+        // 3. Enviar a la API
+        const submitButton = formNuevoProducto.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Registrando...';
+
+        try {
+            const nuevoProducto = await fetchData(`${API_URL}/api/productos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            mostrarMensaje(productoMensaje, `Producto "${nuevoProducto.nombre}" registrado!`, true);
+            formNuevoProducto.reset(); // Limpia el formulario
+            handleTipoProductoChange(); // Oculta los campos de detalles
+            cargarProductos(); // Actualiza el catálogo
+
+        } catch (error) {
+            mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Registrar Producto';
+        }
+    }
+
+
     // --- Manejadores de Eventos CRUD ---
 
     /** Maneja el clic en "Ver/Añadir Direcciones". */
@@ -459,64 +605,64 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-/** Maneja el envío del formulario de edición de cliente/proveedor. */
-async function handleEditarSubmit(event) {
-    event.preventDefault();
-    // Obtiene la entidad objetivo ('cliente' o 'proveedor') del atributo data-target-entity
-    const entityType = formEditarCliente.getAttribute('data-target-entity'); 
-    
-    if (!entityType || !formEditarCliente || !editClienteIdInput || !editClienteMensaje) return;
-
-    // --- PUNTO CRÍTICO 1: Obtenemos el ID del input oculto (reutilizado) ---
-    const id = parseInt(editClienteIdInput.value); 
-    const nombre = editNombreClienteInput.value;
-    const telefono = editTelefonoClienteInput.value || null; 
-
-    // Verificación de ID válida
-    if (isNaN(id) || id <= 0) {
-        mostrarMensaje(editClienteMensaje, `Error: ID de ${entityType} no válido (${id}).`, false);
-        return;
-    }
-
-    const submitButton = formEditarCliente.querySelector('button[type="submit"]');
-    submitButton.disabled = true;
-    submitButton.textContent = 'Guardando...';
-
-    try {
-
-        // Construcción de la URL: /api/{entidad en plural}s/{id}
-        let pluralEntity = entityType;
-        if (entityType === 'proveedor') pluralEntity = 'proveedores';
-        else pluralEntity = `${entityType}s`;
-
-        const endpoint = `${API_URL}/api/${pluralEntity}/${id}`;
+    /** Maneja el envío del formulario de edición de cliente/proveedor. */
+    async function handleEditarSubmit(event) {
+        event.preventDefault();
+        // Obtiene la entidad objetivo ('cliente' o 'proveedor') del atributo data-target-entity
+        const entityType = formEditarCliente.getAttribute('data-target-entity'); 
         
-        console.log(`[EDIT] Enviando PUT a: ${endpoint}`); // Log de depuración
-        console.log(`[EDIT] Datos enviados:`, { nombre, telefono }); // Log de depuración
+        if (!entityType || !formEditarCliente || !editClienteIdInput || !editClienteMensaje) return;
 
-        const actualizado = await fetchData(endpoint, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, telefono }), 
-        });
-        
-        // Lógica de UI según la entidad editada
-        if (entityType === 'cliente') {
-            mostrarMensaje(clienteMensaje, `Cliente "${actualizado.nombre}" actualizado!`, true);
-            cargarClientes();
-        } else if (entityType === 'proveedor') {
-             mostrarMensaje(proveedorMensaje, `Proveedor "${actualizado.nombre}" actualizado!`, true);
-             cargarProveedores();
+        // --- PUNTO CRÍTICO 1: Obtenemos el ID del input oculto (reutilizado) ---
+        const id = parseInt(editClienteIdInput.value); 
+        const nombre = editNombreClienteInput.value;
+        const telefono = editTelefonoClienteInput.value || null; 
+
+        // Verificación de ID válida
+        if (isNaN(id) || id <= 0) {
+            mostrarMensaje(editClienteMensaje, `Error: ID de ${entityType} no válido (${id}).`, false);
+            return;
         }
-        
-        ocultarModalEditarCliente(); 
-    } catch (error) {
-        mostrarMensaje(editClienteMensaje, `Error al actualizar: ${error.message}`, false); 
-    } finally {
-        submitButton.disabled = false;
-        submitButton.textContent = 'Guardar Cambios';
+
+        const submitButton = formEditarCliente.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Guardando...';
+
+        try {
+
+            // Construcción de la URL: /api/{entidad en plural}s/{id}
+            let pluralEntity = entityType;
+            if (entityType === 'proveedor') pluralEntity = 'proveedores';
+            else pluralEntity = `${entityType}s`;
+
+            const endpoint = `${API_URL}/api/${pluralEntity}/${id}`;
+            
+            console.log(`[EDIT] Enviando PUT a: ${endpoint}`); // Log de depuración
+            console.log(`[EDIT] Datos enviados:`, { nombre, telefono }); // Log de depuración
+
+            const actualizado = await fetchData(endpoint, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, telefono }), 
+            });
+            
+            // Lógica de UI según la entidad editada
+            if (entityType === 'cliente') {
+                mostrarMensaje(clienteMensaje, `Cliente "${actualizado.nombre}" actualizado!`, true);
+                cargarClientes();
+            } else if (entityType === 'proveedor') {
+                mostrarMensaje(proveedorMensaje, `Proveedor "${actualizado.nombre}" actualizado!`, true);
+                cargarProveedores();
+            }
+            
+            ocultarModalEditarCliente(); 
+        } catch (error) {
+            mostrarMensaje(editClienteMensaje, `Error al actualizar: ${error.message}`, false); 
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Guardar Cambios';
+        }
     }
-}
 
 
     /** Maneja el envío del formulario para crear un nuevo cliente. */
@@ -555,96 +701,105 @@ async function handleEditarSubmit(event) {
         finally { submitButton.disabled = false; submitButton.textContent = 'Añadir Dirección'; }
     }
 
-    /** Maneja el clic en "Finalizar Compra". */
+    /**
+     * @function handleFinalizarCompraClick
+     * @description Procesa el evento de clic para finalizar una compra.
+     * Valida la entrada (cliente y carrito), construye el payload de la venta,
+     * lo envía a la API, y maneja la respuesta (éxito o error) actualizando la UI.
+     * * @async
+     * @returns {void} - Esta función no retorna valores, modifica el DOM y el estado de la app.
+     */
     async function handleFinalizarCompraClick() {
+        
         // --- 1. Guard Clauses ---
-    // Asegura que los elementos críticos del DOM estén presentes antes de operar.
-    if (!selectorCliente || !btnFinalizarCompra || !compraMensaje) {
-        console.error("Componentes críticos del carrito no encontrados en el DOM.");
-        return;
+        // Asegura que los elementos críticos del DOM estén presentes antes de operar.
+        if (!selectorCliente || !btnFinalizarCompra || !compraMensaje) {
+            console.error("Componentes críticos del carrito no encontrados en el DOM.");
+            return;
+        }
+
+        // --- 2. Validación de Entrada (Input Validation) ---
+        const idClienteSeleccionado = selectorCliente.value;
+        
+        // Valida que se haya seleccionado un cliente.
+        if (!idClienteSeleccionado) { 
+            mostrarMensaje(compraMensaje, "Seleccione un cliente.", false); 
+            return; // Detiene la ejecución si no es válido
+        }
+        
+        // Valida que el carrito no esté vacío.
+        if (carrito.length === 0) { 
+            mostrarMensaje(compraMensaje, "El carrito está vacío.", false); 
+            return; // Detiene la ejecución si no es válido
+        }
+        
+        // --- 3. Preparación del Payload (Data Shaping) ---
+        // Mapea el estado del carrito local (Array `carrito`) al formato 
+        // requerido por el schema `VentaCreate` de la API (backend).
+        const ventaData = { 
+            id_cliente: parseInt(idClienteSeleccionado), 
+            detalles: carrito.map(item => ({ 
+                id_producto: item.id_producto, 
+                cantidad: item.cantidad, 
+                precio_unitario: item.precio 
+            })) 
+        };
+        
+        // --- 4. Gestión de Estado UI (Loading State) ---
+        // Deshabilita el botón para prevenir envíos múltiples (doble clic)
+        // mientras la petición asíncrona está en curso.
+        btnFinalizarCompra.disabled = true; 
+        btnFinalizarCompra.textContent = 'Procesando...';
+        
+        try {
+            // --- 5. Petición Asíncrona (API Call) ---
+            // Envía la nueva venta al endpoint del backend.
+            const ventaCreada = await fetchData(`${API_URL}/api/ventas`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(ventaData), 
+            });
+            
+            // --- 6. Manejo de Éxito (Success Handler) ---
+            // La petición fue exitosa (status 201).
+            
+            // Informa al usuario sobre el éxito.
+            mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada! Total: $${ventaCreada.monto_total.toFixed(2)}`, true); 
+            
+            // Resetea el estado de la aplicación local tras el éxito.
+            carrito = []; // Vacía el array del carrito
+            selectorCliente.value = ""; // Limpia el selector de cliente
+            
+            // Actualiza los componentes de la UI para reflejar el nuevo estado.
+            renderizarCarrito(); // Renderiza el carrito (ahora vacío)
+            cargarHistorialVentas(); // Refresca la lista de historial de ventas
+            
+        } catch (error) { 
+            // --- 7. Manejo de Errores (Error Handler) ---
+            // La petición `fetchData` lanzó un error (ej. error de red, 500, 409).
+            // `fetchData` ya formatea el `error.message` con el detalle de la API.
+            mostrarMensaje(compraMensaje, `Error: ${error.message}`, false);
+        } 
+        finally { 
+            // --- 8. Limpieza (Cleanup) ---
+            // Este bloque se ejecuta SIEMPRE, tanto en éxito como en error.
+            
+            // Restaura el texto original del botón.
+            btnFinalizarCompra.textContent = 'Finalizar Compra'; 
+            
+            // Vuelve a llamar a renderizarCarrito(). Esto es crucial porque:
+            // 1. Si la compra fue exitosa: `carrito` está vacío -> renderizarCarrito() mantendrá el botón DESHABILITADO.
+            // 2. Si la compra falló: `carrito` AÚN tiene items -> renderizarCarrito() RE-HABILITARÁ el botón.
+            renderizarCarrito(); 
+        }
     }
 
-    // --- 2. Validación de Entrada (Input Validation) ---
-    const idClienteSeleccionado = selectorCliente.value;
-    
-    // Valida que se haya seleccionado un cliente.
-    if (!idClienteSeleccionado) { 
-        mostrarMensaje(compraMensaje, "Seleccione un cliente.", false); 
-        return; // Detiene la ejecución si no es válido
-    }
-    
-    // Valida que el carrito no esté vacío.
-    if (carrito.length === 0) { 
-        mostrarMensaje(compraMensaje, "El carrito está vacío.", false); 
-        return; // Detiene la ejecución si no es válido
-    }
-    
-    // --- 3. Preparación del Payload (Data Shaping) ---
-    // Mapea el estado del carrito local (Array `carrito`) al formato 
-    // requerido por el schema `VentaCreate` de la API (backend).
-    const ventaData = { 
-        id_cliente: parseInt(idClienteSeleccionado), 
-        detalles: carrito.map(item => ({ 
-            id_producto: item.id_producto, 
-            cantidad: item.cantidad, 
-            precio_unitario: item.precio 
-        })) 
-    };
-    
-    // --- 4. Gestión de Estado UI (Loading State) ---
-    // Deshabilita el botón para prevenir envíos múltiples (doble clic)
-    // mientras la petición asíncrona está en curso.
-    btnFinalizarCompra.disabled = true; 
-    btnFinalizarCompra.textContent = 'Procesando...';
-    
-    try {
-        // --- 5. Petición Asíncrona (API Call) ---
-        // Envía la nueva venta al endpoint del backend.
-        const ventaCreada = await fetchData(`${API_URL}/api/ventas`, { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(ventaData), 
-        });
-        
-        // --- 6. Manejo de Éxito (Success Handler) ---
-        // La petición fue exitosa (status 201).
-        
-        // Informa al usuario sobre el éxito.
-        mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada! Total: $${ventaCreada.monto_total.toFixed(2)}`, true); 
-        
-        // Resetea el estado de la aplicación local tras el éxito.
-        carrito = []; // Vacía el array del carrito
-        selectorCliente.value = ""; // Limpia el selector de cliente
-        
-        // Actualiza los componentes de la UI para reflejar el nuevo estado.
-        renderizarCarrito(); // Renderiza el carrito (ahora vacío)
-        cargarHistorialVentas(); // Refresca la lista de historial de ventas
-        
-    } catch (error) { 
-        // --- 7. Manejo de Errores (Error Handler) ---
-        // La petición `fetchData` lanzó un error (ej. error de red, 500, 409).
-        // `fetchData` ya formatea el `error.message` con el detalle de la API.
-        mostrarMensaje(compraMensaje, `Error: ${error.message}`, false);
-    } 
-    finally { 
-        // --- 8. Limpieza (Cleanup) ---
-        // Este bloque se ejecuta SIEMPRE, tanto en éxito como en error.
-        
-        // Restaura el texto original del botón.
-        btnFinalizarCompra.textContent = 'Finalizar Compra'; 
-        
-        // Vuelve a llamar a renderizarCarrito(). Esto es crucial porque:
-        // 1. Si la compra fue exitosa: `carrito` está vacío -> renderizarCarrito() mantendrá el botón DESHABILITADO.
-        // 2. Si la compra falló: `carrito` AÚN tiene items -> renderizarCarrito() RE-HABILITARÁ el botón.
-        renderizarCarrito(); 
-    }
-}
     // --- Inicialización y Asignación de Eventos ---
 
     // Carga inicial de datos.
     cargarProductos();
     cargarClientes(); 
-    cargarProveedores(); 
+    cargarProveedores(); // Esta función ahora también llena el selector de productos
     cargarHistorialVentas();
 
     // Asigna manejadores de eventos a formularios y botones estáticos.
@@ -652,6 +807,10 @@ async function handleEditarSubmit(event) {
     if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
     if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit); 
     if (btnFinalizarCompra) btnFinalizarCompra.addEventListener('click', handleFinalizarCompraClick);
+    
+    // --- NUEVOS LISTENERS ---
+    if (selectorTipoProducto) selectorTipoProducto.addEventListener('change', handleTipoProductoChange);
+    if (formNuevoProducto) formNuevoProducto.addEventListener('submit', handleNuevoProductoSubmit);
     
     // El formulario de edición del modal maneja ahora Cliente y Proveedor
     if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarSubmit); 
