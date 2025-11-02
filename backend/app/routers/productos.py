@@ -4,7 +4,7 @@ from typing import List
 
 # Importa las funciones CRUD y los schemas Pydantic para productos
 from app.crud import crud_productos
-from app.schemas import Producto, ProductoUpdate, ProductoCreate 
+from app.schemas import Producto, ProductoUpdate, ProductoCreate, ProductoUpdateConSubtipo
 
 # Crea un router específico para las rutas de productos
 router = APIRouter()
@@ -74,34 +74,26 @@ def read_producto(producto_id: int):
 # --- NUEVO Endpoint para ACTUALIZAR un producto existente ---
 @router.put(
     "/api/productos/{producto_id}",
-    # Retorna solo los datos base actualizados (podría cambiarse a Producto si se refina)
-    response_model=Producto, # Ajustar si update_producto retorna el objeto completo
-    summary="Actualizar datos base de un producto",
+    response_model=Producto,
+    summary="Actualizar un producto (Base y Subtipo)",
     tags=["Productos"]
 )
-def update_existing_producto(producto_id: int, producto_update: ProductoUpdate):
+
+def update_existing_producto(producto_id: int, producto_update: ProductoUpdateConSubtipo): # <-- Schema cambiado
     """
-    Actualiza los datos base (nombre, descripción, precio, stock, proveedor) 
-    de un producto existente por su 'id_producto'.
-    NOTA: Esta implementación no actualiza campos específicos de subtipos.
-    Retorna los datos base actualizados o 404 si no se encuentra.
+    Actualiza los datos de un producto existente, incluyendo sus
+    detalles de subtipo.
+    
+    El campo 'tipo_producto' debe coincidir con el tipo existente del producto.
     """
-    # Llama a la función CRUD para actualizar los datos base
-    updated_producto_base = crud_productos.update_producto(
+    updated_producto = crud_productos.update_producto(
         producto_id=producto_id, producto_update=producto_update
     )
     
-    if updated_producto_base is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado para actualizar")
+    if updated_producto is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado o error al actualizar")
     
-    # Opcional: Si se desea retornar el objeto completo tras actualizar, 
-    # se podría llamar a get_producto_by_id aquí de nuevo.
-    # Por ahora, retornamos los datos base actualizados (requiere ajuste en response_model si cambia).
-    # Para cumplir con response_model=Producto, llamamos a get_producto_by_id
-    updated_full_producto = crud_productos.get_producto_by_id(producto_id)
-    if updated_full_producto is None: # Verificación extra por si acaso
-         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado tras actualización")
-    return updated_full_producto
+    return updated_producto
 
 # --- Endpoint DELETE ---
 @router.delete(

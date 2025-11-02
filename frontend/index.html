@@ -25,6 +25,8 @@
             <h2>Registrar Nuevo Producto</h2>
             <form id="form-nuevo-producto">
                 
+                <input type="hidden" id="producto-id-edit" value="">
+                
                 <div class="form-group"><label for="producto-nombre">Nombre:</label><input type="text" id="producto-nombre" required></div>
                 <div class="form-group"><label for="producto-descripcion">Descripción:</label><input type="text" id="producto-descripcion"></div>
                 <div class="form-group"><label for="producto-precio">Precio:</label><input type="number" id="producto-precio" step="0.01" min="0" required></div>
@@ -68,6 +70,9 @@
                 </div>
 
                 <button type="submit">Registrar Producto</button>
+                
+                <button type="button" id="btn-cancelar-edicion-producto" style="display: none; background-color: #95a5a6; margin-left: 10px;">Cancelar Edición</button>
+                
                 <p id="producto-mensaje" class="mensaje"></p>
             </form>
         </section>

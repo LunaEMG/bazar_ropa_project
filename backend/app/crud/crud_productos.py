@@ -1,7 +1,10 @@
 # Importaciones necesarias
 from app.db.database import get_db_connection
 # Importamos schemas relevantes para productos
-from app.schemas import ProductoUpdate, ProductoCreate, RopaDetalles, CalzadoDetalles, AccesoriosDetalles
+from app.schemas import (
+    ProductoUpdate, ProductoCreate, RopaDetalles, CalzadoDetalles, AccesoriosDetalles,
+    ProductoUpdateConSubtipo, RopaDetallesUpdate, CalzadoDetallesUpdate, AccesoriosDetallesUpdate
+)
 import psycopg
 
 # --- Función Auxiliar ---
@@ -193,61 +196,73 @@ def get_producto_by_id(producto_id: int):
             
     return producto
 
-# --- NUEVA Función ---
 # ACTUALIZAR (Update): Modificar un producto existente (solo tabla base 'producto')
-def update_producto(producto_id: int, producto_update: ProductoUpdate):
+def update_producto(producto_id: int, producto_update: ProductoUpdateConSubtipo):
     """
-    Actualiza los datos base de un producto existente en la tabla 'producto'.
-    No modifica los datos específicos de las tablas de subtipo.
+    Actualiza los datos base de un producto en 'producto' y, si se proporcionan,
+    actualiza también los detalles en la tabla de subtipo correspondiente.
     """
     conn = get_db_connection()
     if conn is None: 
         return None
 
-    update_fields = []
-    update_values = []
-    # Pydantic v2: model_dump | Pydantic v1: dict
-    update_data = producto_update.model_dump(exclude_unset=True) 
-
-    if not update_data: # Si no hay datos para actualizar
-        conn.close()
-        return get_producto_by_id(producto_id) # Retorna el registro actual
-
-    for key, value in update_data.items():
-        update_fields.append(f"{key} = %s")
-        update_values.append(value)
-
-    update_values.append(producto_id) # ID para la cláusula WHERE
-    
-    updated_producto_base = None
     try:
-        with conn.cursor() as cur, conn.transaction(): 
-            query = f"""
-                UPDATE producto 
-                SET {', '.join(update_fields)} 
-                WHERE id_producto = %s 
-                RETURNING id_producto, nombre, descripcion, precio, cantidad_stock, id_proveedor
-                """
-            cur.execute(query, tuple(update_values))
+        with conn.cursor() as cur, conn.transaction():
             
-            updated_row = cur.fetchone()
-            if updated_row:
-                # Obtenemos los datos base actualizados
-                updated_producto_base = row_to_dict(cur, updated_row)
-                # Opcional: Podríamos aquí volver a llamar a get_producto_by_id para retornar 
-                # el objeto completo con detalles de subtipo, pero es menos eficiente.
+            # 1. Actualizar la tabla base 'producto'
+            base_data = producto_update.model_dump(
+                exclude_unset=True, 
+                exclude={"tipo_producto", "detalles_subtipo"} # Excluir campos de subtipo
+            )
+            
+            if base_data: # Solo si hay campos base para actualizar
+                update_fields = [f"{key} = %s" for key in base_data]
+                update_values = list(base_data.values())
+                update_values.append(producto_id)
+                
+                query = f"""
+                    UPDATE producto 
+                    SET {', '.join(update_fields)} 
+                    WHERE id_producto = %s
+                    """
+                cur.execute(query, tuple(update_values))
+
+            # 2. Actualizar la tabla de subtipo (si se proporcionan detalles)
+            if producto_update.detalles_subtipo:
+                subtipo_data = producto_update.detalles_subtipo.model_dump(exclude_unset=True)
+                
+                if subtipo_data: # Solo si hay campos de subtipo para actualizar
+                    subtipo_fields = [f"{key} = %s" for key in subtipo_data]
+                    subtipo_values = list(subtipo_data.values())
+                    subtipo_values.append(producto_id)
+                    
+                    tabla_subtipo = ""
+                    if producto_update.tipo_producto == "ropa":
+                        tabla_subtipo = "ropa"
+                    elif producto_update.tipo_producto == "calzado":
+                        tabla_subtipo = "calzado"
+                    elif producto_update.tipo_producto == "accesorios":
+                        tabla_subtipo = "accesorios"
+                    
+                    if tabla_subtipo:
+                        subtipo_query = f"""
+                            UPDATE {tabla_subtipo}
+                            SET {', '.join(subtipo_fields)}
+                            WHERE id_producto = %s
+                        """
+                        cur.execute(subtipo_query, tuple(subtipo_values))
+            
             # Commit automático
             
     except (Exception, psycopg.Error) as error:
         print(f"Error al actualizar producto {producto_id}: {error}")
-        # Rollback automático
+        if conn: conn.close()
+        return None
     finally:
-        if conn: 
-            conn.close()
+        if conn: conn.close()
             
-    # Retornamos solo los datos base actualizados o None si falló/no existía
-    # Si se necesita el objeto completo, se puede llamar a get_producto_by_id desde el router
-    return updated_producto_base 
+    # Retorna el producto actualizado completo
+    return get_producto_by_id(producto_id)
 
 # --- NUEVA Función ---
 # ELIMINAR (Delete): Borrar un producto existente (manejo de herencia)

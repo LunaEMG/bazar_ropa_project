@@ -42,6 +42,28 @@ class AccesoriosDetalles(BaseModel):
     material: str = Field(..., example="Lana")
     dimensiones: Optional[str] = Field(None, example="180cm x 30cm")
 
+class RopaDetallesUpdate(BaseModel):
+    material: Optional[str] = None
+    tipo_corte: Optional[str] = None
+    talla: Optional[str] = None
+
+class CalzadoDetallesUpdate(BaseModel):
+    talla_numerica: Optional[float] = None
+    material_suela: Optional[str] = None
+
+class AccesoriosDetallesUpdate(BaseModel):
+    material: Optional[str] = None
+    dimensiones: Optional[str] = None
+
+# --- Schema para Actualización de Producto (NUEVO) ---
+class ProductoUpdateConSubtipo(ProductoUpdate):
+    """
+    Schema para actualizar un producto. Incluye campos base opcionales
+    y detalles de subtipo opcionales.
+    """
+    tipo_producto: str # Requerido para saber qué tabla de subtipo actualizar
+    detalles_subtipo: Optional[Union[RopaDetallesUpdate, CalzadoDetallesUpdate, AccesoriosDetallesUpdate]] = None
+
 # --- Schema para Creación de Producto (NUEVO) ---
 class ProductoCreate(ProductoBase):
     """
@@ -50,8 +72,6 @@ class ProductoCreate(ProductoBase):
     """
     tipo_producto: str # "ropa", "calzado", o "accesorios"
     detalles_subtipo: Union[RopaDetalles, CalzadoDetalles, AccesoriosDetalles]
-
-    
 
 # --- Schemas de Cliente ---
 class ClienteBase(BaseModel):
@@ -90,8 +110,6 @@ class DetalleVentaCreate(DetalleVentaBase):
 class DetalleVenta(DetalleVentaBase):
     """Schema para leer/retornar un detalle de venta (incluye ID de venta)."""
     id_venta: int
-    # Opcional: Podríamos añadir campos del producto (nombre, etc.) aquí
-    # producto: Optional[Producto] = None # Requeriría un JOIN complejo en el CRUD
 
     class Config:
         orm_mode = True 
@@ -110,9 +128,7 @@ class Venta(VentaBase):
     """Schema para leer/retornar una Venta (incluye campos generados y detalles)."""
     id_venta: int
     monto_total: float
-    # --- MODIFICACIÓN CLAVE ---
-    # Incluimos la lista de detalles asociados a esta venta.
-    # Se poblará usando la lógica en crud_ventas.py
+
     detalles: List[DetalleVenta] = [] 
 
     class Config:

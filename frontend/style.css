@@ -236,11 +236,8 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; 
     margin-right: 15px;
     min-width: 100px; 
 }
-/* ------------------------------------------------ */
 
 
-
-/* (Este es el bloque que se añade) */
 .detalles-subtipo {
     padding: 20px;
     background-color: #f9f9f9;
@@ -257,7 +254,29 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; 
     border-bottom: 1px solid #ddd;
     padding-bottom: 5px;
 }
-/* --- Fin Estilos Nuevo Producto --- */
+
+/* --- Estilos para Acciones de Producto --- */
+.producto-item .producto-acciones {
+    display: flex;
+    justify-content: space-between; /* Alinea botones */
+    margin-top: 15px;
+}
+
+.producto-item .producto-acciones .btn-add-carrito {
+    margin-top: 0; /* Resetea el margen que tenía */
+    flex-grow: 1; /* Hace que el botón de añadir ocupe más espacio */
+    margin-right: 10px;
+}
+
+.producto-item .producto-acciones .btn-eliminar-producto {
+    margin-left: 0; /* Resetea el margen */
+    background-color: #e74c3c; /* Rojo */
+}
+.producto-item .producto-acciones .btn-eliminar-producto:hover {
+    background-color: #c0392b;
+}
+/* --- Fin Estilos --- */
+
 
 
 /* Estilos para el Modal */

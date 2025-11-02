@@ -39,6 +39,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const editClienteMensaje = document.getElementById('edit-cliente-mensaje');
     const cerrarModalClienteBtn = document.getElementById('cerrar-modal-cliente');
     const historialVentasLista = document.getElementById('historial-ventas-lista');
+    const productoIdEditInput = document.getElementById('producto-id-edit');
+    const btnCancelarEdicionProducto = document.getElementById('btn-cancelar-edicion-producto');
 
     // --- NUEVAS REFERENCIAS PARA FORMULARIO DE PRODUCTOS ---
     const formNuevoProducto = document.getElementById('form-nuevo-producto');
@@ -105,20 +107,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 listaDeProductos.innerHTML = '<p>No hay productos disponibles.</p>'; return;
             }
             productos.forEach(producto => {
-                const item = document.createElement('div'); 
-                item.className = 'producto-item';
+                // ... (el innerHTML de la tarjeta ahora tiene 3 botones)
                 item.innerHTML = `
                     <h3>${producto.nombre}</h3>
                     <p>${producto.descripcion || 'Sin descripción'}</p>
                     <p class="precio">$${producto.precio.toFixed(2)}</p>
-                    <button class="btn-accion btn-add-carrito" data-id="${producto.id_producto}" data-nombre="${producto.nombre}" data-precio="${producto.precio}">Añadir al Carrito</button>
+                    
+                    <div class="producto-acciones">
+                        <button class="btn-accion btn-add-carrito" data-id="${producto.id_producto}" data-nombre="${producto.nombre}" data-precio="${producto.precio}">Añadir</button>
+                        
+                        <button class="btn-accion btn-editar-producto btn-editar" data-id="${producto.id_producto}">Editar</button>
+
+                        <button class="btn-accion btn-eliminar-producto btn-eliminar" data-id="${producto.id_producto}" data-nombre="${producto.nombre}">Eliminar</button>
+                    </div>
                 `;
-                const addButton = item.querySelector('.btn-add-carrito'); 
-                if (addButton) {
-                    addButton.addEventListener('click', handleAddCarritoClick); 
-                } else {
-                    console.error(`Error: Botón 'Añadir al Carrito' no encontrado para producto ID: ${producto.id_producto}`);
+                
+                // Listener Añadir
+                item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick); 
+
+                // --- NUEVO: Listener de Editar ---
+                const editButton = item.querySelector('.btn-editar-producto');
+                if (editButton) {
+                    editButton.addEventListener('click', () => handleEditarProductoClick(producto.id_producto));
                 }
+                
+                // Listener Eliminar
+                item.querySelector('.btn-eliminar-producto').addEventListener('click', handleDeleteProductoClick);
+                
                 listaDeProductos.appendChild(item);
             });
         } catch (error) {
@@ -447,82 +462,163 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * @function handleNuevoProductoSubmit
-     * @description Maneja el envío del formulario de creación de producto.
-     * Construye el payload (incluyendo detalles de subtipo) y lo envía a la API.
-     */
-    async function handleNuevoProductoSubmit(event) {
-        event.preventDefault();
-        if (!formNuevoProducto || !productoMensaje) return;
+    * @function handleEditarProductoClick
+    * @description Obtiene los datos completos de un producto y llena el
+    * formulario de "Registrar Producto" para entrar en modo edición.
+    */
+    async function handleEditarProductoClick(productoId) {
+    try {
+        // 1. Obtener los datos completos del producto (incluyendo subtipo)
+        const producto = await fetchData(`${API_URL}/api/productos/${productoId}`);
+        if (!producto) throw new Error("No se pudieron cargar los datos del producto.");
 
-        // 1. Obtener datos comunes
-        const payload = {
-            nombre: document.getElementById('producto-nombre').value,
-            descripcion: document.getElementById('producto-descripcion').value || null,
-            precio: parseFloat(document.getElementById('producto-precio').value),
-            cantidad_stock: parseInt(document.getElementById('producto-stock').value),
-            id_proveedor: parseInt(selectorProveedorProducto.value),
-            tipo_producto: selectorTipoProducto.value,
-            detalles_subtipo: {}
-        };
+        // 2. Llenar los campos base
+        productoIdEditInput.value = producto.id_producto;
+        document.getElementById('producto-nombre').value = producto.nombre;
+        document.getElementById('producto-descripcion').value = producto.descripcion || '';
+        document.getElementById('producto-precio').value = producto.precio;
+        document.getElementById('producto-stock').value = producto.cantidad_stock;
+        selectorProveedorProducto.value = producto.id_proveedor;
+        
+        // 3. Llenar los campos de subtipo
+        selectorTipoProducto.value = producto.tipo_producto;
+        handleTipoProductoChange(); // Muestra los campos correctos
+        
+        // Deshabilita el selector de tipo, no se puede cambiar el tipo de un producto
+        selectorTipoProducto.disabled = true; 
 
-        // 2. Obtener datos del subtipo (según el tipo seleccionado)
-        try {
-            if (payload.tipo_producto === 'ropa') {
-                payload.detalles_subtipo = {
-                    material: document.getElementById('ropa-material').value,
-                    talla: document.getElementById('ropa-talla').value,
-                    tipo_corte: document.getElementById('ropa-corte').value || null
-                };
-            } else if (payload.tipo_producto === 'calzado') {
-                payload.detalles_subtipo = {
-                    talla_numerica: parseFloat(document.getElementById('calzado-talla').value),
-                    material_suela: document.getElementById('calzado-suela').value
-                };
-            } else if (payload.tipo_producto === 'accesorios') {
-                payload.detalles_subtipo = {
-                    material: document.getElementById('accesorio-material').value,
-                    dimensiones: document.getElementById('accesorio-dimensiones').value || null
-                };
-            } else {
-                throw new Error("Tipo de producto no válido.");
-            }
-            
-            // Verificación simple de datos
-            if (!payload.id_proveedor) throw new Error("Debe seleccionar un proveedor.");
-            if (payload.precio < 0 || isNaN(payload.precio)) throw new Error("Precio no válido.");
-            if (payload.cantidad_stock < 0 || isNaN(payload.cantidad_stock)) throw new Error("Stock no válido.");
+        if (producto.tipo_producto === 'ropa' && producto.detalles_subtipo) {
+            document.getElementById('ropa-material').value = producto.detalles_subtipo.material;
+            document.getElementById('ropa-talla').value = producto.detalles_subtipo.talla;
+            document.getElementById('ropa-corte').value = producto.detalles_subtipo.tipo_corte || '';
+        } else if (producto.tipo_producto === 'calzado' && producto.detalles_subtipo) {
+            document.getElementById('calzado-talla').value = producto.detalles_subtipo.talla_numerica;
+            document.getElementById('calzado-suela').value = producto.detalles_subtipo.material_suela;
+        } else if (producto.tipo_producto === 'accesorios' && producto.detalles_subtipo) {
+            document.getElementById('accesorio-material').value = producto.detalles_subtipo.material;
+            document.getElementById('accesorio-dimensiones').value = producto.detalles_subtipo.dimensiones || '';
+        }
+
+        // 4. Poner el formulario en "Modo Edición"
+        formNuevoProducto.querySelector('h2').textContent = "Editar Producto";
+        formNuevoProducto.querySelector('button[type="submit"]').textContent = "Actualizar Producto";
+        btnCancelarEdicionProducto.style.display = 'inline-block'; // Muestra el botón de cancelar
+        
+        // Scroll para que el usuario vea el formulario
+        formNuevoProducto.scrollIntoView({ behavior: 'smooth' });
+
+    } catch (error) {
+        mostrarMensaje(productoMensaje, `Error al cargar producto para editar: ${error.message}`, false);
+    }
+}
+
+    /**
+    * @function resetFormularioProducto
+    * @description Resetea el formulario de producto al estado "Crear".
+    */
+    function resetFormularioProducto() {
+    productoIdEditInput.value = ''; // Limpia el ID oculto
+    formNuevoProducto.reset(); // Limpia todos los campos
+    
+    handleTipoProductoChange(); // Oculta los campos de subtipo
+    
+    selectorTipoProducto.disabled = false; // Rehabilita el selector de tipo
+    
+    formNuevoProducto.querySelector('h2').textContent = "Registrar Nuevo Producto";
+    formNuevoProducto.querySelector('button[type="submit"]').textContent = "Registrar Producto";
+    btnCancelarEdicionProducto.style.display = 'none'; // Oculta el botón de cancelar
+    }
 
 
-        } catch (error) {
-            mostrarMensaje(productoMensaje, `Error al leer datos del formulario: ${error.message}`, false);
-            return;
+
+    /**
+ * @function handleNuevoProductoSubmit
+ * @description Maneja el envío del formulario.
+ * Detecta si está en modo "Crear" (POST) o "Editar" (PUT)
+ * basado en el input oculto 'producto-id-edit'.
+ */
+async function handleNuevoProductoSubmit(event) {
+    event.preventDefault();
+    if (!formNuevoProducto || !productoMensaje) return;
+
+    // Detecta si es CREACIÓN o ACTUALIZACIÓN
+    const editId = productoIdEditInput.value ? parseInt(productoIdEditInput.value) : null;
+    const isEditMode = editId !== null;
+
+    // 1. Obtener datos comunes
+    const payload = {
+        nombre: document.getElementById('producto-nombre').value,
+        descripcion: document.getElementById('producto-descripcion').value || null,
+        precio: parseFloat(document.getElementById('producto-precio').value),
+        cantidad_stock: parseInt(document.getElementById('producto-stock').value),
+        id_proveedor: parseInt(selectorProveedorProducto.value),
+        tipo_producto: selectorTipoProducto.value, // Requerido para ambos modos
+        detalles_subtipo: {}
+    };
+
+    // 2. Obtener datos del subtipo
+    try {
+        if (payload.tipo_producto === 'ropa') {
+            payload.detalles_subtipo = {
+                material: document.getElementById('ropa-material').value,
+                talla: document.getElementById('ropa-talla').value,
+                tipo_corte: document.getElementById('ropa-corte').value || null
+            };
+        } else if (payload.tipo_producto === 'calzado') {
+            payload.detalles_subtipo = {
+                talla_numerica: parseFloat(document.getElementById('calzado-talla').value),
+                material_suela: document.getElementById('calzado-suela').value
+            };
+        } else if (payload.tipo_producto === 'accesorios') {
+            payload.detalles_subtipo = {
+                material: document.getElementById('accesorio-material').value,
+                dimensiones: document.getElementById('accesorio-dimensiones').value || null
+            };
+        } else {
+            throw new Error("Tipo de producto no válido.");
         }
         
-        // 3. Enviar a la API
-        const submitButton = formNuevoProducto.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Registrando...';
+        if (!payload.id_proveedor) throw new Error("Debe seleccionar un proveedor.");
+        if (payload.precio < 0 || isNaN(payload.precio)) throw new Error("Precio no válido.");
+        if (payload.cantidad_stock < 0 || isNaN(payload.cantidad_stock)) throw new Error("Stock no válido.");
 
-        try {
-            const nuevoProducto = await fetchData(`${API_URL}/api/productos`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
-            mostrarMensaje(productoMensaje, `Producto "${nuevoProducto.nombre}" registrado!`, true);
-            formNuevoProducto.reset(); // Limpia el formulario
-            handleTipoProductoChange(); // Oculta los campos de detalles
-            cargarProductos(); // Actualiza el catálogo
+    } catch (error) {
+        mostrarMensaje(productoMensaje, `Error al leer datos del formulario: ${error.message}`, false);
+        return;
+    }
+    
+    // 3. Enviar a la API (POST o PUT)
+    const submitButton = formNuevoProducto.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.textContent = isEditMode ? 'Actualizando...' : 'Registrando...';
 
-        } catch (error) {
-            mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = 'Registrar Producto';
+    const method = isEditMode ? 'PUT' : 'POST';
+    const endpoint = isEditMode ? `${API_URL}/api/productos/${editId}` : `${API_URL}/api/productos`;
+
+    try {
+        const resultado = await fetchData(endpoint, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const mensajeExito = isEditMode ? `Producto "${resultado.nombre}" actualizado!` : `Producto "${resultado.nombre}" registrado!`;
+        mostrarMensaje(productoMensaje, mensajeExito, true);
+        
+        resetFormularioProducto(); // Resetea el formulario al estado "Crear"
+        cargarProductos(); // Actualiza el catálogo
+
+    } catch (error) {
+        mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
+    } finally {
+        // El texto del botón se restaura en resetFormularioProducto()
+        // pero re-habilitamos el botón aquí.
+        submitButton.disabled = false;
+        if (!isEditMode) {
+             submitButton.textContent = 'Registrar Producto';
         }
     }
+}
 
 
     // --- Manejadores de Eventos CRUD ---
@@ -601,6 +697,29 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
             // Muestra el mensaje de error DETALLADO que viene de la API (ej. 409 Conflict)
             mostrarMensaje(proveedorMensaje, `Error al eliminar proveedor: ${error.message}`, false); 
+        }
+    }
+
+    /** Maneja el clic en "Eliminar Producto". */
+    async function handleDeleteProductoClick(event) {
+        const button = event.target;
+        const productoId = parseInt(button.dataset.id);
+        const nombreProducto = button.dataset.nombre;
+
+        if (!confirm(`¿Estás seguro de que deseas eliminar el producto "${nombreProducto}"?`)) {
+            return; 
+        }
+
+        try {
+            await fetchData(`${API_URL}/api/productos/${productoId}`, {
+                method: 'DELETE',
+            });
+            // Mensaje de éxito (usaremos el de 'productoMensaje' del form de crear producto)
+            mostrarMensaje(productoMensaje, `Producto "${nombreProducto}" eliminado con éxito.`, true);
+            cargarProductos(); // Recarga el catálogo
+        } catch (error) {
+            // Mostrará error 409 si el producto está en una venta (lo cual es correcto)
+            mostrarMensaje(productoMensaje, `Error al eliminar producto: ${error.message}`, false); 
         }
     }
 
@@ -811,6 +930,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- NUEVOS LISTENERS ---
     if (selectorTipoProducto) selectorTipoProducto.addEventListener('change', handleTipoProductoChange);
     if (formNuevoProducto) formNuevoProducto.addEventListener('submit', handleNuevoProductoSubmit);
+    if (btnCancelarEdicionProducto) {
+    btnCancelarEdicionProducto.addEventListener('click', resetFormularioProducto);
+    }
     
     // El formulario de edición del modal maneja ahora Cliente y Proveedor
     if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarSubmit); 
