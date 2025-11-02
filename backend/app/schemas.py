@@ -30,6 +30,8 @@ class Producto(ProductoBase): # <-- Este es el schema de RESPUESTA
     # Esto es necesario para los productos cuyo proveedor fue eliminado (ON DELETE SET NULL).
     id_proveedor: Optional[int] = None 
     
+    tipo_producto: str
+    
     detalles_subtipo: Optional[Any] = None 
 
     class Config:
