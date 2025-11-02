@@ -107,7 +107,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 listaDeProductos.innerHTML = '<p>No hay productos disponibles.</p>'; return;
             }
             productos.forEach(producto => {
-                // ... (el innerHTML de la tarjeta ahora tiene 3 botones)
+                
+                // --- ¡ESTAS LÍNEAS FALTABAN! ---
+                const item = document.createElement('div'); 
+                item.className = 'producto-item';
+                // --- FIN DE LA CORRECCIÓN ---
+
+                // (el innerHTML de la tarjeta ahora tiene 3 botones)
                 item.innerHTML = `
                     <h3>${producto.nombre}</h3>
                     <p>${producto.descripcion || 'Sin descripción'}</p>
