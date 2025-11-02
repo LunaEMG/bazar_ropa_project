@@ -96,3 +96,30 @@ CREATE TABLE detalle_venta (
         REFERENCES producto(id_producto)
         ON DELETE RESTRICT
 );
+
+--=================================================================
+--  VISTAS (Views) PARA REPORTES
+--=================================================================
+
+-- Vista para productos con bajo stock (menos de 10 unidades)
+CREATE VIEW v_productos_bajo_stock AS
+SELECT 
+    id_producto, 
+    nombre, 
+    cantidad_stock
+FROM producto
+WHERE esta_activo = TRUE AND cantidad_stock < 10
+ORDER BY cantidad_stock;
+
+-- Vista para total de ventas y gasto por cliente
+CREATE VIEW v_ventas_por_cliente AS
+SELECT 
+    c.id_cliente,
+    c.nombre, 
+    COUNT(v.id_venta) AS total_compras, 
+    SUM(v.monto_total) AS gasto_total
+FROM venta v
+JOIN cliente c ON v.id_cliente = c.id_cliente
+WHERE c.esta_activo = TRUE
+GROUP BY c.id_cliente, c.nombre
+ORDER BY gasto_total DESC;
