@@ -292,6 +292,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 const li = document.createElement('li');
                 li.className = 'venta-item'; // (Añadiremos este estilo en CSS)
                 
+                const nombreClienteMostrado = venta.nombre_cliente 
+                    ? `<strong>${venta.nombre_cliente}</strong> (ID: ${venta.id_cliente})`
+                    : '<strong>(Cliente Eliminado)</strong>';
+                
                 // Formatea la fecha para que sea más legible
                 const fechaFormateada = new Date(venta.fecha).toLocaleDateString('es-ES', {
                     year: 'numeric', month: 'long', day: 'numeric'
@@ -304,8 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span>${fechaFormateada}</span>
                         <span class="venta-total">Total: $${venta.monto_total.toFixed(2)}</span>
                     </div>
-                    <p>ID Cliente: ${venta.id_cliente}</p>
-                    <div class="venta-detalles">
+                    <p>Cliente: ${nombreClienteMostrado}</p> <div class="venta-detalles">
                         <h4>Detalles de la Venta:</h4>
                         <ul>
                 `;
