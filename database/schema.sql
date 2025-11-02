@@ -43,6 +43,7 @@ CREATE TABLE producto (
     precio NUMERIC(10, 2) NOT NULL,
     cantidad_stock INT NOT NULL DEFAULT 0,
     id_proveedor INT, 
+    esta_activo BOOLEAN DEFAULT TRUE, 
     CONSTRAINT fk_producto_proveedor FOREIGN KEY (id_proveedor)
         REFERENCES proveedor(id_proveedor)
         ON DELETE SET NULL
