@@ -1,6 +1,6 @@
 # Importaciones necesarias de Pydantic y tipos estándar
 from pydantic import BaseModel, Field
-from typing import Optional, List, Any 
+from typing import Optional, List, Any, Union
 from datetime import date 
 
 # --- Schemas de Producto ---
@@ -27,6 +27,31 @@ class Producto(ProductoBase):
 
     class Config:
         orm_mode = True 
+
+# --- Schemas para Detalles de Subtipos (NUEVO) ---
+class RopaDetalles(BaseModel):
+    material: str = Field(..., example="Lino")
+    tipo_corte: Optional[str] = Field(None, example="Slim Fit")
+    talla: str = Field(..., example="M")
+
+class CalzadoDetalles(BaseModel):
+    talla_numerica: float = Field(..., example=27.5)
+    material_suela: str = Field(..., example="Goma")
+
+class AccesoriosDetalles(BaseModel):
+    material: str = Field(..., example="Lana")
+    dimensiones: Optional[str] = Field(None, example="180cm x 30cm")
+
+# --- Schema para Creación de Producto (NUEVO) ---
+class ProductoCreate(ProductoBase):
+    """
+    Schema para crear un producto. Incluye un campo 'tipo_producto' 
+    y un campo de detalles que es una unión de los posibles subtipos.
+    """
+    tipo_producto: str # "ropa", "calzado", o "accesorios"
+    detalles_subtipo: Union[RopaDetalles, CalzadoDetalles, AccesoriosDetalles]
+
+    
 
 # --- Schemas de Cliente ---
 class ClienteBase(BaseModel):

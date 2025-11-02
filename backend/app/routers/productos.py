@@ -4,10 +4,39 @@ from typing import List
 
 # Importa las funciones CRUD y los schemas Pydantic para productos
 from app.crud import crud_productos
-from app.schemas import Producto, ProductoUpdate # <-- Se añade ProductoUpdate
+from app.schemas import Producto, ProductoUpdate, ProductoCreate 
 
 # Crea un router específico para las rutas de productos
 router = APIRouter()
+
+# --- NUEVO Endpoint para CREAR un producto (con herencia) ---
+@router.post(
+    "/api/productos", 
+    response_model=Producto, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar un nuevo producto (con subtipo)",
+    tags=["Productos"]
+)
+def create_new_producto(producto: ProductoCreate):
+    """
+    Crea un nuevo producto en la base de datos.
+    
+    Recibe los datos base y un objeto `detalles_subtipo` que debe
+    coincidir con el `tipo_producto` ("ropa", "calzado", "accesorios").
+    
+    Inserta en `producto` y en la tabla de subtipo correspondiente
+    dentro de una transacción.
+    """
+    db_producto = crud_productos.create_producto(producto_data=producto)
+    
+    if db_producto is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Error interno del servidor al crear el producto."
+        )
+    
+    return db_producto
+
 
 # --- Endpoint para LEER todos los productos ---
 @router.get(

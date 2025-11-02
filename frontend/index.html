@@ -21,6 +21,59 @@
 
         <hr>
 
+        <section>
+            <h2>Registrar Nuevo Producto</h2>
+            <form id="form-nuevo-producto">
+                
+                <div class="form-group"><label for="producto-nombre">Nombre:</label><input type="text" id="producto-nombre" required></div>
+                <div class="form-group"><label for="producto-descripcion">Descripción:</label><input type="text" id="producto-descripcion"></div>
+                <div class="form-group"><label for="producto-precio">Precio:</label><input type="number" id="producto-precio" step="0.01" min="0" required></div>
+                <div class="form-group"><label for="producto-stock">Stock (Cantidad):</label><input type="number" id="producto-stock" step="1" min="0" required></div>
+                <div class="form-group">
+                    <label for="producto-proveedor">Proveedor:</label>
+                    <select id="producto-proveedor" required>
+                        <option value="">Cargando proveedores...</option>
+                    </select>
+                </div>
+                
+                <hr style="margin: 20px 0;">
+
+                <div class="form-group">
+                    <label for="producto-tipo">Tipo de Producto:</label>
+                    <select id="producto-tipo" required>
+                        <option value="">Seleccione un tipo...</option>
+                        <option value="ropa">Ropa</option>
+                        <option value="calzado">Calzado</option>
+                        <option value="accesorios">Accesorios</option>
+                    </select>
+                </div>
+
+                <div id="detalles-ropa" class="detalles-subtipo" style="display: none;">
+                    <h4>Detalles de Ropa</h4>
+                    <div class="form-group"><label for="ropa-material">Material:</label><input type="text" id="ropa-material"></div>
+                    <div class="form-group"><label for="ropa-talla">Talla:</label><input type="text" id="ropa-talla" placeholder="Ej: S, M, L..."></div>
+                    <div class="form-group"><label for="ropa-corte">Tipo de Corte (Opcional):</label><input type="text" id="ropa-corte"></div>
+                </div>
+                
+                <div id="detalles-calzado" class="detalles-subtipo" style="display: none;">
+                    <h4>Detalles de Calzado</h4>
+                    <div class="form-group"><label for="calzado-talla">Talla Numérica:</label><input type="number" step="0.5" id="calzado-talla"></div>
+                    <div class="form-group"><label for="calzado-suela">Material de Suela:</label><input type="text" id="calzado-suela"></div>
+                </div>
+
+                <div id="detalles-accesorios" class="detalles-subtipo" style="display: none;">
+                    <h4>Detalles de Accesorios</h4>
+                    <div class="form-group"><label for="accesorio-material">Material:</label><input type="text" id="accesorio-material"></div>
+                    <div class="form-group"><label for="accesorio-dimensiones">Dimensiones (Opcional):</label><input type="text" id="accesorio-dimensiones"></div>
+                </div>
+
+                <button type="submit">Registrar Producto</button>
+                <p id="producto-mensaje" class="mensaje"></p>
+            </form>
+        </section>
+        
+        <hr>
+
         <section id="carrito-seccion">
             <h2>Carrito de Compras</h2>
             <div id="carrito-items">

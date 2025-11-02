@@ -1,7 +1,7 @@
 # Importaciones necesarias
 from app.db.database import get_db_connection
 # Importamos schemas relevantes para productos
-from app.schemas import ProductoUpdate 
+from app.schemas import ProductoUpdate, ProductoCreate, RopaDetalles, CalzadoDetalles, AccesoriosDetalles
 import psycopg
 
 # --- Función Auxiliar ---
@@ -12,6 +12,92 @@ def row_to_dict(cursor, row):
         return None
     column_names = [desc[0] for desc in cursor.description]
     return dict(zip(column_names, row))
+
+# --- CREAR (Create): Añadir un nuevo producto (NUEVA FUNCIÓN) ---
+def create_producto(producto_data: ProductoCreate):
+    """
+    Crea un nuevo producto en la tabla 'producto' y su correspondiente
+    registro en la tabla de subtipo (ropa, calzado o accesorios).
+    Utiliza una transacción para asegurar la atomicidad.
+    """
+    conn = get_db_connection()
+    if conn is None: 
+        return None
+
+    new_producto_id = None
+    try:
+        # Inicia una transacción
+        with conn.cursor() as cur, conn.transaction():
+            
+            # 1. Insertar en la tabla base 'producto' y obtener el ID
+            cur.execute(
+                """
+                INSERT INTO producto (nombre, descripcion, precio, cantidad_stock, id_proveedor)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id_producto
+                """,
+                (
+                    producto_data.nombre, 
+                    producto_data.descripcion, 
+                    producto_data.precio, 
+                    producto_data.cantidad_stock, 
+                    producto_data.id_proveedor
+                )
+            )
+            
+            result = cur.fetchone()
+            if result is None:
+                raise psycopg.Error("Fallo al insertar en la tabla 'producto'.")
+                
+            new_producto_id = result[0] # El ID del nuevo producto
+            
+            detalles = producto_data.detalles_subtipo
+            
+            # 2. Insertar en la tabla de subtipo correspondiente
+            if producto_data.tipo_producto == "ropa" and isinstance(detalles, RopaDetalles):
+                cur.execute(
+                    """
+                    INSERT INTO ropa (id_producto, material, tipo_corte, talla)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (new_producto_id, detalles.material, detalles.tipo_corte, detalles.talla)
+                )
+            elif producto_data.tipo_producto == "calzado" and isinstance(detalles, CalzadoDetalles):
+                cur.execute(
+                    """
+                    INSERT INTO calzado (id_producto, talla_numerica, material_suela)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (new_producto_id, detalles.talla_numerica, detalles.material_suela)
+                )
+            elif producto_data.tipo_producto == "accesorios" and isinstance(detalles, AccesoriosDetalles):
+                cur.execute(
+                    """
+                    INSERT INTO accesorios (id_producto, material, dimensiones)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (new_producto_id, detalles.material, detalles.dimensiones)
+                )
+            else:
+                # Si el tipo no coincide, forzamos un error para cancelar la transacción
+                raise ValueError(f"Tipo de producto '{producto_data.tipo_producto}' o detalles no válidos.")
+            
+            # Commit automático al salir del 'with transaction'
+            
+    except (Exception, psycopg.Error, ValueError) as error:
+        print(f"Error en transacción al crear producto: {error}")
+        # Rollback automático
+        if conn: 
+            conn.close()
+        return None # Indica que la creación falló
+    finally:
+        if conn: 
+            conn.close()
+
+    # Si todo salió bien, obtenemos el producto completo y lo retornamos
+    if new_producto_id:
+        return get_producto_by_id(new_producto_id)
+    return None
 
 # --- Funciones CRUD para Productos ---
 
