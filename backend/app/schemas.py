@@ -21,21 +21,18 @@ class ProductoUpdate(BaseModel):
     cantidad_stock: Optional[int] = Field(None, ge=0)
     id_proveedor: Optional[int] = None
 
-class Producto(ProductoBase): # <-- Este es el schema de RESPUESTA
+class Producto(ProductoBase): 
     """Schema para leer/retornar un Producto, incluye ID y detalles del subtipo."""
     id_producto: int
-    
-    # --- MODIFICACIÓN CLAVE ---
-    # Sobrescribimos id_proveedor aquí para PERMITIR que sea None en la respuesta.
-    # Esto es necesario para los productos cuyo proveedor fue eliminado (ON DELETE SET NULL).
+
     id_proveedor: Optional[int] = None 
-    
+
     tipo_producto: str
     
     detalles_subtipo: Optional[Any] = None 
 
     class Config:
-        from_attributes = True # <-- CORRECCIÓN: 'orm_mode' renombrado
+        from_attributes = True 
 
 # --- Schemas para Detalles de Subtipos (NUEVO) ---
 class RopaDetalles(BaseModel):
