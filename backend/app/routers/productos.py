@@ -118,12 +118,6 @@ def delete_existing_producto(producto_id: int):
     if delete_result_code == 1:
         # Éxito (1 fila eliminada): Retorna 204 No Content (automático)
         return None 
-    elif delete_result_code == -2: 
-        # Error de Clave Foránea (-2)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, 
-            detail="No se puede eliminar el producto porque está referenciado en una o más ventas."
-        )
     elif delete_result_code == 0:
         # No encontrado (0 filas eliminadas)
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado para eliminar")

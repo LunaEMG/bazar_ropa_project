@@ -114,8 +114,6 @@ def get_all_productos():
     productos = []
     try:
         with conn.cursor() as cur:
-            # Hacemos JOINs con las tablas de subtipo para identificar el tipo
-            # Usamos LEFT JOIN para incluir productos que podrían no estar (incorrectamente) en ninguna subtipo
             cur.execute("""
                 SELECT 
                     p.id_producto, p.nombre, p.descripcion, p.precio, p.cantidad_stock, p.id_proveedor,
@@ -129,6 +127,7 @@ def get_all_productos():
                 LEFT JOIN ropa r ON p.id_producto = r.id_producto
                 LEFT JOIN calzado c ON p.id_producto = c.id_producto
                 LEFT JOIN accesorios a ON p.id_producto = a.id_producto
+                WHERE p.esta_activo = TRUE -- <-- AÑADIR ESTA LÍNEA
                 ORDER BY p.nombre
             """)
             productos_rows = cur.fetchall()
@@ -280,55 +279,48 @@ def update_producto(producto_id: int, producto_update: ProductoUpdateConSubtipo)
     # Retorna el producto actualizado completo
     return get_producto_by_id(producto_id)
 
-# --- NUEVA Función ---
+
 # ELIMINAR (Delete): Borrar un producto existente (manejo de herencia)
 def delete_producto(producto_id: int):
     """
-    Elimina un producto de la tabla 'producto' y su correspondiente
-    registro en la tabla de subtipo (ropa, calzado o accesorios).
-    Utiliza una transacción para asegurar la atomicidad.
+    Desactiva un producto (borrado lógico) en lugar de eliminarlo.
+    Ya no elimina de las tablas de subtipo, solo marca como inactivo.
 
     Returns:
-        bool: True si la eliminación fue exitosa, False en caso contrario.
-              Puede fallar si el producto está referenciado en 'detalle_venta'.
+        int: 
+            1: si la desactivación fue exitosa (1 fila afectada).
+            0: si el producto no fue encontrado (0 filas afectadas).
+           -1: si ocurrió un error genérico de base de datos.
     """
     conn = get_db_connection()
     if conn is None: 
-        return False
+        print("Error: No se pudo conectar a la DB para desactivar producto.")
+        return -1 # Indica error de conexión
 
-    rows_deleted_total = 0
+    rows_updated_code = 0 # Valor por defecto si no se encuentra
     try:
         with conn.cursor() as cur, conn.transaction(): 
-            # 1. Eliminar de la tabla de subtipo (ignorará si no existe en una tabla específica)
-            # Como la FK en subtipos tiene ON DELETE CASCADE, podríamos omitir estos DELETEs
-            # si confiamos en la cascada, pero hacerlo explícito puede ser más claro.
-            cur.execute("DELETE FROM ropa WHERE id_producto = %s", (producto_id,))
-            cur.execute("DELETE FROM calzado WHERE id_producto = %s", (producto_id,))
-            cur.execute("DELETE FROM accesorios WHERE id_producto = %s", (producto_id,))
-
-            # 2. Eliminar de la tabla principal 'producto'
-            cur.execute("DELETE FROM producto WHERE id_producto = %s", (producto_id,))
-            rows_deleted_total = cur.rowcount # Verifica si se eliminó de la tabla 'producto'
             
-            # Si rowcount es 0, el producto no existía en 'producto', forzamos rollback
-            if rows_deleted_total == 0:
-                raise psycopg.Error(f"Producto con ID {producto_id} no encontrado en tabla 'producto'.")
-
+            # NO BORRAMOS DE ROPA/CALZADO/ACCESORIOS
+            
+            # 2. En lugar de DELETE, hacemos un UPDATE
+            cur.execute(
+                "UPDATE producto SET esta_activo = FALSE WHERE id_producto = %s", 
+                (producto_id,)
+            )
+            rows_updated_code = cur.rowcount # Será 1 si se actualizó, 0 si no existía
+            
+            if rows_updated_code == 0:
+                 pass # Se retornará 0
             # Commit automático si no hubo excepciones
             
-    except psycopg.errors.ForeignKeyViolation as fk_error:
-        # Error específico si el producto está siendo referenciado (ej. en detalle_venta)
-        print(f"Error de FK al eliminar producto {producto_id}: {fk_error}")
-        # Rollback automático
-        rows_deleted_total = -2 # Código de error específico para FK
-        
     except (Exception, psycopg.Error) as error:
-        print(f"Error al eliminar producto {producto_id}: {error}")
+        print(f"Error SQL al desactivar (borrado lógico) producto {producto_id}: {error}")
         # Rollback automático
-        rows_deleted_total = -1 # Código de error genérico
+        rows_updated_code = -1 # Código para error genérico
     finally:
         if conn: 
             conn.close()
             
-    # Retorna True solo si se eliminó exactamente una fila de la tabla 'producto'
-    return rows_deleted_total # Retorna el número directamente (0, 1, -1, -2)
+    # Retorna el código numérico resultado de la operación (1, 0, o -1)
+    return rows_updated_code
