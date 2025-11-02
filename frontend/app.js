@@ -567,7 +567,7 @@ async function handleNuevoProductoSubmit(event) {
 
     if (!tipoProducto) {
         mostrarMensaje(productoMensaje, "Error: No se detectó el tipo de producto.", false);
-        console.error("⚠️ No se encontró tipo_producto en el formulario.");
+        console.error("No se encontró tipo_producto en el formulario.");
         return;
     }
 
