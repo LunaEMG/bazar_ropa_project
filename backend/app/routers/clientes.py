@@ -89,32 +89,23 @@ def update_existing_cliente(cliente_id: int, cliente_update: ClienteUpdate):
 )
 def delete_existing_cliente(cliente_id: int):
     """
-    Elimina un cliente de la base de datos usando su 'id_cliente'.
-    Retorna 204 No Content si la eliminación es exitosa.
+    Desactiva un cliente (borrado lógico) usando su 'id_cliente'.
+    Retorna 204 No Content si la desactivación es exitosa.
     Retorna 404 Not Found si el cliente no existe.
-    Retorna 409 Conflict si el cliente no se puede eliminar debido a referencias 
-    en otras tablas (ej. 'venta', 'direccion').
     Retorna 500 Internal Server Error para otros errores de base de datos.
     """
+    
     # Llama a la función CRUD para eliminar, ahora retorna 1, 0, -1, o -2
     delete_result_code = crud_clientes.delete_cliente(cliente_id=cliente_id)
     
-    # *** LÓGICA CORREGIDA PARA INTERPRETAR LOS CÓDIGOS ***
     if delete_result_code == 1:
-        # Éxito (1 fila eliminada): Retorna 204 No Content (automático)
+        # Éxito
         return None 
-    elif delete_result_code == -2: 
-        # Error de Clave Foránea (-2)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, # 409 Conflict
-            # Mensaje específico para FK de cliente
-            detail="No se puede eliminar el cliente porque tiene ventas o direcciones asociadas." 
-        )
     elif delete_result_code == 0:
-        # No encontrado (0 filas eliminadas)
+        # No encontrado
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado para eliminar")
-    else: # Incluye el caso -1 (otro error SQL) o cualquier otro inesperado
-        # Error genérico del servidor
+    else: # -1 o cualquier otro error
+        # Error genérico
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Error interno del servidor al intentar eliminar el cliente."

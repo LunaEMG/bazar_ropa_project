@@ -19,7 +19,7 @@ def get_all_proveedores():
     proveedores = []
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT id_proveedor, nombre, telefono FROM proveedor ORDER BY nombre")
+            cur.execute("SELECT id_proveedor, nombre, telefono FROM proveedor WHERE esta_activo = TRUE ORDER BY nombre")
             proveedores_rows = cur.fetchall()
             proveedores = [row_to_dict(cur, row) for row in proveedores_rows]
     except (Exception, psycopg.Error) as error:
@@ -128,45 +128,35 @@ def update_proveedor(proveedor_id: int, proveedor_update: ProveedorUpdate):
 
 def delete_proveedor(proveedor_id: int):
     """
-    Elimina un proveedor de la base de datos usando su ID.
-
+    Desactiva un proveedor (borrado lógico) en lugar de eliminarlo.
     Returns:
         int: 
-            1: si la eliminación fue exitosa (1 fila afectada).
+            1: si la desactivación fue exitosa (1 fila afectada).
             0: si el proveedor no fue encontrado (0 filas afectadas).
            -1: si ocurrió un error genérico de base de datos.
-           -2: si ocurrió un error de violación de clave foránea.
     """
     conn = get_db_connection()
     if conn is None: 
-        print("Error: No se pudo conectar a la DB para eliminar proveedor.")
+        print("Error: No se pudo conectar a la DB para desactivar proveedor.")
         return -1 # Indica error de conexión
 
-    rows_deleted_code = 0 # Valor por defecto si no se encuentra
+    rows_updated_code = 0 # Valor por defecto si no se encuentra
     try:
-        # Usar transacción para asegurar atomicidad y rollback automático
         with conn.cursor() as cur, conn.transaction(): 
-            cur.execute("DELETE FROM proveedor WHERE id_proveedor = %s", (proveedor_id,))
-            rows_deleted_code = cur.rowcount # Será 1 si se borró, 0 si no existía
-            if rows_deleted_code == 0:
-                 # Si no se borró nada, psycopg deshace la transacción implícitamente
-                 # pero podemos dejarlo claro para el código de retorno.
-                 pass 
-            # Commit automático al salir del 'with transaction' si no hubo error
+            # Cambiar DELETE por UPDATE
+            cur.execute(
+                "UPDATE proveedor SET esta_activo = FALSE WHERE id_proveedor = %s", 
+                (proveedor_id,)
+            )
+            rows_updated_code = cur.rowcount # Será 1 si se actualizó, 0 si no existía
 
-    except psycopg.errors.ForeignKeyViolation as fk_error:
-        # Error específico si el proveedor está referenciado (ej. en producto)
-        print(f"Error de FK al eliminar proveedor {proveedor_id}: {fk_error}")
-        # Rollback automático
-        rows_deleted_code = -2 # Código para FK violation
-        
     except (Exception, psycopg.Error) as error:
-        print(f"Error SQL al eliminar proveedor {proveedor_id}: {error}")
+        print(f"Error SQL al desactivar proveedor {proveedor_id}: {error}")
         # Rollback automático
-        rows_deleted_code = -1 # Código para error genérico
+        rows_updated_code = -1 # Código para error genérico
     finally:
         if conn: 
             conn.close()
-            
+
     # Retorna el código numérico resultado de la operación
-    return rows_deleted_code
+    return rows_updated_code

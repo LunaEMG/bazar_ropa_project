@@ -11,11 +11,12 @@ from .crud_productos import row_to_dict
 
 # LEER (Read): Obtener todos los clientes (Sin cambios)
 def get_all_clientes():
-    """Obtiene todos los registros de la tabla 'cliente'."""
+    """Obtiene todos los registros ACTIVOS de la tabla 'cliente'."""
     conn = get_db_connection()
     if conn is None: return []
     with conn.cursor() as cur:
-        cur.execute("SELECT id_cliente, nombre, telefono FROM cliente ORDER BY nombre")
+        # Añadir WHERE esta_activo = TRUE
+        cur.execute("SELECT id_cliente, nombre, telefono FROM cliente WHERE esta_activo = TRUE ORDER BY nombre")
         clientes_rows = cur.fetchall()
         clientes = [row_to_dict(cur, row) for row in clientes_rows]
     conn.close()
@@ -109,41 +110,34 @@ def update_cliente(cliente_id: int, cliente_update: ClienteUpdate):
 # ELIMINAR (Delete): Borrar un cliente existente
 def delete_cliente(cliente_id: int):
     """
-    Elimina un cliente de la base de datos por su ID.
+    Desactiva un cliente (borrado lógico) en lugar de eliminarlo.
     Retorna:
-        1: si la eliminación fue exitosa.
+        1: si la desactivación fue exitosa.
         0: si el cliente no fue encontrado.
        -1: si ocurrió un error genérico de base de datos.
-       -2: si ocurrió un error de violación de clave foránea.
     """
     conn = get_db_connection()
     if conn is None: 
-        print("Error: No se pudo conectar a la DB para eliminar cliente.")
+        print("Error: No se pudo conectar a la DB para desactivar cliente.")
         return -1 # Indica error de conexión
 
-    rows_deleted_code = 0 # Valor por defecto si no se encuentra
+    rows_updated_code = 0 # Valor por defecto si no se encuentra
     try:
         with conn.cursor() as cur, conn.transaction():
-            cur.execute("DELETE FROM cliente WHERE id_cliente = %s", (cliente_id,))
-            rows_deleted_code = cur.rowcount # Será 1 si se borró, 0 si no existía
-            if rows_deleted_code == 0:
-                 # Si no se borró nada, no es necesario hacer commit/rollback
-                 pass # Se retornará 0
-            # Commit automático si rowcount fue 1
-            
-    except psycopg.errors.ForeignKeyViolation as fk_error:
-        # Error específico si el cliente está referenciado (ej. en venta o direccion)
-        print(f"Error de FK al eliminar cliente {cliente_id}: {fk_error}")
-        # Rollback automático
-        rows_deleted_code = -2 # Código para FK violation
-        
+            # Cambiar DELETE por UPDATE
+            cur.execute(
+                "UPDATE cliente SET esta_activo = FALSE WHERE id_cliente = %s", 
+                (cliente_id,)
+            )
+            rows_updated_code = cur.rowcount # Será 1 si se actualizó, 0 si no existía
+
     except (Exception, psycopg.Error) as error:
-        print(f"Error SQL al eliminar cliente {cliente_id}: {error}")
+        print(f"Error SQL al desactivar cliente {cliente_id}: {error}")
         # Rollback automático
-        rows_deleted_code = -1 # Código para error genérico
+        rows_updated_code = -1 # Código para error genérico
     finally:
         if conn: 
             conn.close()
-            
+
     # Retorna el código numérico resultado de la operación
-    return rows_deleted_code
+    return rows_updated_code

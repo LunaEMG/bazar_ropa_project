@@ -85,21 +85,14 @@ def delete_existing_proveedor(proveedor_id: int):
     # Llama a la función CRUD que ahora retorna un código numérico
     delete_result_code = crud_proveedores.delete_proveedor(proveedor_id=proveedor_id)
     
-    # *** LÓGICA CORREGIDA PARA INTERPRETAR LOS CÓDIGOS ***
     if delete_result_code == 1:
-        # Éxito (1 fila eliminada): Retorna 204 No Content (automático)
+        # Éxito
         return None 
-    elif delete_result_code == -2: 
-        # Error de Clave Foránea (-2)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, # 409 Conflict
-            detail="No se puede eliminar el proveedor porque tiene productos asociados." 
-        )
     elif delete_result_code == 0:
-        # No encontrado (0 filas eliminadas)
+        # No encontrado
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado para eliminar")
-    else: # Incluye el caso -1 (otro error SQL) o cualquier otro inesperado
-        # Error genérico del servidor
+    else: # -1 o cualquier otro error
+        # Error genérico
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Error interno del servidor al intentar eliminar el proveedor."
