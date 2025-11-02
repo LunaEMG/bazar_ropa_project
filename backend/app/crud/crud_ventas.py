@@ -13,13 +13,8 @@ def create_venta(venta_data: VentaCreate):
     """
     Crea un nuevo registro de venta y sus detalles asociados en la base de datos.
     Utiliza una transacción para asegurar la atomicidad de la operación.
-
-    Args:
-        venta_data (VentaCreate): Datos de la venta a crear, incluyendo detalles.
-
-    Returns:
-        dict | None: Diccionario con los datos de la venta creada (incluyendo detalles) 
-                      o None si ocurre un error.
+    
+    NUEVO: Ahora también verifica el stock y lo descuenta.
     """
     conn = get_db_connection()
     if conn is None:
@@ -32,8 +27,29 @@ def create_venta(venta_data: VentaCreate):
         # Inicia una transacción
         with conn.cursor() as cur, conn.transaction(): 
             
-            # 1. Calcular el monto total a partir de los detalles.
+            # --- Paso 1 - Verificar stock y calcular total ---
+            # Hacemos esto ANTES de insertar la venta.
             for detalle in venta_data.detalles:
+                # Bloquea la fila del producto para evitar que dos ventas
+                # compren el mismo item al mismo tiempo (evita "race conditions").
+                cur.execute(
+                    "SELECT nombre, cantidad_stock FROM producto WHERE id_producto = %s FOR UPDATE",
+                    (detalle.id_producto,)
+                )
+                producto_row = cur.fetchone()
+                
+                if producto_row is None:
+                    # Si el producto no existe, lanza un error que cancelará la transacción.
+                    raise ValueError(f"Producto con ID {detalle.id_producto} no encontrado.")
+                
+                nombre_producto = producto_row[0]
+                stock_actual = producto_row[1]
+
+                # La validación clave:
+                if stock_actual < detalle.cantidad:
+                    raise ValueError(f"Stock insuficiente para '{nombre_producto}'. Solicitados: {detalle.cantidad}, Disponibles: {stock_actual}")
+                
+                # Si hay stock, sumamos al total
                 monto_total_calculado += detalle.cantidad * detalle.precio_unitario
 
             # 2. Insertar en la tabla 'venta'.
@@ -52,9 +68,18 @@ def create_venta(venta_data: VentaCreate):
             new_venta_dict = row_to_dict(cur, new_venta_row)
             new_venta_id = new_venta_dict['id_venta']
 
-            # 3. Insertar cada registro de detalle en 'detalle_venta'.
+            # --- Paso 3 - Insertar detalles y ACTUALIZAR stock ---
             detalles_insertados = []
             for detalle in venta_data.detalles:
+                
+                # --- Actualizar el stock en la BD ---
+                cur.execute(
+                    "UPDATE producto SET cantidad_stock = cantidad_stock - %s WHERE id_producto = %s",
+                    (detalle.cantidad, detalle.id_producto)
+                )
+                # --- FIN DE ACTUALIZACIÓN ---
+
+                # Insertar en detalle_venta (como antes)
                 cur.execute(
                     """
                     INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario) 
@@ -75,6 +100,14 @@ def create_venta(venta_data: VentaCreate):
         new_venta_dict['detalles'] = detalles_insertados 
         return new_venta_dict
 
+    # --- Capturador de error de stock ---
+    except ValueError as e: # Captura el error de "Stock insuficiente"
+        print(f"Error de validación en Venta: {e}")
+        if conn:
+             conn.close() # La transacción se revierte automáticamente
+        # Re-lanza el error para que el router lo atrape
+        raise e
+    
     except (Exception, psycopg.Error) as error:
         # Rollback automático si ocurre una excepción
         print(f"Error durante la transacción de venta: {error}")
@@ -82,7 +115,8 @@ def create_venta(venta_data: VentaCreate):
              conn.close()
         return None # Indica que la operación falló.
 
-# --- NUEVA Función Auxiliar ---
+
+# --- Función Auxiliar ---
 def get_detalles_for_venta(cursor, venta_id: int):
     """
     Función auxiliar para obtener los detalles de una venta específica 
@@ -95,7 +129,7 @@ def get_detalles_for_venta(cursor, venta_id: int):
     detalles_rows = cursor.fetchall()
     return [row_to_dict(cursor, row) for row in detalles_rows]
 
-# --- NUEVA Función ---
+# --- Función ---
 def get_venta_by_id(venta_id: int):
     """
     Obtiene una venta específica por su ID, incluyendo sus detalles.

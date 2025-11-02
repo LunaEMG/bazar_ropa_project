@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Funciones de Carga y Renderizado ---
 
-    /** Carga y muestra la lista de productos (Corregido listener). */
+    /** Carga y muestra la lista de productos. */
     async function cargarProductos() {
         if (!listaDeProductos) return;
         listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
@@ -108,15 +108,19 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             productos.forEach(producto => {
                 
-                // --- ¡ESTAS LÍNEAS FALTABAN! ---
                 const item = document.createElement('div'); 
                 item.className = 'producto-item';
-                // --- FIN DE LA CORRECCIÓN ---
+                
 
                 // (el innerHTML de la tarjeta ahora tiene 3 botones)
                 item.innerHTML = `
                     <h3>${producto.nombre}</h3>
                     <p>${producto.descripcion || 'Sin descripción'}</p>
+                    
+                    <p style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
+                        Disponibles: <strong>${producto.cantidad_stock}</strong>
+                    </p>
+                    
                     <p class="precio">$${producto.precio.toFixed(2)}</p>
                     
                     <div class="producto-acciones">
@@ -919,7 +923,8 @@ async function handleNuevoProductoSubmit(event) {
             // Actualiza los componentes de la UI para reflejar el nuevo estado.
             renderizarCarrito(); // Renderiza el carrito (ahora vacío)
             cargarHistorialVentas(); // Refresca la lista de historial de ventas
-            
+            cargarProductos(); // Refresca el stock de productos
+
         } catch (error) { 
             // --- 7. Manejo de Errores (Error Handler) ---
             // La petición `fetchData` lanzó un error (ej. error de red, 500, 409).
@@ -933,7 +938,7 @@ async function handleNuevoProductoSubmit(event) {
             // Restaura el texto original del botón.
             btnFinalizarCompra.textContent = 'Finalizar Compra'; 
             
-            // Vuelve a llamar a renderizarCarrito(). Esto es crucial porque:
+            // Vuelve a llamar a renderizarCarrito():
             // 1. Si la compra fue exitosa: `carrito` está vacío -> renderizarCarrito() mantendrá el botón DESHABILITADO.
             // 2. Si la compra falló: `carrito` AÚN tiene items -> renderizarCarrito() RE-HABILITARÁ el botón.
             renderizarCarrito(); 

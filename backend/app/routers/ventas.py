@@ -29,20 +29,27 @@ def create_new_venta(venta: VentaCreate):
     Retorna los datos de la venta creada, incluyendo los detalles insertados, 
     o un error HTTP si la operación falla.
     """
-    # Llama a la función CRUD para procesar la creación de la venta
-    db_venta = crud_ventas.create_venta(venta_data=venta)
-    
-    # Si la función CRUD retorna None, indica un error durante la transacción
-    if db_venta is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail="Error interno del servidor al procesar la venta."
-        )
+    try:
+        # Llama a la función CRUD para procesar la creación de la venta
+        db_venta = crud_ventas.create_venta(venta_data=venta)
         
-    # Si la creación fue exitosa, retorna los datos de la venta creada
-    return db_venta
+        # Si la función CRUD retorna None, indica un error INTERNO
+        if db_venta is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                detail="Error interno del servidor al procesar la venta."
+            )
+            
+        # Si la creación fue exitosa, retorna los datos de la venta creada
+        return db_venta
+    
+    except ValueError as e: # Captura el error de "Stock insuficiente"
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, # 409 Conflict es bueno para esto
+            detail=str(e) # Pasa el mensaje de error (ej. "Stock insuficiente...")
+        )
 
-# --- NUEVO Endpoint para LEER todas las ventas ---
+# --- Endpoint para LEER todas las ventas ---
 @router.get(
     "/api/ventas", 
     response_model=List[Venta], # Retorna una lista de Ventas
@@ -57,7 +64,7 @@ def read_ventas():
     ventas = crud_ventas.get_all_ventas()
     return ventas
 
-# --- NUEVO Endpoint para LEER una venta específica por ID ---
+# --- Endpoint para LEER una venta específica por ID ---
 @router.get(
     "/api/ventas/{venta_id}", 
     response_model=Venta, # Retorna una sola Venta
