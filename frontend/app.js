@@ -558,45 +558,54 @@ async function handleNuevoProductoSubmit(event) {
     event.preventDefault();
     if (!formNuevoProducto || !productoMensaje) return;
 
-    // Detecta si es CREACIÓN o ACTUALIZACIÓN
+    // Detectar modo
     const editId = productoIdEditInput.value ? parseInt(productoIdEditInput.value) : null;
-    // Obtiene el tipo guardado (solo será 'null' si estamos creando uno nuevo)
-    const tipoProductoEditado = formNuevoProducto.getAttribute('data-editing-type');
     const isEditMode = editId !== null;
 
-    // 1. Obtener datos comunes
+    // 🔧 Solución: forzar tipo de producto incluso si el atributo no existe
+    let tipoProducto = formNuevoProducto.getAttribute('data-editing-type') || selectorTipoProducto.value;
+
+    if (!tipoProducto) {
+        mostrarMensaje(productoMensaje, "Error: No se detectó el tipo de producto.", false);
+        console.error("⚠️ No se encontró tipo_producto en el formulario.");
+        return;
+    }
+
+    console.log("🧩 Tipo de producto detectado:", tipoProducto);
+
+    // 1. Datos comunes
     const payload = {
         nombre: document.getElementById('producto-nombre').value,
         descripcion: document.getElementById('producto-descripcion').value || null,
         precio: parseFloat(document.getElementById('producto-precio').value),
         cantidad_stock: parseInt(document.getElementById('producto-stock').value),
         id_proveedor: parseInt(selectorProveedorProducto.value),
-        tipo_producto: isEditMode ? tipoProductoEditado : selectorTipoProducto.value,
+        tipo_producto: tipoProducto,
         detalles_subtipo: {}
     };
 
-    // 2. Obtener datos del subtipo
+    // 2. Subtipos
     try {
-        if (payload.tipo_producto === 'ropa') {
+        if (tipoProducto === 'ropa') {
             payload.detalles_subtipo = {
                 material: document.getElementById('ropa-material').value,
                 talla: document.getElementById('ropa-talla').value,
                 tipo_corte: document.getElementById('ropa-corte').value || null
             };
-        } else if (payload.tipo_producto === 'calzado') {
+        } else if (tipoProducto === 'calzado') {
             payload.detalles_subtipo = {
                 talla_numerica: parseFloat(document.getElementById('calzado-talla').value),
                 material_suela: document.getElementById('calzado-suela').value
             };
-        } else if (payload.tipo_producto === 'accesorios') {
+        } else if (tipoProducto === 'accesorios') {
             payload.detalles_subtipo = {
                 material: document.getElementById('accesorio-material').value,
                 dimensiones: document.getElementById('accesorio-dimensiones').value || null
             };
         } else {
-            throw new Error("Tipo de producto no válido.");
+            throw new Error(`Tipo de producto no válido: ${tipoProducto}`);
         }
-        
+
         if (!payload.id_proveedor) throw new Error("Debe seleccionar un proveedor.");
         if (payload.precio < 0 || isNaN(payload.precio)) throw new Error("Precio no válido.");
         if (payload.cantidad_stock < 0 || isNaN(payload.cantidad_stock)) throw new Error("Stock no válido.");
@@ -605,8 +614,8 @@ async function handleNuevoProductoSubmit(event) {
         mostrarMensaje(productoMensaje, `Error al leer datos del formulario: ${error.message}`, false);
         return;
     }
-    
-    // 3. Enviar a la API (POST o PUT)
+
+    // 3. Enviar a la API
     const submitButton = formNuevoProducto.querySelector('button[type="submit"]');
     submitButton.disabled = true;
     submitButton.textContent = isEditMode ? 'Actualizando...' : 'Registrando...';
@@ -616,28 +625,27 @@ async function handleNuevoProductoSubmit(event) {
 
     try {
         const resultado = await fetchData(endpoint, {
-            method: method,
+            method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        
-        const mensajeExito = isEditMode ? `Producto "${resultado.nombre}" actualizado!` : `Producto "${resultado.nombre}" registrado!`;
+
+        const mensajeExito = isEditMode
+            ? `Producto "${resultado.nombre}" actualizado!`
+            : `Producto "${resultado.nombre}" registrado!`;
+
         mostrarMensaje(productoMensaje, mensajeExito, true);
-        
-        resetFormularioProducto(); // Resetea el formulario al estado "Crear"
-        cargarProductos(); // Actualiza el catálogo
+        resetFormularioProducto();
+        cargarProductos();
 
     } catch (error) {
         mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
     } finally {
-        // El texto del botón se restaura en resetFormularioProducto()
-        // pero re-habilitamos el botón aquí.
         submitButton.disabled = false;
-        if (!isEditMode) {
-             submitButton.textContent = 'Registrar Producto';
-        }
+        submitButton.textContent = isEditMode ? 'Actualizar Producto' : 'Registrar Producto';
     }
 }
+
 
 
     // --- Manejadores de Eventos CRUD ---
