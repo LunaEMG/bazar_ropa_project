@@ -1054,12 +1054,13 @@ async function handleNuevoProductoSubmit(event) {
         // Mapea el estado del carrito local (Array `carrito`) al formato 
         // requerido por el schema `VentaCreate` de la API (backend).
         const ventaData = { 
-            id_cliente: parseInt(idClienteSeleccionado), 
-            detalles: carrito.map(item => ({ 
-                id_producto: item.id_producto, 
-                cantidad: item.cantidad 
-            })) 
-        };
+        id_cliente: parseInt(idClienteSeleccionado), 
+        detalles: carrito.map(item => ({ 
+            id_producto: item.id_producto, 
+            cantidad: item.cantidad 
+            
+        })) 
+    };
         
         // --- 4. Gestión de Estado UI (Loading State) ---
         // Deshabilita el botón para prevenir envíos múltiples (doble clic)
