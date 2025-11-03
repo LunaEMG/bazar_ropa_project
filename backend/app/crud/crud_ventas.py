@@ -61,7 +61,7 @@ def create_venta(db: Connection, venta_data: VentaCreate):
                     raise ValueError(f"Stock insuficiente para '{nombre_producto}'. Solicitados: {detalle.cantidad}, Disponibles: {stock_actual}")
                 
                 # CORRECCIÓN DE SEGURIDAD: Usamos precio_bd para el total
-                monto_total_calculado += detalle.cantidad * precio_bd
+                monto_total_calculado += detalle.cantidad * float(precio_bd)
                 
                 # Guardamos el detalle con el precio correcto para usarlo después
                 detalles_con_precio.append({
