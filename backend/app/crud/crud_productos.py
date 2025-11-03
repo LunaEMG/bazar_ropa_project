@@ -1,5 +1,4 @@
 # Importaciones necesarias
-from app.db.database import get_db_connection 
 from app.schemas import (
     ProductoUpdate, ProductoCreate, RopaDetalles, CalzadoDetalles, AccesoriosDetalles,
     ProductoUpdateConSubtipo, RopaDetallesUpdate, CalzadoDetallesUpdate, AccesoriosDetallesUpdate
@@ -8,6 +7,7 @@ import psycopg
 from psycopg import Connection 
 
 # --- Función Auxiliar ---
+# (Se mantiene la misma función auxiliar)
 def row_to_dict(cursor, row):
     """Convierte una fila de psycopg (tupla) en un diccionario."""
     if row is None:
@@ -15,7 +15,7 @@ def row_to_dict(cursor, row):
     column_names = [desc[0] for desc in cursor.description]
     return dict(zip(column_names, row))
 
-# --- CREAR (Create): Añadir un nuevo producto ---
+# --- CREAR (Create): Añadir un nuevo producto (NUEVA FUNCIÓN) ---
 def create_producto(db: Connection, producto_data: ProductoCreate): 
     """
     Crea un nuevo producto en la tabla 'producto' y su correspondiente
@@ -23,12 +23,13 @@ def create_producto(db: Connection, producto_data: ProductoCreate):
     Utiliza una transacción para asegurar la atomicidad.
     """
 
+
     new_producto_id = None
     try:
         # Inicia una transacción con 'db'
         with db.cursor() as cur, db.transaction():
             
-            # 1. Insertar en la tabla base 'producto'
+            # 1. Insertar en la tabla base 'producto' y obtener el ID
             cur.execute(
                 """
                 INSERT INTO producto (nombre, descripcion, precio, cantidad_stock, id_proveedor)
@@ -48,7 +49,8 @@ def create_producto(db: Connection, producto_data: ProductoCreate):
             if result is None:
                 raise psycopg.Error("Fallo al insertar en la tabla 'producto'.")
                 
-            new_producto_id = result[0]
+            new_producto_id = result[0] # El ID del nuevo producto
+            
             detalles = producto_data.detalles_subtipo
             
             # 2. Insertar en la tabla de subtipo correspondiente
@@ -77,23 +79,24 @@ def create_producto(db: Connection, producto_data: ProductoCreate):
                     (new_producto_id, detalles.material, detalles.dimensiones)
                 )
             else:
+                # Si el tipo no coincide, forzamos un error para cancelar la transacción
                 raise ValueError(f"Tipo de producto '{producto_data.tipo_producto}' o detalles no válidos.")
             
-            # Commit automático
+            # Commit automático al salir del 'with transaction'
             
     except (Exception, psycopg.Error, ValueError) as error:
         print(f"Error en transacción al crear producto: {error}")
         # Rollback automático
-        return None
+        return None # Indica que la creación falló
 
+    # Si todo salió bien, obtenemos el producto completo y lo retornamos
     if new_producto_id:
-        # Pasamos 'db' a la llamada
-        return get_producto_by_id(db=db, producto_id=new_producto_id)
+        return get_producto_by_id(db=db, producto_id=new_producto_id) 
     return None
 
 # --- Funciones CRUD para Productos ---
 
-# LEER (Read): Obtener todos los productos
+# LEER (Read): Obtener todos los productos (Modificada para incluir tipo)
 def get_all_productos(db: Connection): 
     """Obtiene todos los productos de la tabla 'producto', determinando su tipo."""
         
@@ -124,10 +127,13 @@ def get_all_productos(db: Connection):
             
     return productos
 
-# LEER (Read): Obtener un solo producto por ID
+# LEER (Read): Obtener un solo producto por ID (Modificada para incluir detalles de subtipo)
 def get_producto_by_id(db: Connection, producto_id: int): 
     """
-    Obtiene un producto por su ID, incluyendo...
+    Obtiene un producto por su ID, incluyendo:
+      - datos base de 'producto'
+      - detalles del subtipo correspondiente (ropa, calzado o accesorios)
+      - tipo_producto siempre presente
     """
 
     producto = None
@@ -144,11 +150,11 @@ def get_producto_by_id(db: Connection, producto_id: int):
             row = cur.fetchone()
 
             if not row:
-                return None  
+                return None  # No existe el producto
 
             producto = row_to_dict(cur, row)
 
-            # 2 Buscar en cada subtipo
+            # 2 Buscar en cada subtipo hasta encontrar el correcto
             cur.execute("SELECT material, tipo_corte, talla FROM ropa WHERE id_producto = %s", (producto_id,))
             r = cur.fetchone()
             if r:
@@ -172,6 +178,7 @@ def get_producto_by_id(db: Connection, producto_id: int):
                     producto["detalles_subtipo"] = row_to_dict(cur, a)
                     tipo_detectado = "accesorios"
 
+            # 3 Si no se encontró tipo, marcar como desconocido
             if not tipo_detectado:
                 producto["tipo_producto"] = "desconocido"
                 producto["detalles_subtipo"] = None
@@ -184,10 +191,11 @@ def get_producto_by_id(db: Connection, producto_id: int):
 
 
 
-# ACTUALIZAR (Update): Modificar un producto existente
+# ACTUALIZAR (Update): Modificar un producto existente (solo tabla base 'producto')
 def update_producto(db: Connection, producto_id: int, producto_update: ProductoUpdateConSubtipo): 
     """
-    Actualiza los datos base de un producto en 'producto' y...
+    Actualiza los datos base de un producto en 'producto' y, si se proporcionan,
+    actualiza también los detalles en la tabla de subtipo correspondiente.
     """
 
     try:
@@ -196,10 +204,10 @@ def update_producto(db: Connection, producto_id: int, producto_update: ProductoU
             # 1. Actualizar la tabla base 'producto'
             base_data = producto_update.model_dump(
                 exclude_unset=True, 
-                exclude={"tipo_producto", "detalles_subtipo"}
+                exclude={"tipo_producto", "detalles_subtipo"} # Excluir campos de subtipo
             )
             
-            if base_data:
+            if base_data: # Solo si hay campos base para actualizar
                 update_fields = [f"{key} = %s" for key in base_data]
                 update_values = list(base_data.values())
                 update_values.append(producto_id)
@@ -211,11 +219,11 @@ def update_producto(db: Connection, producto_id: int, producto_update: ProductoU
                     """
                 cur.execute(query, tuple(update_values))
 
-            # 2. Actualizar la tabla de subtipo
+            # 2. Actualizar la tabla de subtipo (si se proporcionan detalles)
             if producto_update.detalles_subtipo:
                 subtipo_data = producto_update.detalles_subtipo.model_dump(exclude_unset=True)
                 
-                if subtipo_data:
+                if subtipo_data: # Solo si hay campos de subtipo para actualizar
                     subtipo_fields = [f"{key} = %s" for key in subtipo_data]
                     subtipo_values = list(subtipo_data.values())
                     subtipo_values.append(producto_id)
@@ -242,28 +250,45 @@ def update_producto(db: Connection, producto_id: int, producto_update: ProductoU
         print(f"Error al actualizar producto {producto_id}: {error}")
         return None
             
-    # Retorna el producto actualizado completo (pasando db)
-    return get_producto_by_id(db=db, producto_id=producto_id)
+    # Retorna el producto actualizado completo
+    return get_producto_by_id(db=db, producto_id=producto_id) 
 
 
-# ELIMINAR (Delete): Borrar un producto existente
+# ELIMINAR (Delete): Borrar un producto existente (manejo de herencia)
 def delete_producto(db: Connection, producto_id: int): 
     """
-    Desactiva un producto (borrado lógico)...
-    """
+    Desactiva un producto (borrado lógico) en lugar de eliminarlo.
+    Ya no elimina de las tablas de subtipo, solo marca como inactivo.
 
-    rows_updated_code = 0
+    Returns:
+        int: 
+            1: si la desactivación fue exitosa (1 fila afectada).
+            0: si el producto no fue encontrado (0 filas afectadas).
+           -1: si ocurrió un error genérico de base de datos.
+    """
+    
+
+    rows_updated_code = 0 # Valor por defecto si no se encuentra
     try:
         with db.cursor() as cur, db.transaction(): 
             
+            # NO BORRAMOS DE ROPA/CALZADO/ACCESORIOS
+            
+            # 2. En lugar de DELETE, hacemos un UPDATE
             cur.execute(
                 "UPDATE producto SET esta_activo = FALSE WHERE id_producto = %s", 
                 (producto_id,)
             )
-            rows_updated_code = cur.rowcount
+            rows_updated_code = cur.rowcount # Será 1 si se actualizó, 0 si no existía
+            
+            if rows_updated_code == 0:
+                 pass # Se retornará 0
+            # Commit automático si no hubo excepciones
             
     except (Exception, psycopg.Error) as error:
         print(f"Error SQL al desactivar (borrado lógico) producto {producto_id}: {error}")
-        rows_updated_code = -1
+        # Rollback automático
+        rows_updated_code = -1 # Código para error genérico
             
+    # Retorna el código numérico resultado de la operación (1, 0, o -1)
     return rows_updated_code
