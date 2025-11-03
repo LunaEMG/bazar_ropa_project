@@ -1057,8 +1057,7 @@ async function handleNuevoProductoSubmit(event) {
             id_cliente: parseInt(idClienteSeleccionado), 
             detalles: carrito.map(item => ({ 
                 id_producto: item.id_producto, 
-                cantidad: item.cantidad, 
-                precio_unitario: item.precio 
+                cantidad: item.cantidad 
             })) 
         };
         

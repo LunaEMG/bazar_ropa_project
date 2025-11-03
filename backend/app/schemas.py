@@ -108,15 +108,17 @@ class DetalleVentaBase(BaseModel):
     """Schema base para un item de detalle de venta."""
     id_producto: int
     cantidad: int = Field(gt=0) 
-    precio_unitario: float = Field(ge=0) 
 
-class DetalleVentaCreate(DetalleVentaBase):
+
+class DetalleVentaCreate(BaseModel):
     """Schema para validar los datos al crear un nuevo detalle de venta."""
-    pass
+    id_producto: int
+    cantidad: int = Field(gt=0)
 
 class DetalleVenta(DetalleVentaBase):
     """Schema para leer/retornar un detalle de venta (incluye ID de venta)."""
     id_venta: int
+    precio_unitario: float = Field(ge=0)
     nombre_producto: Optional[str] = None
 
     class Config:

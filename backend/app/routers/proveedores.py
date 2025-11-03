@@ -1,10 +1,14 @@
 # Importaciones necesarias de FastAPI, tipos y estado HTTP
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends 
 from typing import List
+from psycopg import Connection 
 
 # Importa las funciones CRUD y los schemas Pydantic para proveedores
 from app.crud import crud_proveedores
 from app.schemas import Proveedor, ProveedorCreate, ProveedorUpdate 
+
+# Importa nuestro nuevo 'inyector' de DB
+from app.db.database import get_db
 
 # Crea un router específico para las rutas de proveedores
 router = APIRouter()
@@ -17,9 +21,12 @@ router = APIRouter()
     summary="Registrar un nuevo proveedor",
     tags=["Proveedores"] 
 )
-def create_new_proveedor(proveedor: ProveedorCreate):
+def create_new_proveedor(
+    proveedor: ProveedorCreate, 
+    db: Connection = Depends(get_db) 
+):
     """Crea un nuevo proveedor."""
-    db_proveedor = crud_proveedores.create_proveedor(proveedor=proveedor)
+    db_proveedor = crud_proveedores.create_proveedor(db=db, proveedor=proveedor) 
     if db_proveedor is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
@@ -34,9 +41,9 @@ def create_new_proveedor(proveedor: ProveedorCreate):
     summary="Obtener lista de proveedores",
     tags=["Proveedores"]
 )
-def read_proveedores():
+def read_proveedores(db: Connection = Depends(get_db)): 
     """Obtiene una lista de todos los proveedores."""
-    proveedores = crud_proveedores.get_all_proveedores()
+    proveedores = crud_proveedores.get_all_proveedores(db=db) 
     return proveedores
 
 # --- Endpoint para LEER un proveedor específico por ID ---
@@ -46,9 +53,12 @@ def read_proveedores():
     summary="Obtener un proveedor por ID",
     tags=["Proveedores"]
 )
-def read_proveedor(proveedor_id: int):
+def read_proveedor(
+    proveedor_id: int, 
+    db: Connection = Depends(get_db) 
+):
     """Obtiene un proveedor específico."""
-    db_proveedor = crud_proveedores.get_proveedor_by_id(proveedor_id)
+    db_proveedor = crud_proveedores.get_proveedor_by_id(db=db, proveedor_id=proveedor_id) 
     if db_proveedor is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado")
     return db_proveedor
@@ -60,10 +70,16 @@ def read_proveedor(proveedor_id: int):
     summary="Actualizar un proveedor existente",
     tags=["Proveedores"]
 )
-def update_existing_proveedor(proveedor_id: int, proveedor_update: ProveedorUpdate):
+def update_existing_proveedor(
+    proveedor_id: int, 
+    proveedor_update: ProveedorUpdate, 
+    db: Connection = Depends(get_db) 
+):
     """Actualiza datos de un proveedor por ID."""
     updated_proveedor = crud_proveedores.update_proveedor(
-        proveedor_id=proveedor_id, proveedor_update=proveedor_update
+        db=db, 
+        proveedor_id=proveedor_id, 
+        proveedor_update=proveedor_update
     )
     if updated_proveedor is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado para actualizar")
@@ -76,23 +92,21 @@ def update_existing_proveedor(proveedor_id: int, proveedor_update: ProveedorUpda
     summary="Eliminar un proveedor existente",
     tags=["Proveedores"]
 )
-def delete_existing_proveedor(proveedor_id: int):
+def delete_existing_proveedor(
+    proveedor_id: int, 
+    db: Connection = Depends(get_db) 
+):
     """
     Elimina un proveedor por ID.
-    Retorna 204 No Content (éxito), 404 Not Found, 
-    409 Conflict (si tiene productos asociados), o 500 Internal Server Error.
+    ...
     """
-    # Llama a la función CRUD que ahora retorna un código numérico
-    delete_result_code = crud_proveedores.delete_proveedor(proveedor_id=proveedor_id)
+    delete_result_code = crud_proveedores.delete_proveedor(db=db, proveedor_id=proveedor_id) 
     
     if delete_result_code == 1:
-        # Éxito
         return None 
     elif delete_result_code == 0:
-        # No encontrado
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado para eliminar")
-    else: # -1 o cualquier otro error
-        # Error genérico
+    else:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Error interno del servidor al intentar eliminar el proveedor."

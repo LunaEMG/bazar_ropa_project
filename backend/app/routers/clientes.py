@@ -1,10 +1,14 @@
 # Importaciones necesarias de FastAPI, tipos y estado HTTP
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
+from psycopg import Connection
 
 # Importa las funciones CRUD y los schemas Pydantic para clientes
 from app.crud import crud_clientes
 from app.schemas import Cliente, ClienteCreate, ClienteUpdate
+
+# Importa nuestro nuevo 'inyector' de DB
+from app.db.database import get_db
 
 # Crea un router específico para las rutas de clientes
 router = APIRouter()
@@ -17,13 +21,13 @@ router = APIRouter()
     summary="Registrar un nuevo cliente",
     tags=["Clientes"] # Agrupa endpoints en la documentación /docs
 )
-def create_new_cliente(cliente: ClienteCreate):
+def create_new_cliente(cliente: ClienteCreate, db: Connection = Depends(get_db)):
     """
     Crea un nuevo cliente en la base de datos.
-    Valida los datos de entrada contra el schema ClienteCreate.
-    Retorna el cliente creado con su ID asignado.
+    ...
     """
-    new_cliente = crud_clientes.create_cliente(cliente=cliente)
+    # Pasamos la conexión 'db' a la función CRUD
+    new_cliente = crud_clientes.create_cliente(db=db, cliente=cliente) 
     if new_cliente is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
@@ -38,12 +42,15 @@ def create_new_cliente(cliente: ClienteCreate):
     summary="Obtener lista de clientes",
     tags=["Clientes"]
 )
-def read_clientes():
+
+
+def read_clientes(db: Connection = Depends(get_db)): 
     """
     Obtiene una lista de todos los clientes registrados, ordenados por nombre.
     """
-    clientes = crud_clientes.get_all_clientes()
+    clientes = crud_clientes.get_all_clientes(db=db) 
     return clientes
+
 
 # --- Endpoint para LEER un cliente específico por ID ---
 @router.get(
@@ -52,12 +59,13 @@ def read_clientes():
     summary="Obtener un cliente por ID",
     tags=["Clientes"]
 )
-def read_cliente(cliente_id: int):
+
+def read_cliente(cliente_id: int, db: Connection = Depends(get_db)): 
     """
     Obtiene los detalles de un cliente específico usando su 'id_cliente'.
     Retorna 404 Not Found si el cliente no existe.
     """
-    db_cliente = crud_clientes.get_cliente_by_id(cliente_id)
+    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
     if db_cliente is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
     return db_cliente
@@ -69,13 +77,14 @@ def read_cliente(cliente_id: int):
     summary="Actualizar un cliente existente",
     tags=["Clientes"]
 )
-def update_existing_cliente(cliente_id: int, cliente_update: ClienteUpdate):
+
+def update_existing_cliente(cliente_id: int, cliente_update: ClienteUpdate, db: Connection = Depends(get_db)): 
     """
     Actualiza los datos de un cliente existente identificado por su 'id_cliente'.
     Solo actualiza los campos proporcionados en el cuerpo de la petición.
     Retorna los datos del cliente actualizado o 404 si no se encuentra.
     """
-    updated_cliente = crud_clientes.update_cliente(cliente_id=cliente_id, cliente_update=cliente_update)
+    updated_cliente = crud_clientes.update_cliente(db=db, cliente_id=cliente_id, cliente_update=cliente_update) 
     if updated_cliente is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado para actualizar")
     return updated_cliente
@@ -87,7 +96,8 @@ def update_existing_cliente(cliente_id: int, cliente_update: ClienteUpdate):
     summary="Eliminar un cliente existente",
     tags=["Clientes"]
 )
-def delete_existing_cliente(cliente_id: int):
+
+def delete_existing_cliente(cliente_id: int, db: Connection = Depends(get_db)):
     """
     Desactiva un cliente (borrado lógico) usando su 'id_cliente'.
     Retorna 204 No Content si la desactivación es exitosa.
@@ -96,7 +106,7 @@ def delete_existing_cliente(cliente_id: int):
     """
     
     # Llama a la función CRUD para eliminar, ahora retorna 1, 0, -1, o -2
-    delete_result_code = crud_clientes.delete_cliente(cliente_id=cliente_id)
+    delete_result_code = crud_clientes.delete_cliente(db=db, cliente_id=cliente_id)
     
     if delete_result_code == 1:
         # Éxito

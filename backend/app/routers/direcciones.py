@@ -1,10 +1,14 @@
 # Importaciones necesarias de FastAPI, tipos y estado HTTP
-from fastapi import APIRouter, HTTPException, status, Path
+from fastapi import APIRouter, HTTPException, status, Path, Depends 
 from typing import List
+from psycopg import Connection # <-- Añadido Connection
 
 # Importa las funciones CRUD y los schemas Pydantic relevantes
 from app.crud import crud_direcciones, crud_clientes 
-from app.schemas import Direccion, DireccionCreate, DireccionUpdate # <-- Se añade DireccionUpdate
+from app.schemas import Direccion, DireccionCreate, DireccionUpdate
+
+# Importa nuestro nuevo 'inyector' de DB
+from app.db.database import get_db
 
 # Crea un router específico para las rutas de direcciones, anidado bajo clientes
 router = APIRouter(
@@ -22,17 +26,19 @@ router = APIRouter(
 def create_direccion_for_existing_cliente(
     *, 
     cliente_id: int = Path(..., title="ID del Cliente", ge=1), 
-    direccion: DireccionCreate 
+    direccion: DireccionCreate,
+    db: Connection = Depends(get_db) 
 ):
     """
     Crea una nueva dirección asociada a un cliente existente.
     Verifica la existencia del cliente antes de la creación.
     """
-    db_cliente = crud_clientes.get_cliente_by_id(cliente_id)
+    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
     if db_cliente is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
         
     db_direccion = crud_direcciones.create_direccion_for_cliente(
+        db=db, 
         cliente_id=cliente_id, 
         direccion=direccion
     )
@@ -51,17 +57,18 @@ def create_direccion_for_existing_cliente(
 )
 def read_direcciones_for_cliente(
     *,
-    cliente_id: int = Path(..., title="ID del Cliente", ge=1)
+    cliente_id: int = Path(..., title="ID del Cliente", ge=1),
+    db: Connection = Depends(get_db) 
 ):
     """
     Obtiene una lista de todas las direcciones asociadas a un cliente específico.
     Verifica la existencia del cliente.
     """
-    db_cliente = crud_clientes.get_cliente_by_id(cliente_id)
+    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
     if db_cliente is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
-        
-    direcciones = crud_direcciones.get_direcciones_by_cliente(cliente_id=cliente_id)
+
+    direcciones = crud_direcciones.get_direcciones_by_cliente(db=db, cliente_id=cliente_id)
     return direcciones
 
 # --- NUEVO Endpoint para ACTUALIZAR una dirección específica ---
@@ -73,27 +80,26 @@ def read_direcciones_for_cliente(
 def update_existing_direccion(
     *,
     cliente_id: int = Path(..., title="ID del Cliente", ge=1),
-    direccion_id: int = Path(..., title="ID de la Dirección", ge=1), # Obtiene ID de dirección de la URL
-    direccion_update: DireccionUpdate # Datos para actualizar en el cuerpo
+    direccion_id: int = Path(..., title="ID de la Dirección", ge=1),
+    direccion_update: DireccionUpdate,
+    db: Connection = Depends(get_db) 
 ):
     """
     Actualiza una dirección existente, verificando que pertenezca al cliente especificado.
-    Solo actualiza los campos proporcionados en el cuerpo de la petición.
-    Retorna 404 si el cliente o la dirección (asociada a ese cliente) no existen.
     """
-    # Verifica si el cliente existe (redundante si se confía en la FK, pero bueno para claridad)
-    db_cliente = crud_clientes.get_cliente_by_id(cliente_id)
+    # Verifica si el cliente existe
+    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
     if db_cliente is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
 
     # Llama a la función CRUD para actualizar, pasando ambos IDs
     updated_direccion = crud_direcciones.update_direccion(
+        db=db, 
         cliente_id=cliente_id, 
         direccion_id=direccion_id, 
         direccion_update=direccion_update
     )
     
-    # Si la función CRUD retorna None, la dirección no existía o no pertenecía al cliente
     if updated_direccion is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dirección no encontrada para este cliente")
         
@@ -108,23 +114,21 @@ def update_existing_direccion(
 def delete_existing_direccion(
     *,
     cliente_id: int = Path(..., title="ID del Cliente", ge=1),
-    direccion_id: int = Path(..., title="ID de la Dirección", ge=1)
+    direccion_id: int = Path(..., title="ID de la Dirección", ge=1),
+    db: Connection = Depends(get_db) 
 ):
     """
     Elimina una dirección específica, verificando que pertenezca al cliente especificado.
-    Retorna 204 No Content en caso de éxito, o 404 si el cliente o la dirección no existen.
     """
     # Verifica si el cliente existe
-    db_cliente = crud_clientes.get_cliente_by_id(cliente_id)
+    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
     if db_cliente is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
 
     # Llama a la función CRUD para eliminar, pasando ambos IDs
-    success = crud_direcciones.delete_direccion(cliente_id=cliente_id, direccion_id=direccion_id)
+    success = crud_direcciones.delete_direccion(db=db, cliente_id=cliente_id, direccion_id=direccion_id) 
     
-    # Si la función CRUD retorna False, la dirección no existía o no pertenecía al cliente
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dirección no encontrada para este cliente")
         
-    # En caso de éxito (success=True), retorna automáticamente 204 No Content
     return None

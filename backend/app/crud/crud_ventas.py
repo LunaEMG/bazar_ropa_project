@@ -1,39 +1,49 @@
 # Importaciones necesarias
-from app.db.database import get_db_connection
 from app.schemas import VentaCreate 
 from datetime import date 
 import psycopg 
+from psycopg import Connection 
 
 # Importación de la función auxiliar para conversión de filas
 from .crud_productos import row_to_dict 
+# Importamos crud_clientes para obtener el nombre del cliente
+from . import crud_clientes
 
 # --- Funciones CRUD para Ventas y Detalle_Venta ---
 
-def create_venta(venta_data: VentaCreate):
+def create_venta(db: Connection, venta_data: VentaCreate):
     """
     Crea un nuevo registro de venta y sus detalles asociados en la base de datos.
     Utiliza una transacción para asegurar la atomicidad de la operación.
     
-    NUEVO: Ahora también verifica el stock y lo descuenta.
+    CORREGIDO:
+    - Recibe la conexión 'db' del pool (Inyección de Dependencias).
+    - Obtiene el precio real desde la BD para evitar manipulación.
+    - Descuenta el stock.
     """
-    conn = get_db_connection()
-    if conn is None:
-        print("Error crítico: No se pudo establecer conexión con la base de datos.")
-        return None
-
+    
+    # 1. Ya no llamamos a get_db_connection() ni cerramos la conexión.
+    
     monto_total_calculado = 0.0
+    
+    # Lista para guardar los detalles con el precio verificado de la BD
+    detalles_con_precio = [] 
 
     try:
-        # Inicia una transacción
-        with conn.cursor() as cur, conn.transaction(): 
+        # Inicia una transacción usando la conexión 'db' recibida
+        with db.cursor() as cur, db.transaction(): 
             
-            # --- Paso 1 - Verificar stock y calcular total ---
-            # Hacemos esto ANTES de insertar la venta.
+            # --- Paso 1 - Verificar stock, OBTENER PRECIO y calcular total ---
             for detalle in venta_data.detalles:
-                # Bloquea la fila del producto para evitar que dos ventas
-                # compren el mismo item al mismo tiempo (evita "race conditions").
+                
+                # CORRECCIÓN DE SQL: Añadimos 'precio' al SELECT
                 cur.execute(
-                    "SELECT nombre, cantidad_stock FROM producto WHERE id_producto = %s FOR UPDATE",
+                    """
+                    SELECT nombre, cantidad_stock, precio 
+                    FROM producto 
+                    WHERE id_producto = %s 
+                    FOR UPDATE
+                    """,
                     (detalle.id_producto,)
                 )
                 producto_row = cur.fetchone()
@@ -44,13 +54,21 @@ def create_venta(venta_data: VentaCreate):
                 
                 nombre_producto = producto_row[0]
                 stock_actual = producto_row[1]
+                precio_bd = producto_row[2] # <-- ¡PRECIO OFICIAL DE LA BD!
 
                 # La validación clave:
                 if stock_actual < detalle.cantidad:
                     raise ValueError(f"Stock insuficiente para '{nombre_producto}'. Solicitados: {detalle.cantidad}, Disponibles: {stock_actual}")
                 
-                # Si hay stock, sumamos al total
-                monto_total_calculado += detalle.cantidad * detalle.precio_unitario
+                # CORRECCIÓN DE SEGURIDAD: Usamos precio_bd para el total
+                monto_total_calculado += detalle.cantidad * precio_bd
+                
+                # Guardamos el detalle con el precio correcto para usarlo después
+                detalles_con_precio.append({
+                    "id_producto": detalle.id_producto,
+                    "cantidad": detalle.cantidad,
+                    "precio_unitario_bd": precio_bd # Guardamos el precio de la BD
+                })
 
             # 2. Insertar en la tabla 'venta'.
             cur.execute(
@@ -70,49 +88,58 @@ def create_venta(venta_data: VentaCreate):
 
             # --- Paso 3 - Insertar detalles y ACTUALIZAR stock ---
             detalles_insertados = []
-            for detalle in venta_data.detalles:
+            
+            # Usamos nuestra lista 'detalles_con_precio' que tiene el precio bueno
+            for detalle_seguro in detalles_con_precio:
                 
                 # --- Actualizar el stock en la BD ---
                 cur.execute(
                     "UPDATE producto SET cantidad_stock = cantidad_stock - %s WHERE id_producto = %s",
-                    (detalle.cantidad, detalle.id_producto)
+                    (detalle_seguro["cantidad"], detalle_seguro["id_producto"])
                 )
-                # --- FIN DE ACTUALIZACIÓN ---
 
-                # Insertar en detalle_venta (como antes)
+                # Insertar en detalle_venta (usando el precio_unitario_bd)
                 cur.execute(
                     """
                     INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario) 
                     VALUES (%s, %s, %s, %s)
                     RETURNING id_venta, id_producto, cantidad, precio_unitario 
                     """,
-                    (new_venta_id, detalle.id_producto, detalle.cantidad, detalle.precio_unitario)
+                    (
+                        new_venta_id, 
+                        detalle_seguro["id_producto"], 
+                        detalle_seguro["cantidad"], 
+                        detalle_seguro["precio_unitario_bd"] 
+                    )
                 )
                 new_detalle_row = cur.fetchone()
                 if new_detalle_row is None:
-                    raise psycopg.Error(f"Fallo al insertar detalle para producto ID: {detalle.id_producto}")
+                    raise psycopg.Error(f"Fallo al insertar detalle para producto ID: {detalle_seguro['id_producto']}")
                 detalles_insertados.append(row_to_dict(cur, new_detalle_row))
 
-            # Commit automático al salir del 'with conn.transaction()'
+            # Commit automático al salir del 'with db.transaction()'
 
-        conn.close()
+        # 3. Ya no cerramos la conexión (conn.close() eliminado)
+
         # Añade los detalles insertados al diccionario de la venta para retornarlo.
         new_venta_dict['detalles'] = detalles_insertados 
+        
+        # Obtenemos el nombre del cliente (pasando la 'db')
+        cliente_info = crud_clientes.get_cliente_by_id(db=db, cliente_id=new_venta_dict['id_cliente'])
+        new_venta_dict['nombre_cliente'] = cliente_info['nombre'] if cliente_info else "(Cliente no encontrado)"
+        
         return new_venta_dict
 
     # --- Capturador de error de stock ---
     except ValueError as e: # Captura el error de "Stock insuficiente"
         print(f"Error de validación en Venta: {e}")
-        if conn:
-             conn.close() # La transacción se revierte automáticamente
+        # La transacción se revierte automáticamente
         # Re-lanza el error para que el router lo atrape
         raise e
     
     except (Exception, psycopg.Error) as error:
         # Rollback automático si ocurre una excepción
         print(f"Error durante la transacción de venta: {error}")
-        if conn:
-             conn.close()
         return None # Indica que la operación falló.
 
 
@@ -120,7 +147,7 @@ def create_venta(venta_data: VentaCreate):
 def get_detalles_for_venta(cursor, venta_id: int):
     """
     Función auxiliar para obtener los detalles de una venta específica 
-    usando un cursor existente.
+    usando un cursor existente. (Esta función no cambia)
     """
     cursor.execute(
         """
@@ -131,35 +158,39 @@ def get_detalles_for_venta(cursor, venta_id: int):
             dv.precio_unitario,
             p.nombre AS nombre_producto
         FROM detalle_venta dv
-        JOIN producto p ON dv.id_producto = p.id_producto 
+        LEFT JOIN producto p ON dv.id_producto = p.id_producto 
         WHERE dv.id_venta = %s
         """,
         (venta_id,)
     )
     detalles_rows = cursor.fetchall()
-    return [row_to_dict(cursor, row) for row in detalles_rows]
+    # Manejo de caso donde el producto fue eliminado (nombre_producto es NULL)
+    detalles = []
+    for row in detalles_rows:
+        detalle_dict = row_to_dict(cursor, row)
+        if detalle_dict['nombre_producto'] is None:
+            detalle_dict['nombre_producto'] = '(Producto Eliminado)'
+        detalles.append(detalle_dict)
+    return detalles
 
 # --- Función obtiene venta por ID---
-def get_venta_by_id(venta_id: int):
+def get_venta_by_id(db: Connection, venta_id: int):
     """
     Obtiene una venta específica por su ID, incluyendo sus detalles.
-
-    Args:
-        venta_id (int): El ID de la venta a buscar.
-
-    Returns:
-        dict | None: Un diccionario de la venta con sus detalles, o None si no se encuentra.
     """
-    conn = get_db_connection()
-    if conn is None:
-        return None
     
     venta = None
     try:
-        with conn.cursor() as cur:
+        with db.cursor() as cur: 
             # 1. Obtener los datos de la venta principal
             cur.execute(
-                "SELECT id_venta, id_cliente, fecha, monto_total FROM venta WHERE id_venta = %s",
+                """
+                SELECT v.id_venta, v.id_cliente, v.fecha, v.monto_total,
+                       c.nombre AS nombre_cliente
+                FROM venta v
+                LEFT JOIN cliente c ON v.id_cliente = c.id_cliente
+                WHERE v.id_venta = %s
+                """,
                 (venta_id,)
             )
             venta_row = cur.fetchone()
@@ -171,24 +202,18 @@ def get_venta_by_id(venta_id: int):
                 
     except (Exception, psycopg.Error) as error:
         print(f"Error al obtener venta {venta_id}: {error}")
-    finally:
-        if conn:
-            conn.close()
             
     return venta # Retorna la venta (con detalles) o None
 
-def get_all_ventas():
+def get_all_ventas(db: Connection):
     """
     Obtiene todas las ventas registradas, incluyendo sus respectivos detalles.
     """
-    conn = get_db_connection()
-    if conn is None:
-        return []
 
     ventas_dict = {} # Usar un diccionario para agrupar
     
     try:
-        with conn.cursor() as cur:
+        with db.cursor() as cur:
             # 1. Obtener todas las ventas principales
             cur.execute("""
                 SELECT 
@@ -196,29 +221,28 @@ def get_all_ventas():
                     c.nombre AS nombre_cliente
                 FROM venta v
                 LEFT JOIN cliente c ON v.id_cliente = c.id_cliente
-                ORDER BY v.fecha DESC
+                WHERE c.esta_activo = TRUE OR c.esta_activo IS NULL
+                ORDER BY v.fecha DESC, v.id_venta DESC
             """)
             ventas_rows = cur.fetchall()
             
-            # Guardamos los nombres de columna de 'venta' ANTES de hacer más consultas
             venta_column_names = [desc[0] for desc in cur.description] 
 
             # 2. Procesar cada venta y obtener sus detalles
             for venta_row in ventas_rows:
-                # Convertir la fila de venta a diccionario USANDO los nombres de columna guardados
                 venta_dict = dict(zip(venta_column_names, venta_row))
                 venta_id = venta_dict['id_venta']
                 
-                # Obtener los detalles para esta venta (esto reutiliza el cursor 'cur')
+                # Si el cliente fue eliminado (borrado lógico), c.nombre será NULL
+                if venta_dict['nombre_cliente'] is None and venta_dict['id_cliente'] is not None:
+                     venta_dict['nombre_cliente'] = '(Cliente Eliminado)'
+
                 venta_dict['detalles'] = get_detalles_for_venta(cur, venta_id)
                 
                 ventas_dict[venta_id] = venta_dict
                 
     except (Exception, psycopg.Error) as error:
         print(f"Error al obtener todas las ventas: {error}")
-    finally:
-        if conn:
-            conn.close()
             
     # Convertir el diccionario de ventas de nuevo a una lista
     return list(ventas_dict.values())
