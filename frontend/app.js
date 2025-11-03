@@ -471,10 +471,18 @@ document.addEventListener("DOMContentLoaded", () => {
             carrito.forEach(item => {
                 const itemDiv = document.createElement('div'); 
                 itemDiv.className = 'carrito-item'; 
-                itemDiv.innerHTML = `<span class="item-nombre">${item.nombre}</span><span class="item-cantidad">x ${item.cantidad}</span><span class="item-precio">$${(item.precio * item.cantidad).toFixed(2)}</span><button class="btn-remove-carrito" data-id="${item.id_producto}" style="color: red; background: none; border: none; cursor: pointer;">X</button>`;
-                const removeButton = itemDiv.querySelector('.btn-remove-carrito'); 
-                if (removeButton) { removeButton.addEventListener('click', handleRemoveCarritoClick); } 
-                else { console.error("Error: Botón remover no encontrado para item:", item); }
+                itemDiv.innerHTML = `
+                    <span class="item-nombre">${item.nombre}</span>
+                    <div class="carrito-item-controles">
+                        <button class="btn-qty btn-decrease-qty" data-id="${item.id_producto}">-</button>
+                        <span class="item-cantidad">x ${item.cantidad}</span>
+                        <button class="btn-qty btn-increase-qty" data-id="${item.id_producto}">+</button>
+                    </div>
+                    <span class="item-precio">$${(item.precio * item.cantidad).toFixed(2)}</span>
+                `;
+                // Añadimos listeners a los nuevos botones de cantidad
+                itemDiv.querySelector('.btn-decrease-qty').addEventListener('click', handleDecreaseQuantity);
+                itemDiv.querySelector('.btn-increase-qty').addEventListener('click', handleIncreaseQuantity);
                 carritoItemsDiv.appendChild(itemDiv); total += item.precio * item.cantidad;
             });
             btnFinalizarCompra.disabled = false; 
@@ -506,6 +514,34 @@ document.addEventListener("DOMContentLoaded", () => {
         carrito = carrito.filter(item => item.id_producto !== idProducto); 
         renderizarCarrito(); 
     }
+
+    /** Maneja el clic en el botón "-" para reducir la cantidad o eliminar */
+    function handleDecreaseQuantity(event) {
+        const idProducto = parseInt(event.target.dataset.id);
+        const itemEnCarrito = carrito.find(item => item.id_producto === idProducto);
+
+        if (itemEnCarrito) {
+                itemEnCarrito.cantidad--; // Reduce la cantidad
+
+                // Si la cantidad llega a 0, elimina el item del carrito
+                if (itemEnCarrito.cantidad <= 0) {
+                    carrito = carrito.filter(item => item.id_producto !== idProducto);
+            }
+        }
+        renderizarCarrito(); // Actualiza la vista
+    }
+
+    /** Maneja el clic en el botón "+" para aumentar la cantidad */
+    function handleIncreaseQuantity(event) {
+        const idProducto = parseInt(event.target.dataset.id);
+        const itemEnCarrito = carrito.find(item => item.id_producto === idProducto);
+
+        if (itemEnCarrito) {
+            itemEnCarrito.cantidad++; // Aumenta la cantidad
+        }
+        renderizarCarrito(); // Actualiza la vista
+}
+
 
     // --- NUEVAS FUNCIONES PARA EL FORMULARIO DE PRODUCTOS ---
 
@@ -1091,6 +1127,8 @@ async function handleNuevoProductoSubmit(event) {
             renderizarCarrito(); // Renderiza el carrito (ahora vacío)
             cargarHistorialVentas(); // Refresca la lista de historial de ventas
             cargarProductos(); // Refresca el stock de productos
+            cargarReporteBajoStock();
+            cargarReporteVentasCliente();
 
         } catch (error) { 
             // --- 7. Manejo de Errores (Error Handler) ---

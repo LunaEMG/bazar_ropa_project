@@ -299,6 +299,44 @@ button:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; 
 .reporte-tabla td.numero {
     text-align: right;
 }
+
+/* --- Estilos para Carrito Editable --- */
+#carrito-items .carrito-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto; /* Nombre | Controles | Precio */
+    gap: 10px;
+    align-items: center;
+}
+
+.carrito-item-controles {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carrito-item-controles .item-cantidad {
+    font-weight: bold;
+    min-width: 40px;
+    text-align: center;
+}
+
+.btn-qty {
+    background-color: #ecf0f1;
+    color: #2c3e50;
+    border: 1px solid #bdc3c7;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    line-height: 28px;
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.btn-qty:hover {
+    background-color: #bdc3c7;
+}
 /* --- Fin Estilos --- */
 
 
