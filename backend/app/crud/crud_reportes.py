@@ -1,15 +1,14 @@
 # Importaciones necesarias
-from app.db.database import get_db_connection 
+
 import psycopg
 from psycopg import Connection 
 from .crud_productos import row_to_dict 
 
 def get_productos_bajo_stock(db: Connection): 
     """Obtiene datos de la vista v_productos_bajo_stock."""
-    
     reporte = []
     try:
-        with db.cursor() as cur: 
+        with db.cursor() as cur: # <-- Usa db
             cur.execute("SELECT id_producto, nombre, cantidad_stock FROM v_productos_bajo_stock")
             reporte_rows = cur.fetchall()
             reporte = [row_to_dict(cur, row) for row in reporte_rows]
@@ -20,7 +19,6 @@ def get_productos_bajo_stock(db: Connection):
 
 def get_ventas_por_cliente(db: Connection): 
     """Obtiene datos de la vista v_ventas_por_cliente."""
-  
     reporte = []
     try:
         with db.cursor() as cur: 

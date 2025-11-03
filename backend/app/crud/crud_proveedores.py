@@ -1,5 +1,5 @@
 # Importaciones necesarias
-from app.db.database import get_db_connection 
+
 from app.schemas import ProveedorCreate, ProveedorUpdate 
 import psycopg
 from psycopg import Connection 
@@ -9,9 +9,8 @@ from .crud_productos import row_to_dict
 
 # --- Funciones CRUD para Proveedores ---
 
-def get_all_proveedores(db: Connection):
+def get_all_proveedores(db: Connection): 
     """Obtiene todos los registros de la tabla 'proveedor'."""
-
     proveedores = []
     try:
         with db.cursor() as cur: 
@@ -25,7 +24,6 @@ def get_all_proveedores(db: Connection):
 
 def get_proveedor_by_id(db: Connection, proveedor_id: int): 
     """Obtiene un proveedor específico por su 'id_proveedor'."""
-
     proveedor = None
     try:
         with db.cursor() as cur: 
@@ -39,10 +37,8 @@ def get_proveedor_by_id(db: Connection, proveedor_id: int):
 
 def create_proveedor(db: Connection, proveedor: ProveedorCreate): 
     """Inserta un nuevo proveedor en la base de datos."""
-
     new_proveedor = None
     try:
-        # Usamos 'db.transaction()'
         with db.cursor() as cur, db.transaction(): 
             cur.execute(
                 "INSERT INTO proveedor (nombre, telefono) VALUES (%s, %s) RETURNING id_proveedor, nombre, telefono",
@@ -51,7 +47,6 @@ def create_proveedor(db: Connection, proveedor: ProveedorCreate):
             new_proveedor_row = cur.fetchone()
             if new_proveedor_row:
                  new_proveedor = row_to_dict(cur, new_proveedor_row)
-            # Commit/Rollback automáticos
             
     except (Exception, psycopg.Error) as error:
         print(f"Error al crear proveedor: {error}")
@@ -62,7 +57,6 @@ def update_proveedor(db: Connection, proveedor_id: int, proveedor_update: Provee
     """
     Actualiza los datos de un proveedor existente por ID.
     """
-
     update_fields = []
     update_values = []
     update_data = proveedor_update.model_dump(exclude_unset=True) 

@@ -1,21 +1,18 @@
 # Importaciones necesarias
-from app.db.database import get_db_connection 
+
 from app.schemas import DireccionCreate, DireccionUpdate 
 import psycopg
-from psycopg import Connection
+from psycopg import Connection 
 
 # Importación de la función auxiliar para conversión de filas
 from .crud_productos import row_to_dict 
 
 # --- Funciones CRUD para Direcciones ---
 
-# CREAR (Create): Añadir dirección a un cliente
 def create_direccion_for_cliente(db: Connection, cliente_id: int, direccion: DireccionCreate): 
     """Inserta una nueva dirección asociada a un cliente específico."""
-    
     new_direccion = None
     try:
-        # Usamos 'db' y 'db.transaction()'
         with db.cursor() as cur, db.transaction(): 
             cur.execute(
                 """
@@ -27,18 +24,14 @@ def create_direccion_for_cliente(db: Connection, cliente_id: int, direccion: Dir
             )
             new_direccion_row = cur.fetchone()
             if new_direccion_row: new_direccion = row_to_dict(cur, new_direccion_row)
-            # Commit/Rollback son automáticos
             
     except (Exception, psycopg.Error) as error:
         print(f"Error al crear dirección para cliente {cliente_id}: {error}")
-
         
     return new_direccion
 
-# LEER (Read): Obtener direcciones de un cliente
 def get_direcciones_by_cliente(db: Connection, cliente_id: int): 
     """Obtiene todas las direcciones asociadas a un cliente específico."""
-
     direcciones = []
     try:
         with db.cursor() as cur: 
@@ -55,18 +48,13 @@ def get_direcciones_by_cliente(db: Connection, cliente_id: int):
             direcciones = [row_to_dict(cur, row) for row in direcciones_rows]
     except (Exception, psycopg.Error) as error:
         print(f"Error al obtener direcciones para cliente {cliente_id}: {error}")
-
         
     return direcciones
 
-
-# ACTUALIZAR (Update): Modificar una dirección existente
 def update_direccion(db: Connection, cliente_id: int, direccion_id: int, direccion_update: DireccionUpdate): 
     """
     Actualiza una dirección específica perteneciente a un cliente.
-    Verifica que la dirección pertenezca al cliente antes de actualizar.
     """
-
     update_fields = []
     update_values = []
     update_data = direccion_update.model_dump(exclude_unset=True) 
@@ -77,8 +65,7 @@ def update_direccion(db: Connection, cliente_id: int, direccion_id: int, direcci
             update_values.append(value)
 
     if not update_fields:
-        # Si no hay nada que actualizar, retornamos la dirección actual
-        return get_direccion_by_id(db=db, direccion_id=direccion_id)
+        return get_direccion_by_id(db=db, direccion_id=direccion_id) 
 
     update_values.append(direccion_id)
     update_values.append(cliente_id) 
@@ -103,14 +90,10 @@ def update_direccion(db: Connection, cliente_id: int, direccion_id: int, direcci
      
     return updated_direccion
 
-
-# ELIMINAR (Delete): Borrar una dirección existente
 def delete_direccion(db: Connection, cliente_id: int, direccion_id: int): 
     """
     Elimina una dirección específica perteneciente a un cliente.
-    Verifica que la dirección pertenezca al cliente antes de eliminar.
     """
-
     rows_deleted = 0
     try:
         with db.cursor() as cur, db.transaction(): 
@@ -127,8 +110,6 @@ def delete_direccion(db: Connection, cliente_id: int, direccion_id: int):
 
 def get_direccion_by_id(db: Connection, direccion_id: int): 
     """Obtiene una dirección específica por su 'id_direccion'."""
-
-    
     direccion = None
     try:
         with db.cursor() as cur: 
