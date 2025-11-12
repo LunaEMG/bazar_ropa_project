@@ -60,8 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
     /** Almacena el ID del cliente seleccionado para gestión de direcciones. */
     let clienteSeleccionadoId = null; 
 
-    //estado global para el rol
-    let userRole = "visualizacion";
 
     // --- Funciones Auxiliares ---
 
@@ -1034,100 +1032,6 @@ async function handleNuevoProductoSubmit(event) {
         }
     }
 
-
-    /** Maneja el envío del formulario de login */
-    async function handleLoginSubmit(event) {
-        event.preventDefault();
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
-        const loginMensaje = document.getElementById('login-mensaje');
-        
-        // El login usa un formato especial: 'x-www-form-urlencoded'
-        const formData = new URLSearchParams();
-        formData.append('username', email); // FastAPI espera 'username'
-        formData.append('password', password);
-
-        try {
-            // Nota: NO usamos fetchData aquí porque no es JSON
-            const response = await fetch(`${API_URL}/api/auth/token`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error("Email o contraseña incorrectos.");
-            }
-
-            const data = await response.json(); // { access_token: "...", ... }
-            
-            // ¡Éxito! Guarda el token
-            localStorage.setItem('authToken', data.access_token);
-            
-            // Decodifica el token (simple) para obtener el rol
-            // (En una app real, harías un fetch a /api/users/me)
-            try {
-                const payload = JSON.parse(atob(data.access_token.split('.')[1]));
-                userRole = payload.rol || 'usuario'; // Asigna el rol
-            } catch (e) {
-                userRole = 'usuario'; // Fallback
-            }
-
-            mostrarMensaje(loginMensaje, "¡Bienvenido!", true);
-            document.getElementById('modal-login').style.display = 'none';
-            
-            // Actualiza la UI
-            actualizarUIPorRol();
-            
-        } catch (error) {
-            userRole = 'visualizacion';
-            mostrarMensaje(loginMensaje, error.message, false);
-        }
-    }
-
-    /** Cierra la sesión del usuario */
-    function handleLogout() {
-        localStorage.removeItem('authToken');
-        userRole = 'visualizacion';
-        actualizarUIPorRol();
-    }
-
-    /** Actualiza la UI basado en el rol */
-    function actualizarUIPorRol() {
-        const esAdmin = userRole === 'admin';
-        const esUsuario = userRole === 'usuario';
-        const esVisualizacion = userRole === 'visualizacion';
-
-        // Botones de login/logout
-        document.getElementById('btn-mostrar-login').style.display = esVisualizacion ? 'inline-block' : 'none';
-        document.getElementById('btn-mostrar-registro').style.display = esVisualizacion ? 'inline-block' : 'none';
-        document.getElementById('btn-logout').style.display = esVisualizacion ? 'none' : 'inline-block';
-
-        // Saludo
-        // (Deberías hacer un fetch a un endpoint /me para obtener el nombre)
-        document.getElementById('saludo-usuario').textContent = esVisualizacion ? '' : `Rol: ${userRole}`;
-
-        // Botón de finalizar compra
-        const btnFinalizar = document.getElementById('btn-finalizar-compra');
-        if (btnFinalizar) {
-             btnFinalizar.disabled = esVisualizacion; // Deshabilitado si solo ve
-             if (esVisualizacion) btnFinalizar.textContent = "Inicia sesión para comprar";
-             else btnFinalizar.textContent = "Finalizar Compra";
-        }
-        
-        // Secciones de Admin (Ej: Gestión de Clientes, Proveedores, Reportes)
-        // Dales una clase CSS, ej: <section class="admin-only">
-        document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = esAdmin ? 'block' : 'none';
-        });
-
-        // Recargamos los productos para mostrar/ocultar botones de admin
-        cargarProductos();
-    }
-
-
     /** Maneja el envío del formulario para crear un nuevo cliente. */
     async function handleNuevoClienteSubmit(event) { 
         event.preventDefault(); if (!formNuevoCliente || !clienteMensaje) return;
@@ -1291,6 +1195,178 @@ async function handleNuevoProductoSubmit(event) {
             renderizarCarrito(); 
         }
     }
+
+    // Estado global para el rol (¡importante!)
+    let userRole = 'visualizacion'; // Rol por defecto
+    let currentUserId = null; // ID del usuario logueado
+
+    /** Maneja el envío del formulario de login */
+    async function handleLoginSubmit(event) {
+        event.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const loginMensaje = document.getElementById('login-mensaje');
+        const submitButton = document.querySelector('#form-login button[type="submit"]');
+        submitButton.disabled = true;
+
+        // El login de FastAPI usa un formato especial: 'x-www-form-urlencoded'
+        const formData = new URLSearchParams();
+        formData.append('username', email); // FastAPI espera 'username' para el email
+        formData.append('password', password);
+
+        try {
+            // Nota: NO usamos fetchData aquí porque el body no es JSON
+            const response = await fetch(`${API_URL}/api/auth/token`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || "Email o contraseña incorrectos.");
+            }
+
+            const data = await response.json(); // { access_token: "...", ... }
+            
+            // ¡Éxito! Guarda el token
+            localStorage.setItem('authToken', data.access_token);
+            
+            // Decodifica el token para obtener el ROL
+            try {
+                const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+                userRole = payload.rol || 'usuario'; 
+            } catch (e) {
+                userRole = 'usuario'; // Fallback
+            }
+
+            mostrarMensaje(loginMensaje, "¡Bienvenido!", true);
+            document.getElementById('modal-login').style.display = 'none';
+            document.getElementById('form-login').reset();
+            
+            // Actualiza toda la UI
+            actualizarUIPorRol();
+            
+        } catch (error) {
+            userRole = 'visualizacion';
+            mostrarMensaje(loginMensaje, error.message, false);
+        } finally {
+            submitButton.disabled = false;
+        }
+    }
+
+    /** Maneja el envío del formulario de registro */
+    async function handleRegistroSubmit(event) {
+        event.preventDefault();
+        const registroMensaje = document.getElementById('registro-mensaje');
+        const submitButton = document.querySelector('#form-registro button[type="submit"]');
+        submitButton.disabled = true;
+
+        const payload = {
+            nombre: document.getElementById('registro-nombre').value,
+            email: document.getElementById('registro-email').value,
+            password: document.getElementById('registro-password').value,
+            telefono: document.getElementById('registro-telefono').value || null
+        };
+
+        try {
+            // Usamos fetchData para el registro (es JSON)
+            const nuevoUsuario = await fetchData(`${API_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            mostrarMensaje(registroMensaje, `¡Usuario ${nuevoUsuario.nombre} creado! Ahora puedes iniciar sesión.`, true);
+            document.getElementById('modal-registro').style.display = 'none';
+            document.getElementById('form-registro').reset();
+
+        } catch (error) {
+            mostrarMensaje(registroMensaje, `Error: ${error.message}`, false);
+        } finally {
+            submitButton.disabled = false;
+        }
+    }
+
+    /** Cierra la sesión del usuario */
+    function handleLogout() {
+        localStorage.removeItem('authToken');
+        userRole = 'visualizacion';
+        currentUserId = null;
+        // Llama a actualizarUIPorRol para "limpiar" la página
+        actualizarUIPorRol();
+        // Recarga la página para un estado 100% limpio (opcional pero recomendado)
+        window.location.reload();
+    }
+
+    /** * Actualiza la UI basado en el rol.
+     * Esta función es la que OCULTA y MUESTRA secciones.
+     */
+    async function actualizarUIPorRol() {
+        const esAdmin = userRole === 'admin';
+        const esUsuario = userRole === 'usuario';
+        const esVisualizacion = userRole === 'visualizacion';
+
+        // 1. Botones de login/logout
+        document.getElementById('btn-mostrar-login').style.display = esVisualizacion ? 'inline-block' : 'none';
+        document.getElementById('btn-mostrar-registro').style.display = esVisualizacion ? 'inline-block' : 'none';
+        document.getElementById('btn-logout').style.display = esVisualizacion ? 'none' : 'inline-block';
+
+        // 2. Secciones "admin-only"
+        // (Tu HTML ya tiene la clase 'admin-only' en las secciones correctas)
+        document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = esAdmin ? 'block' : 'none';
+        });
+
+        // 3. Saludo y Carga de Datos Específicos
+        const saludoSpan = document.getElementById('saludo-usuario');
+        const selectorCliente = document.getElementById('selector-cliente');
+        selectorCliente.innerHTML = '<option value="">Seleccione un cliente...</option>'; // Limpiar
+        selectorCliente.style.display = 'none'; // Ocultar por defecto
+
+        if (esAdmin) {
+            saludoSpan.textContent = 'Modo Administrador';
+            selectorCliente.style.display = 'block'; // Admin ve el selector
+            // Admin carga TODOS los datos
+            cargarClientes(); // Llena el selector
+            cargarProveedores();
+            cargarHistorialVentas();
+            cargarReporteBajoStock();
+            cargarReporteVentasCliente();
+
+        } else if (esUsuario) {
+            saludoSpan.textContent = `¡Hola, usuario!`; 
+            document.getElementById('seccion-mis-direcciones').style.display = 'block';
+            
+            // Aquí deberíamos obtener el ID del usuario al loguear
+            // y llamar a cargarDireccionesCliente(currentUserId)
+            // Por ahora, solo mostramos la sección.
+
+        } else { // Visualización
+            saludoSpan.textContent = 'Modo Visitante';
+            document.getElementById('seccion-mis-direcciones').style.display = 'none';
+        }
+        
+        // 4. Carga de Productos (Todos la necesitan)
+        cargarProductos();
+
+        // 5. Carrito
+        const btnFinalizar = document.getElementById('btn-finalizar-compra');
+        if (esVisualizacion) {
+            btnFinalizar.textContent = "Inicia sesión para comprar";
+            btnFinalizar.disabled = true;
+        } else if (esUsuario) {
+            btnFinalizar.textContent = "Finalizar Compra";
+            btnFinalizar.disabled = carrito.length === 0;
+        } else if (esAdmin) {
+            btnFinalizar.textContent = "Finalizar Compra (Admin)";
+            btnFinalizar.disabled = carrito.length === 0;
+        }
+        renderizarCarrito(); // Renderiza el carrito (vacío o no)
+    }
+
 
     // --- Inicialización y Asignación de Eventos ---
 
