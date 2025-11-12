@@ -85,22 +85,26 @@ class ClienteBase(BaseModel):
     """Schema base para Cliente."""
     nombre: str
     telefono: Optional[str] = None
+    email: str 
 
 class ClienteCreate(ClienteBase):
     """Schema para validar los datos al crear un nuevo Cliente."""
-    pass
+    password: str 
 
 class ClienteUpdate(BaseModel):
     """Schema para validar los datos al actualizar un Cliente."""
     nombre: Optional[str] = None
     telefono: Optional[str] = None
+    email: Optional[str] = None
+    rol: Optional[str] = None 
 
 class Cliente(ClienteBase):
     """Schema para leer/retornar un Cliente."""
     id_cliente: int
+    rol: str
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
 
 # --- Schemas de Ventas (Actualizados) ---
 
@@ -215,3 +219,11 @@ class ReporteVentasCliente(BaseModel):
     
     class Config:
         from_attributes = True
+
+# --- Schema para autenticacion ---
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None

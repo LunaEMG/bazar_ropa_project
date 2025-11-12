@@ -10,6 +10,11 @@ from app.schemas import Cliente, ClienteCreate, ClienteUpdate
 # Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
 
+
+from app.auth import get_current_admin_user
+# (Cliente ya estaba importado en schemas)
+
+
 # Crea un router específico para las rutas de clientes
 router = APIRouter()
 
@@ -18,15 +23,19 @@ router = APIRouter()
     "/api/clientes", 
     response_model=Cliente, 
     status_code=status.HTTP_201_CREATED,
-    summary="Registrar un nuevo cliente",
-    tags=["Clientes"] # Agrupa endpoints en la documentación /docs
+    summary="Registrar un nuevo cliente (Admin)",
+    tags=["Clientes"] 
 )
-def create_new_cliente(cliente: ClienteCreate, db: Connection = Depends(get_db)):
+def create_new_cliente(
+    cliente: ClienteCreate, 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
+):
     """
-    Crea un nuevo cliente en la base de datos.
+    Crea un nuevo cliente en la base de datos. (Admin Only)
+    Nota: Para registro público, usar /api/auth/register
     ...
     """
-    # Pasamos la conexión 'db' a la función CRUD
     new_cliente = crud_clientes.create_cliente(db=db, cliente=cliente) 
     if new_cliente is None:
         raise HTTPException(
@@ -42,11 +51,12 @@ def create_new_cliente(cliente: ClienteCreate, db: Connection = Depends(get_db))
     summary="Obtener lista de clientes",
     tags=["Clientes"]
 )
-
-
-def read_clientes(db: Connection = Depends(get_db)): 
+def read_clientes(
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
+): 
     """
-    Obtiene una lista de todos los clientes registrados, ordenados por nombre.
+    Obtiene una lista de todos los clientes registrados. (Admin Only)
     """
     clientes = crud_clientes.get_all_clientes(db=db) 
     return clientes
@@ -59,11 +69,13 @@ def read_clientes(db: Connection = Depends(get_db)):
     summary="Obtener un cliente por ID",
     tags=["Clientes"]
 )
-
-def read_cliente(cliente_id: int, db: Connection = Depends(get_db)): 
+def read_cliente(
+    cliente_id: int, 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
+): 
     """
-    Obtiene los detalles de un cliente específico usando su 'id_cliente'.
-    Retorna 404 Not Found si el cliente no existe.
+    Obtiene los detalles de un cliente específico. (Admin Only)
     """
     db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
     if db_cliente is None:
@@ -77,12 +89,14 @@ def read_cliente(cliente_id: int, db: Connection = Depends(get_db)):
     summary="Actualizar un cliente existente",
     tags=["Clientes"]
 )
-
-def update_existing_cliente(cliente_id: int, cliente_update: ClienteUpdate, db: Connection = Depends(get_db)): 
+def update_existing_cliente(
+    cliente_id: int, 
+    cliente_update: ClienteUpdate, 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
+): 
     """
-    Actualiza los datos de un cliente existente identificado por su 'id_cliente'.
-    Solo actualiza los campos proporcionados en el cuerpo de la petición.
-    Retorna los datos del cliente actualizado o 404 si no se encuentra.
+    Actualiza los datos de un cliente existente. (Admin Only)
     """
     updated_cliente = crud_clientes.update_cliente(db=db, cliente_id=cliente_id, cliente_update=cliente_update) 
     if updated_cliente is None:
@@ -96,26 +110,21 @@ def update_existing_cliente(cliente_id: int, cliente_update: ClienteUpdate, db: 
     summary="Eliminar un cliente existente",
     tags=["Clientes"]
 )
-
-def delete_existing_cliente(cliente_id: int, db: Connection = Depends(get_db)):
+def delete_existing_cliente(
+    cliente_id: int, 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
+):
     """
-    Desactiva un cliente (borrado lógico) usando su 'id_cliente'.
-    Retorna 204 No Content si la desactivación es exitosa.
-    Retorna 404 Not Found si el cliente no existe.
-    Retorna 500 Internal Server Error para otros errores de base de datos.
+    Desactiva un cliente (borrado lógico). (Admin Only)
     """
-    
-    # Llama a la función CRUD para eliminar, ahora retorna 1, 0, -1, o -2
     delete_result_code = crud_clientes.delete_cliente(db=db, cliente_id=cliente_id)
     
     if delete_result_code == 1:
-        # Éxito
         return None 
     elif delete_result_code == 0:
-        # No encontrado
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado para eliminar")
-    else: # -1 o cualquier otro error
-        # Error genérico
+    else: 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="Error interno del servidor al intentar eliminar el cliente."

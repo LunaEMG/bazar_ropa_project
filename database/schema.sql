@@ -12,6 +12,10 @@ CREATE TABLE cliente (
     nombre VARCHAR(100) NOT NULL,
     telefono VARCHAR(15),
     esta_activo BOOLEAN DEFAULT TRUE
+    ALTER TABLE cliente
+    ADD COLUMN email VARCHAR(100) UNIQUE NOT NULL,
+    ADD COLUMN hashed_password VARCHAR(255) NOT NULL,
+    ADD COLUMN rol VARCHAR(20) NOT NULL DEFAULT 'usuario'
 );
 
 -- Tabla de direcciones (Dependiente de cliente)

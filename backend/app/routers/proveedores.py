@@ -9,6 +9,8 @@ from app.schemas import Proveedor, ProveedorCreate, ProveedorUpdate
 
 # Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
+from app.auth import get_current_admin_user
+from app.schemas import Cliente 
 
 # Crea un router específico para las rutas de proveedores
 router = APIRouter()
@@ -23,9 +25,10 @@ router = APIRouter()
 )
 def create_new_proveedor(
     proveedor: ProveedorCreate, 
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
 ):
-    """Crea un nuevo proveedor."""
+    """Crea un nuevo proveedor. (Admin Only)"""
     db_proveedor = crud_proveedores.create_proveedor(db=db, proveedor=proveedor) 
     if db_proveedor is None:
         raise HTTPException(
@@ -41,8 +44,11 @@ def create_new_proveedor(
     summary="Obtener lista de proveedores",
     tags=["Proveedores"]
 )
-def read_proveedores(db: Connection = Depends(get_db)): 
-    """Obtiene una lista de todos los proveedores."""
+def read_proveedores(
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
+): 
+    """Obtiene una lista de todos los proveedores. (Admin Only)"""
     proveedores = crud_proveedores.get_all_proveedores(db=db) 
     return proveedores
 
@@ -55,9 +61,10 @@ def read_proveedores(db: Connection = Depends(get_db)):
 )
 def read_proveedor(
     proveedor_id: int, 
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
 ):
-    """Obtiene un proveedor específico."""
+    """Obtiene un proveedor específico. (Admin Only)"""
     db_proveedor = crud_proveedores.get_proveedor_by_id(db=db, proveedor_id=proveedor_id) 
     if db_proveedor is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado")
@@ -73,9 +80,10 @@ def read_proveedor(
 def update_existing_proveedor(
     proveedor_id: int, 
     proveedor_update: ProveedorUpdate, 
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
 ):
-    """Actualiza datos de un proveedor por ID."""
+    """Actualiza datos de un proveedor por ID. (Admin Only)"""
     updated_proveedor = crud_proveedores.update_proveedor(
         db=db, 
         proveedor_id=proveedor_id, 
@@ -94,10 +102,11 @@ def update_existing_proveedor(
 )
 def delete_existing_proveedor(
     proveedor_id: int, 
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """
-    Elimina un proveedor por ID.
+    Elimina un proveedor por ID. (Admin Only)
     ...
     """
     delete_result_code = crud_proveedores.delete_proveedor(db=db, proveedor_id=proveedor_id) 

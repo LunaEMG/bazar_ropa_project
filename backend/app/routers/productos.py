@@ -1,32 +1,38 @@
 # Importaciones necesarias de FastAPI, tipos y estado HTTP
-from fastapi import APIRouter, HTTPException, status, Depends # <-- Añadido Depends
+from fastapi import APIRouter, HTTPException, status, Depends 
 from typing import List
-from psycopg import Connection # <-- Añadido Connection
+from psycopg import Connection 
 
 # Importa las funciones CRUD y los schemas Pydantic para productos
 from app.crud import crud_productos
 from app.schemas import Producto, ProductoUpdate, ProductoCreate, ProductoUpdateConSubtipo
 
-# Importa nuestro nuevo 'inyector' de DB
+# Importa nuestro  'inyector' de DB
 from app.db.database import get_db
+
+# --- AÑADIR ESTAS DOS LÍNEAS ---
+from app.auth import get_current_admin_user
+from app.schemas import Cliente
+# --- FIN DE LO AÑADIDO ---
 
 # Crea un router específico para las rutas de productos
 router = APIRouter()
 
-# --- NUEVO Endpoint para CREAR un producto (con herencia) ---
+# ---  Endpoint para CREAR un producto (con herencia) ---
 @router.post(
     "/api/productos", 
     response_model=Producto, 
     status_code=status.HTTP_201_CREATED,
-    summary="Registrar un nuevo producto (con subtipo)",
+    summary="Registrar un  producto (con subtipo)",
     tags=["Productos"]
 )
 def create_new_producto(
     producto: ProductoCreate, 
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user) 
 ):
     """
-    Crea un nuevo producto en la base de datos.
+    Crea un  producto en la base de datos. (Admin Only)
     ...
     """
     db_producto = crud_productos.create_producto(db=db, producto_data=producto) 
@@ -49,7 +55,7 @@ def create_new_producto(
 )
 def read_productos(db: Connection = Depends(get_db)): 
     """
-    Obtiene una lista de todos los productos del bazar...
+    Obtiene una lista de todos los productos del bazar... (Público)
     """
     productos = crud_productos.get_all_productos(db=db) 
     return productos
@@ -66,14 +72,14 @@ def read_producto(
     db: Connection = Depends(get_db) 
 ):
     """
-    Obtiene los detalles de un producto específico usando su 'id_producto'...
+    Obtiene los detalles de un producto específico... (Público)
     """
     db_producto = crud_productos.get_producto_by_id(db=db, producto_id=producto_id) 
     if db_producto is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
     return db_producto
 
-# --- NUEVO Endpoint para ACTUALIZAR un producto existente ---
+# ---  Endpoint para ACTUALIZAR un producto existente ---
 @router.put(
     "/api/productos/{producto_id}",
     response_model=Producto,
@@ -83,10 +89,11 @@ def read_producto(
 def update_existing_producto(
     producto_id: int, 
     producto_update: ProductoUpdateConSubtipo,
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """
-    Actualiza los datos de un producto existente...
+    Actualiza los datos de un producto existente... (Admin Only)
     """
     updated_producto = crud_productos.update_producto(
         db=db, 
@@ -108,11 +115,11 @@ def update_existing_producto(
 )
 def delete_existing_producto(
     producto_id: int, 
-    db: Connection = Depends(get_db)
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """
-    Elimina un producto y su registro asociado en la tabla de subtipo.
-    ...
+    Elimina un producto y su registro asociado... (Admin Only)
     """
     delete_result_code = crud_productos.delete_producto(db=db, producto_id=producto_id) 
     

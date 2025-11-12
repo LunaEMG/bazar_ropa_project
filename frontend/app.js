@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const productoIdEditInput = document.getElementById('producto-id-edit');
     const btnCancelarEdicionProducto = document.getElementById('btn-cancelar-edicion-producto');
 
+
     // --- NUEVAS REFERENCIAS PARA FORMULARIO DE PRODUCTOS ---
     const formNuevoProducto = document.getElementById('form-nuevo-producto');
     const productoMensaje = document.getElementById('producto-mensaje');
@@ -58,6 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let carrito = []; 
     /** Almacena el ID del cliente seleccionado para gestión de direcciones. */
     let clienteSeleccionadoId = null; 
+
+    //estado global para el rol
+    let userRole = "visualizacion";
 
     // --- Funciones Auxiliares ---
 
@@ -76,8 +80,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /** Realiza una petición fetch genérica con manejo de errores básico. */
     async function fetchData(url, options = {}) {
+
+        const token = localStorage.getItem('authToken');
+        
+        // Si tenemos un token, lo añadimos a la cabecera 'Authorization'
+        if (token) {
+            if (!options.headers) {
+                options.headers = {};
+            }
+            options.headers['Authorization'] = `Bearer ${token}`;
+        }
+
         try {
             const response = await fetch(url, options);
+            if (!response.status === 401 || response.status === 403) {
+                console.warn("Acceso no autorizado. Cerrando sesión...");
+                handleLogout();
+            }
             if (!response.ok) {
                 let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`;
                 try {
@@ -96,23 +115,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Funciones de Carga y Renderizado ---
 
-    /** Carga y muestra la lista de productos. */
+    /**
+     * @function cargarProductos
+     * @description Carga y muestra la lista de productos (ACTUALIZADO CON ROLES).
+     * - Rol Visualización: Ve botones "Añadir" deshabilitados.
+     * - Rol Usuario: Ve botones "Añadir" habilitados.
+     * - Rol Admin: Ve botones "Añadir", "Editar" y "Eliminar" habilitados.
+     */
     async function cargarProductos() {
         if (!listaDeProductos) return;
         listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
         try {
+            // El `fetchData` (que modificamos antes) ya envía el token si existe
             const productos = await fetchData(`${API_URL}/api/productos`);
             listaDeProductos.innerHTML = ''; 
             if (!productos || productos.length === 0) {
                 listaDeProductos.innerHTML = '<p>No hay productos disponibles.</p>'; return;
             }
+
+            // Asumimos que 'userRole' es una variable global 
+            // que se define durante el login (ej: userRole = 'admin';)
+            const esAdmin = (userRole === 'admin');
+            const esUsuario = (userRole === 'usuario');
+            const esVisualizacion = (userRole === 'visualizacion');
+
             productos.forEach(producto => {
                 
                 const item = document.createElement('div'); 
                 item.className = 'producto-item';
-                
 
-                // (el innerHTML de la tarjeta ahora tiene 3 botones)
+                // 1. Botones de Admin (Editar/Eliminar)
+                //    Solo se generan si el rol es 'admin'
+                let botonesAdminHTML = '';
+                if (esAdmin) {
+                    botonesAdminHTML = `
+                        <button class="btn-accion btn-editar-producto btn-editar" data-id="${producto.id_producto}">Editar</button>
+                        <button class="btn-accion btn-eliminar-producto btn-eliminar" data-id="${producto.id_producto}" data-nombre="${producto.nombre}">Eliminar</button>
+                    `;
+                }
+
+                // 2. Botón de Añadir al Carrito
+                //    Está deshabilitado si el rol es 'visualizacion'
+                const deshabilitado = esVisualizacion ? 'disabled' : '';
+
+                // 3. Montaje del HTML
+                //    Usamos las variables `botonAnadirHTML` y `botonesAdminHTML`
                 item.innerHTML = `
                     <h3>${producto.nombre}</h3>
                     <p>${producto.descripcion || 'Sin descripción'}</p>
@@ -124,25 +171,29 @@ document.addEventListener("DOMContentLoaded", () => {
                     <p class="precio">$${producto.precio.toFixed(2)}</p>
                     
                     <div class="producto-acciones">
-                        <button class="btn-accion btn-add-carrito" data-id="${producto.id_producto}" data-nombre="${producto.nombre}" data-precio="${producto.precio}">Añadir</button>
+                        <button class="btn-accion btn-add-carrito" data-id="${producto.id_producto}" data-nombre="${producto.nombre}" data-precio="${producto.precio}" ${deshabilitado}>
+                            Añadir
+                        </button>
                         
-                        <button class="btn-accion btn-editar-producto btn-editar" data-id="${producto.id_producto}">Editar</button>
-
-                        <button class="btn-accion btn-eliminar-producto btn-eliminar" data-id="${producto.id_producto}" data-nombre="${producto.nombre}">Eliminar</button>
+                        ${botonesAdminHTML} 
                     </div>
                 `;
-                
-                // Listener Añadir
+
+                // Listener Añadir (El navegador se encarga de no disparar el 'click' si está 'disabled')
                 item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick); 
 
-                // --- Listener de Editar ---
-                const editButton = item.querySelector('.btn-editar-producto');
-                if (editButton) {
-                    editButton.addEventListener('click', () => handleEditarProductoClick(producto.id_producto));
+                // Listeners de Admin (Solo los buscamos y asignamos si esAdmin es true)
+                if (esAdmin) {
+                    const editButton = item.querySelector('.btn-editar-producto');
+                    if (editButton) {
+                        editButton.addEventListener('click', () => handleEditarProductoClick(producto.id_producto));
+                    }
+                    
+                    const deleteButton = item.querySelector('.btn-eliminar-producto');
+                    if (deleteButton) {
+                        deleteButton.addEventListener('click', handleDeleteProductoClick);
+                    }
                 }
-                
-                // Listener Eliminar
-                item.querySelector('.btn-eliminar-producto').addEventListener('click', handleDeleteProductoClick);
                 
                 listaDeProductos.appendChild(item);
             });
@@ -984,6 +1035,97 @@ async function handleNuevoProductoSubmit(event) {
     }
 
 
+    /** Maneja el envío del formulario de login */
+    async function handleLoginSubmit(event) {
+        event.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const loginMensaje = document.getElementById('login-mensaje');
+        
+        // El login usa un formato especial: 'x-www-form-urlencoded'
+        const formData = new URLSearchParams();
+        formData.append('username', email); // FastAPI espera 'username'
+        formData.append('password', password);
+
+        try {
+            // Nota: NO usamos fetchData aquí porque no es JSON
+            const response = await fetch(`${API_URL}/api/auth/token`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Email o contraseña incorrectos.");
+            }
+
+            const data = await response.json(); // { access_token: "...", ... }
+            
+            // ¡Éxito! Guarda el token
+            localStorage.setItem('authToken', data.access_token);
+            
+            // Decodifica el token (simple) para obtener el rol
+            // (En una app real, harías un fetch a /api/users/me)
+            try {
+                const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+                userRole = payload.rol || 'usuario'; // Asigna el rol
+            } catch (e) {
+                userRole = 'usuario'; // Fallback
+            }
+
+            mostrarMensaje(loginMensaje, "¡Bienvenido!", true);
+            document.getElementById('modal-login').style.display = 'none';
+            
+            // Actualiza la UI
+            actualizarUIPorRol();
+            
+        } catch (error) {
+            userRole = 'visualizacion';
+            mostrarMensaje(loginMensaje, error.message, false);
+        }
+    }
+
+    /** Cierra la sesión del usuario */
+    function handleLogout() {
+        localStorage.removeItem('authToken');
+        userRole = 'visualizacion';
+        actualizarUIPorRol();
+    }
+
+    /** Actualiza la UI basado en el rol */
+    function actualizarUIPorRol() {
+        const esAdmin = userRole === 'admin';
+        const esUsuario = userRole === 'usuario';
+        const esVisualizacion = userRole === 'visualizacion';
+
+        // Botones de login/logout
+        document.getElementById('btn-mostrar-login').style.display = esVisualizacion ? 'inline-block' : 'none';
+        document.getElementById('btn-mostrar-registro').style.display = esVisualizacion ? 'inline-block' : 'none';
+        document.getElementById('btn-logout').style.display = esVisualizacion ? 'none' : 'inline-block';
+
+        // Saludo
+        // (Deberías hacer un fetch a un endpoint /me para obtener el nombre)
+        document.getElementById('saludo-usuario').textContent = esVisualizacion ? '' : `Rol: ${userRole}`;
+
+        // Botón de finalizar compra
+        const btnFinalizar = document.getElementById('btn-finalizar-compra');
+        if (btnFinalizar) {
+             btnFinalizar.disabled = esVisualizacion; // Deshabilitado si solo ve
+             if (esVisualizacion) btnFinalizar.textContent = "Inicia sesión para comprar";
+             else btnFinalizar.textContent = "Finalizar Compra";
+        }
+        
+        // Secciones de Admin (Ej: Gestión de Clientes, Proveedores, Reportes)
+        // Dales una clase CSS, ej: <section class="admin-only">
+        document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = esAdmin ? 'block' : 'none';
+        });
+
+        // Recargamos los productos para mostrar/ocultar botones de admin
+        cargarProductos();
+    }
 
 
     /** Maneja el envío del formulario para crear un nuevo cliente. */
@@ -1152,30 +1294,21 @@ async function handleNuevoProductoSubmit(event) {
 
     // --- Inicialización y Asignación de Eventos ---
 
-    // Carga inicial de datos.
-    cargarProductos();
-    cargarClientes(); 
-    cargarProveedores(); // Esta función ahora también llena el selector de productos
-    cargarHistorialVentas();
-    cargarReporteBajoStock();
-    cargarReporteVentasCliente();
-
     // Asigna manejadores de eventos a formularios y botones estáticos.
     if (formNuevoCliente) formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
     if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
     if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit); 
     if (btnFinalizarCompra) btnFinalizarCompra.addEventListener('click', handleFinalizarCompraClick);
     
-    // --- NUEVOS LISTENERS ---
+    // Formulario de Producto (Admin)
     if (selectorTipoProducto) selectorTipoProducto.addEventListener('change', handleTipoProductoChange);
     if (formNuevoProducto) formNuevoProducto.addEventListener('submit', handleNuevoProductoSubmit);
     if (btnCancelarEdicionProducto) {
-    btnCancelarEdicionProducto.addEventListener('click', resetFormularioProducto);
+        btnCancelarEdicionProducto.addEventListener('click', resetFormularioProducto);
     }
     
-    // El formulario de edición del modal maneja ahora Cliente y Proveedor
+    // Modal de Edición (Admin)
     if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarSubmit); 
-    
     if (cerrarModalClienteBtn) cerrarModalClienteBtn.addEventListener('click', ocultarModalEditarCliente);
     if (modalEditarCliente) {
         modalEditarCliente.addEventListener('click', (event) => {
@@ -1185,7 +1318,52 @@ async function handleNuevoProductoSubmit(event) {
         });
     }
     
-    // Renderiza el estado inicial del carrito.
-    renderizarCarrito();
+    // Asigna los listeners a los nuevos formularios y botones de Auth
+    const formLogin = document.getElementById('form-login');
+    const formRegistro = document.getElementById('form-registro');
+    const btnLogout = document.getElementById('btn-logout');
+    const btnShowLogin = document.getElementById('btn-mostrar-login');
+    const btnShowRegistro = document.getElementById('btn-mostrar-registro');
+    const btnCloseLogin = document.getElementById('cerrar-modal-login');
+    const btnCloseRegistro = document.getElementById('cerrar-modal-registro');
+
+    if (formLogin) formLogin.addEventListener('submit', handleLoginSubmit);
+    if (formRegistro) formRegistro.addEventListener('submit', handleRegistroSubmit);
+    if (btnLogout) btnLogout.addEventListener('click', handleLogout);
+    
+    // Listeners para mostrar/ocultar modales de auth
+    if (btnShowLogin) btnShowLogin.addEventListener('click', () => {
+        document.getElementById('modal-login').style.display = 'block';
+    });
+    if (btnCloseLogin) btnCloseLogin.addEventListener('click', () => {
+        document.getElementById('modal-login').style.display = 'none';
+    });
+    if (btnShowRegistro) btnShowRegistro.addEventListener('click', () => {
+        document.getElementById('modal-registro').style.display = 'block';
+    });
+    if (btnCloseRegistro) btnCloseRegistro.addEventListener('click', () => {
+        document.getElementById('modal-registro').style.display = 'none';
+    });
+
+    // Comprueba si ya existe un token en localStorage al cargar la página
+    if (localStorage.getItem('authToken')) {
+        try {
+            // Si hay token, intenta decodificarlo para obtener el rol
+            const token = localStorage.getItem('authToken');
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            // Valida si el token ha expirado
+            if (payload.exp * 1000 < Date.now()) {
+                throw new Error("Token expirado");
+            }
+            userRole = payload.rol || 'usuario';
+        } catch (e) {
+            // Token malo o expirado
+            handleLogout(); // Limpia y establece rol 'visualizacion'
+        }
+    } else {
+        userRole = 'visualizacion';
+    }
+    
+    actualizarUIPorRol();
 
 }); // Fin del addEventListener DOMContentLoaded

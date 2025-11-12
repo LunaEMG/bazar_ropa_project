@@ -1,7 +1,7 @@
 # Importaciones necesarias de FastAPI, tipos y estado HTTP
 from fastapi import APIRouter, HTTPException, status, Path, Depends 
 from typing import List
-from psycopg import Connection # <-- Añadido Connection
+from psycopg import Connection 
 
 # Importa las funciones CRUD y los schemas Pydantic relevantes
 from app.crud import crud_direcciones, crud_clientes 
@@ -9,12 +9,23 @@ from app.schemas import Direccion, DireccionCreate, DireccionUpdate
 
 # Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
+from app.auth import get_current_user
+from app.schemas import Cliente
 
 # Crea un router específico para las rutas de direcciones, anidado bajo clientes
 router = APIRouter(
-    prefix="/api/clientes/{cliente_id}", # Prefijo común para estas rutas
-    tags=["Direcciones"] # Agrupa endpoints en la documentación /docs
+    prefix="/api/clientes/{cliente_id}", 
+    tags=["Direcciones"] 
 )
+
+# --- FUNCIÓN DE VERIFICACIÓN ---
+def verificar_permiso_cliente(cliente_id: int, current_user: Cliente):
+    """Verifica que el ID de la ruta coincida con el usuario logueado."""
+    if cliente_id != current_user.id_cliente:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para acceder a los recursos de este cliente."
+        )
 
 # --- Endpoint para CREAR una nueva dirección para un cliente ---
 @router.post(
@@ -27,16 +38,14 @@ def create_direccion_for_existing_cliente(
     *, 
     cliente_id: int = Path(..., title="ID del Cliente", ge=1), 
     direccion: DireccionCreate,
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Crea una nueva dirección asociada a un cliente existente.
-    Verifica la existencia del cliente antes de la creación.
+    Crea una nueva dirección asociada al cliente logueado. (Usuario Only)
     """
-    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
-    if db_cliente is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
-        
+    verificar_permiso_cliente(cliente_id, current_user)
+     
     db_direccion = crud_direcciones.create_direccion_for_cliente(
         db=db, 
         cliente_id=cliente_id, 
@@ -58,22 +67,20 @@ def create_direccion_for_existing_cliente(
 def read_direcciones_for_cliente(
     *,
     cliente_id: int = Path(..., title="ID del Cliente", ge=1),
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Obtiene una lista de todas las direcciones asociadas a un cliente específico.
-    Verifica la existencia del cliente.
+    Obtiene las direcciones del cliente logueado. (Usuario Only)
     """
-    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
-    if db_cliente is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
+    verificar_permiso_cliente(cliente_id, current_user)
 
     direcciones = crud_direcciones.get_direcciones_by_cliente(db=db, cliente_id=cliente_id)
     return direcciones
 
 # --- NUEVO Endpoint para ACTUALIZAR una dirección específica ---
 @router.put(
-    "/direcciones/{direccion_id}", # Ruta incluye ID de dirección
+    "/direcciones/{direccion_id}", 
     response_model=Direccion,
     summary="Actualizar una dirección específica de un cliente"
 )
@@ -82,17 +89,14 @@ def update_existing_direccion(
     cliente_id: int = Path(..., title="ID del Cliente", ge=1),
     direccion_id: int = Path(..., title="ID de la Dirección", ge=1),
     direccion_update: DireccionUpdate,
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Actualiza una dirección existente, verificando que pertenezca al cliente especificado.
+    Actualiza una dirección del cliente logueado. (Usuario Only)
     """
-    # Verifica si el cliente existe
-    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
-    if db_cliente is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
+    verificar_permiso_cliente(cliente_id, current_user)
 
-    # Llama a la función CRUD para actualizar, pasando ambos IDs
     updated_direccion = crud_direcciones.update_direccion(
         db=db, 
         cliente_id=cliente_id, 
@@ -115,17 +119,14 @@ def delete_existing_direccion(
     *,
     cliente_id: int = Path(..., title="ID del Cliente", ge=1),
     direccion_id: int = Path(..., title="ID de la Dirección", ge=1),
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Elimina una dirección específica, verificando que pertenezca al cliente especificado.
+    Elimina una dirección del cliente logueado. (Usuario Only)
     """
-    # Verifica si el cliente existe
-    db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
-    if db_cliente is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
+    verificar_permiso_cliente(cliente_id, current_user)
 
-    # Llama a la función CRUD para eliminar, pasando ambos IDs
     success = crud_direcciones.delete_direccion(db=db, cliente_id=cliente_id, direccion_id=direccion_id) 
     
     if not success:

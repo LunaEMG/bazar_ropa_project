@@ -10,6 +10,9 @@ from app.schemas import Venta, VentaCreate
 
 # Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
+from app.auth import get_current_user, get_current_admin_user
+from app.schemas import Cliente
+
 
 # Crea un router específico para las rutas de ventas
 router = APIRouter()
@@ -24,14 +27,23 @@ router = APIRouter()
 )
 def create_new_venta(
     venta: VentaCreate, 
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Registra una nueva venta en la base de datos, incluyendo sus detalles.
-    ...
+    Registra una nueva venta en la base de datos. (Usuario Only)
+    El ID del cliente en la venta DEBE coincidir con el usuario logueado.
     """
+    
+    # --- CHEQUEO DE SEGURIDAD ---
+    if venta.id_cliente != current_user.id_cliente:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No puedes realizar una compra para otro cliente."
+        )
+    # --- FIN DE CHEQUEO ---
+
     try:
-        # Llama a la función CRUD pasando la 'db'
         db_venta = crud_ventas.create_venta(db=db, venta_data=venta) 
         
         if db_venta is None:
@@ -55,9 +67,12 @@ def create_new_venta(
     summary="Obtener historial de ventas",
     tags=["Ventas"]
 )
-def read_ventas(db: Connection = Depends(get_db)): 
+def read_ventas(
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
+): 
     """
-    Obtiene una lista de todas las ventas registradas...
+    Obtiene una lista de todas las ventas registradas... (Admin Only)
     """
     ventas = crud_ventas.get_all_ventas(db=db) 
     return ventas
@@ -71,10 +86,11 @@ def read_ventas(db: Connection = Depends(get_db)):
 )
 def read_venta(
     venta_id: int, 
-    db: Connection = Depends(get_db) 
+    db: Connection = Depends(get_db),
+    admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """
-    Obtiene los detalles de una venta específica...
+    Obtiene los detalles de una venta específica... (Admin Only)
     """
     db_venta = crud_ventas.get_venta_by_id(db=db, venta_id=venta_id) 
     if db_venta is None:
