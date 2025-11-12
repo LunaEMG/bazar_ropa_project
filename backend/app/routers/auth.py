@@ -17,13 +17,11 @@ router = APIRouter()
     response_model=Token,
     tags=["Autenticación"]
 )
+
 async def login_for_access_token(
     db: Connection = Depends(get_db), 
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
-    """
-    Endpoint de Login. Recibe email (en 'username') y contraseña.
-    """
     user = crud_clientes.get_cliente_by_email(db, email=form_data.username)
     
     if not user or not verify_password(form_data.password, user['hashed_password']):
@@ -33,10 +31,17 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    # Crea el token con el email (sub) y el rol
+    
+    token_data = {
+        "sub": user['email'], 
+        "rol": user['rol'],
+        "id": user['id_cliente']  
+    }
+    
+    
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user['email'], "rol": user['rol']}, 
+        data=token_data, # Pasa el diccionario completo
         expires_delta=access_token_expires
     )
     

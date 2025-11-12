@@ -1056,13 +1056,35 @@ async function handleNuevoProductoSubmit(event) {
         finally { submitButton.disabled = false; submitButton.textContent = 'Registrar Proveedor'; }
     }
     
-    /** Maneja el envío del formulario para AÑADIR o ACTUALIZAR una dirección. */
+    
+    /** * @function handleNuevaDireccionSubmit
+     * @description Maneja el envío del formulario para AÑADIR o ACTUALIZAR una dirección.
+     * (ACTUALIZADO CON LÓGICA DE ROLES)
+     */
     async function handleNuevaDireccionSubmit(event) { 
         event.preventDefault(); 
-        if (!formNuevaDireccion || !direccionMensaje || clienteSeleccionadoId === null) return;
+        if (!formNuevaDireccion || !direccionMensaje) return;
         
         const direccionEditId = document.getElementById('id-direccion-edit').value;
         const isEditMode = direccionEditId !== '';
+        
+        // --- INICIO DE LÓGICA DE ROLES ---
+        let idClienteParaDireccion = null;
+
+        if (userRole === 'admin') {
+            // El Admin usa el ID del cliente que seleccionó de la lista
+            // (Esta variable se guarda cuando el admin hace clic en "Direcciones")
+            idClienteParaDireccion = clienteSeleccionadoId; 
+        } else if (userRole === 'usuario') {
+            // El Usuario usa su propio ID
+            idClienteParaDireccion = currentUserId;
+        }
+
+        if (idClienteParaDireccion === null) {
+            mostrarMensaje(direccionMensaje, "Error: No se pudo identificar al cliente. Inicia sesión de nuevo.", false);
+            return;
+        }
+        // --- FIN DE LÓGICA DE ROLES ---
         
         const formData = new FormData(formNuevaDireccion); 
         const calle = formData.get('calle'); 
@@ -1072,9 +1094,11 @@ async function handleNuevoProductoSubmit(event) {
         const payload = { calle, ciudad, codigo_postal };
         
         const method = isEditMode ? 'PUT' : 'POST';
+        
+        // Usamos la variable idClienteParaDireccion para construir la URL
         const endpoint = isEditMode 
-            ? `${API_URL}/api/clientes/${clienteSeleccionadoId}/direcciones/${direccionEditId}`
-            : `${API_URL}/api/clientes/${clienteSeleccionadoId}/direcciones`;
+            ? `${API_URL}/api/clientes/${idClienteParaDireccion}/direcciones/${direccionEditId}`
+            : `${API_URL}/api/clientes/${idClienteParaDireccion}/direcciones`;
 
         const submitButton = formNuevaDireccion.querySelector('button[type="submit"]'); 
         submitButton.disabled = true; 
@@ -1089,7 +1113,9 @@ async function handleNuevoProductoSubmit(event) {
             
             mostrarMensaje(direccionMensaje, isEditMode ? 'Dirección actualizada!' : 'Dirección añadida!', true); 
             resetFormularioDireccion(); // Limpia el formulario
-            cargarDireccionesCliente(clienteSeleccionadoId); // Recarga la lista
+            
+            // Recarga la lista de direcciones
+            cargarDireccionesCliente(idClienteParaDireccion); 
             
         } catch (error) { 
             mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false); 
@@ -1100,6 +1126,7 @@ async function handleNuevoProductoSubmit(event) {
         }
     }
 
+
     /**
      * @function handleFinalizarCompraClick
      * @description Procesa el evento de clic para finalizar una compra.
@@ -1108,93 +1135,99 @@ async function handleNuevoProductoSubmit(event) {
      * * @async
      * @returns {void} - Esta función no retorna valores, modifica el DOM y el estado de la app.
      */
+    
     async function handleFinalizarCompraClick() {
         
-        // --- 1. Guard Clauses ---
-        // Asegura que los elementos críticos del DOM estén presentes antes de operar.
-        if (!selectorCliente || !btnFinalizarCompra || !compraMensaje) {
-            console.error("Componentes críticos del carrito no encontrados en el DOM.");
+        if (!btnFinalizarCompra || !compraMensaje) {
+            console.error("Componentes críticos del carrito no encontrados.");
             return;
         }
 
-        // --- 2. Validación de Entrada (Input Validation) ---
-        const idClienteSeleccionado = selectorCliente.value;
-        
-        // Valida que se haya seleccionado un cliente.
-        if (!idClienteSeleccionado) { 
-            mostrarMensaje(compraMensaje, "Seleccione un cliente.", false); 
-            return; // Detiene la ejecución si no es válido
+        // --- INICIO DE LÓGICA DE ROLES ---
+        let idClienteParaVenta = null;
+
+        if (userRole === 'admin') {
+            // El Admin SÍ usa el selector
+            const idClienteAdmin = selectorCliente.value;
+            if (!idClienteAdmin) {
+                mostrarMensaje(compraMensaje, "Como Admin, debe seleccionar un cliente.", false);
+                return;
+            }
+            idClienteParaVenta = idClienteAdmin;
+
+        } else if (userRole === 'usuario') {
+            // El Usuario usa su PROPIO ID (guardado en el login)
+            if (!currentUserId) {
+                mostrarMensaje(compraMensaje, "Error de sesión. Por favor, inicia sesión de nuevo.", false);
+                return;
+            }
+            idClienteParaVenta = currentUserId;
+
+        } else {
+            // Visualización (Aunque el botón debería estar deshabilitado)
+            mostrarMensaje(compraMensaje, "Debes iniciar sesión para comprar.", false);
+            return;
         }
-        
-        // Valida que el carrito no esté vacío.
+
+        // --- FIN DE LÓGICA DE ROLES ---
+
         if (carrito.length === 0) { 
             mostrarMensaje(compraMensaje, "El carrito está vacío.", false); 
-            return; // Detiene la ejecución si no es válido
+            return; 
         }
         
-        // --- 3. Preparación del Payload (Data Shaping) ---
-        // Mapea el estado del carrito local (Array `carrito`) al formato 
-        // requerido por el schema `VentaCreate` de la API (backend).
+        // 3. Preparación del Payload
         const ventaData = { 
-        id_cliente: parseInt(idClienteSeleccionado), 
-        detalles: carrito.map(item => ({ 
-            id_producto: item.id_producto, 
-            cantidad: item.cantidad 
-            
-        })) 
-    };
+            id_cliente: parseInt(idClienteParaVenta), // <-- Usa la variable correcta
+            detalles: carrito.map(item => ({ 
+                id_producto: item.id_producto, 
+                cantidad: item.cantidad 
+            })) 
+        };
         
-        // --- 4. Gestión de Estado UI (Loading State) ---
-        // Deshabilita el botón para prevenir envíos múltiples (doble clic)
-        // mientras la petición asíncrona está en curso.
+        // 4. Gestión de Estado UI
         btnFinalizarCompra.disabled = true; 
         btnFinalizarCompra.textContent = 'Procesando...';
         
         try {
-            // --- 5. Petición Asíncrona (API Call) ---
-            // Envía la nueva venta al endpoint del backend.
+            // 5. Petición Asíncrona
             const ventaCreada = await fetchData(`${API_URL}/api/ventas`, { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
                 body: JSON.stringify(ventaData), 
             });
             
-            // --- 6. Manejo de Éxito (Success Handler) ---
-            // La petición fue exitosa (status 201).
-            
-            // Informa al usuario sobre el éxito.
+            // 6. Manejo de Éxito
             mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada! Total: $${ventaCreada.monto_total.toFixed(2)}`, true); 
             
-            // Resetea el estado de la aplicación local tras el éxito.
-            carrito = []; // Vacía el array del carrito
-            selectorCliente.value = ""; // Limpia el selector de cliente
+            carrito = []; 
             
-            // Actualiza los componentes de la UI para reflejar el nuevo estado.
-            renderizarCarrito(); // Renderiza el carrito (ahora vacío)
-            cargarHistorialVentas(); // Refresca la lista de historial de ventas
-            cargarProductos(); // Refresca el stock de productos
-            cargarReporteBajoStock();
-            cargarReporteVentasCliente();
+            // Si es admin, limpiamos el selector. Si es usuario, no hace falta.
+            if (userRole === 'admin') {
+                selectorCliente.value = ""; 
+            }
+            
+            renderizarCarrito(); 
+            cargarProductos(); 
+
+            // Solo el admin necesita recargar esto
+            if (userRole === 'admin') {
+                cargarHistorialVentas(); 
+                cargarReporteBajoStock();
+                cargarReporteVentasCliente();
+            }
 
         } catch (error) { 
-            // --- 7. Manejo de Errores (Error Handler) ---
-            // La petición `fetchData` lanzó un error (ej. error de red, 500, 409).
-            // `fetchData` ya formatea el `error.message` con el detalle de la API.
+            // 7. Manejo de Errores
             mostrarMensaje(compraMensaje, `Error: ${error.message}`, false);
         } 
         finally { 
-            // --- 8. Limpieza (Cleanup) ---
-            // Este bloque se ejecuta SIEMPRE, tanto en éxito como en error.
-            
-            // Restaura el texto original del botón.
+            // 8. Limpieza
             btnFinalizarCompra.textContent = 'Finalizar Compra'; 
-            
-            // Vuelve a llamar a renderizarCarrito():
-            // 1. Si la compra fue exitosa: `carrito` está vacío -> renderizarCarrito() mantendrá el botón DESHABILITADO.
-            // 2. Si la compra falló: `carrito` AÚN tiene items -> renderizarCarrito() RE-HABILITARÁ el botón.
-            renderizarCarrito(); 
+            renderizarCarrito(); // Esto re-habilitará el botón si aún hay items
         }
     }
+
 
     // Estado global para el rol (¡importante!)
     let userRole = 'visualizacion'; // Rol por defecto
@@ -1230,16 +1263,16 @@ async function handleNuevoProductoSubmit(event) {
             }
 
             const data = await response.json(); // { access_token: "...", ... }
-            
-            // ¡Éxito! Guarda el token
             localStorage.setItem('authToken', data.access_token);
             
-            // Decodifica el token para obtener el ROL
+            // Decodifica el token para obtener el ROL y el ID del usuario
             try {
                 const payload = JSON.parse(atob(data.access_token.split('.')[1]));
                 userRole = payload.rol || 'usuario'; 
+                currentUserId = payload.id || null;
             } catch (e) {
                 userRole = 'usuario'; // Fallback
+                currentUserId = null;
             }
 
             mostrarMensaje(loginMensaje, "¡Bienvenido!", true);
@@ -1339,11 +1372,12 @@ async function handleNuevoProductoSubmit(event) {
         } else if (esUsuario) {
             saludoSpan.textContent = `¡Hola, usuario!`; 
             document.getElementById('seccion-mis-direcciones').style.display = 'block';
+            document.getElementById('nombre-cliente-seleccionado').textContent = "tus direcciones";
+            if (currentUserId) {
+                document.getElementById('id-cliente-direccion').value = currentUserId;
+                cargarDireccionesCliente(currentUserId);
+            }
             
-            // Aquí deberíamos obtener el ID del usuario al loguear
-            // y llamar a cargarDireccionesCliente(currentUserId)
-            // Por ahora, solo mostramos la sección.
-
         } else { // Visualización
             saludoSpan.textContent = 'Modo Visitante';
             document.getElementById('seccion-mis-direcciones').style.display = 'none';
