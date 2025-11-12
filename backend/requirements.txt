@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 psycopg[binary,pool]
 python-dotenv
+bcrypt == 4.1.3
 passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
