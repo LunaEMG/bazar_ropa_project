@@ -77,6 +77,23 @@ def read_ventas(
     ventas = crud_ventas.get_all_ventas(db=db) 
     return ventas
 
+# --- Endpoint para LEER historial de compras del usuario ---
+@router.get(
+    "/api/ventas/mis-compras", 
+    response_model=List[Venta],
+    summary="Obtener historial de compras propio",
+    tags=["Ventas"]
+)
+def read_mis_ventas(
+    db: Connection = Depends(get_db),
+    current_user: Cliente = Depends(get_current_user) # <-- Esto asegura que sea el usuario logueado
+):
+    """
+    Obtiene el historial de compras del usuario autenticado.
+    """
+    ventas = crud_ventas.get_ventas_by_cliente(db=db, cliente_id=current_user.id_cliente)
+    return ventas
+
 # --- Endpoint para LEER una venta específica por ID ---
 @router.get(
     "/api/ventas/{venta_id}", 
@@ -96,19 +113,3 @@ def read_venta(
     if db_venta is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Venta no encontrada")
     return db_venta
-
-@router.get(
-    "/api/ventas/mis-compras", 
-    response_model=List[Venta],
-    summary="Obtener historial de compras propio",
-    tags=["Ventas"]
-)
-def read_mis_ventas(
-    db: Connection = Depends(get_db),
-    current_user: Cliente = Depends(get_current_user) # <-- Esto asegura que sea el usuario logueado
-):
-    """
-    Obtiene el historial de compras del usuario autenticado.
-    """
-    ventas = crud_ventas.get_ventas_by_cliente(db=db, cliente_id=current_user.id_cliente)
-    return ventas
