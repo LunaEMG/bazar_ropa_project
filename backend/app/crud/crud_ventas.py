@@ -3,6 +3,7 @@ from app.schemas import VentaCreate
 from datetime import date 
 import psycopg 
 from psycopg import Connection 
+from decimal import Decimal
 
 # Importación de la función auxiliar para conversión de filas
 from .crud_productos import row_to_dict 
@@ -24,7 +25,7 @@ def create_venta(db: Connection, venta_data: VentaCreate):
     
     # 1. Ya no llamamos a get_db_connection() ni cerramos la conexión.
     
-    monto_total_calculado = 0.0
+    monto_total_calculado = Decimal(0.0)
     
     # Lista para guardar los detalles con el precio verificado de la BD
     detalles_con_precio = [] 
@@ -61,7 +62,7 @@ def create_venta(db: Connection, venta_data: VentaCreate):
                     raise ValueError(f"Stock insuficiente para '{nombre_producto}'. Solicitados: {detalle.cantidad}, Disponibles: {stock_actual}")
                 
                 # CORRECCIÓN DE SEGURIDAD: Usamos precio_bd para el total
-                monto_total_calculado += detalle.cantidad * float(precio_bd)
+                monto_total_calculado += Decimal(detalle.cantidad) * Decimal(precio_bd)
                 
                 # Guardamos el detalle con el precio correcto para usarlo después
                 detalles_con_precio.append({
