@@ -246,3 +246,39 @@ def get_all_ventas(db: Connection):
             
     # Convertir el diccionario de ventas de nuevo a una lista
     return list(ventas_dict.values())
+
+
+def get_ventas_by_cliente(db: Connection, cliente_id: int):
+    """
+    Obtiene las ventas realizadas por un cliente específico.
+    """
+    ventas = [] 
+    try:
+        with db.cursor() as cur:
+            # Filtramos por v.id_cliente
+            cur.execute("""
+                SELECT 
+                    v.id_venta, v.id_cliente, v.fecha, v.monto_total, 
+                    c.nombre AS nombre_cliente
+                FROM venta v
+                LEFT JOIN cliente c ON v.id_cliente = c.id_cliente
+                WHERE v.id_cliente = %s
+                ORDER BY v.fecha DESC, v.id_venta DESC
+            """, (cliente_id,))
+            
+            ventas_rows = cur.fetchall()
+            
+            # Reutilizamos lógica para obtener detalles
+            column_names = [desc[0] for desc in cur.description]
+            
+            for row in ventas_rows:
+                venta_dict = dict(zip(column_names, row))
+                venta_id = venta_dict['id_venta']
+                # Reutilizamos tu función auxiliar existente
+                venta_dict['detalles'] = get_detalles_for_venta(cur, venta_id)
+                ventas.append(venta_dict)
+                
+    except (Exception, psycopg.Error) as error:
+        print(f"Error al obtener ventas del cliente {cliente_id}: {error}")
+            
+    return ventas
