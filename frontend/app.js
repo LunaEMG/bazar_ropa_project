@@ -1227,8 +1227,9 @@ document.addEventListener("DOMContentLoaded", () => {
             idClienteParaVenta = currentUserId;
 
         } else {
-            // Visualización (Aunque el botón debería estar deshabilitado)
-            mostrarMensaje(compraMensaje, "Debes iniciar sesión para comprar.", false);
+            // Visualización: mostrar modal de login
+            alert("Por favor, inicia sesión para completar tu compra.");
+            document.getElementById('modal-login').style.display = 'block';
             return;
         }
 
@@ -1278,6 +1279,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 cargarHistorialVentas();
                 cargarReporteBajoStock();
                 cargarReporteVentasCliente();
+            } else if (userRole === 'usuario') {
+                // Recargar "Mis Compras" para usuarios regulares
+                cargarMisCompras();
             }
 
         } catch (error) {
@@ -1478,11 +1482,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (esVisualizacion) {
             btnFinalizar.textContent = "Iniciar sesión para comprar";
             btnFinalizar.disabled = false; // Habilitarlo para que puedan hacer click
-            // Quitamos listeners anteriores y ponemos uno nuevo temporal
-            btnFinalizar.onclick = () => {
-                alert("Por favor, inicia sesión para completar tu compra.");
-                document.getElementById('modal-login').style.display = 'block';
-            };
 
         } else if (esUsuario) {
             btnFinalizar.textContent = "Finalizar Compra";
