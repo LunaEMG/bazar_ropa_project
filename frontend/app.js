@@ -596,14 +596,15 @@ document.addEventListener("DOMContentLoaded", () => {
             btnFinalizarCompra.disabled = false;
         }
         carritoTotalSpan.textContent = total.toFixed(2);
-    }/** Maneja el clic en "Añadir al Carrito" (funciona como un Toggle/Añadir). */
-    function handleAddCarritoClick(event) {
+    }
 
+    /** Maneja el clic en "Añadir al Carrito" (funciona como un Toggle/Añadir). */
+    function handleAddCarritoClick(event) {
         if (userRole === 'visualizacion') {
-            alert("âš ï¸ Registrate o inicia sesión para agregar productos al carrito.")
+            alert("⚠️ Registrate o inicia sesión para agregar productos al carrito.");
+            document.getElementById('modal-login').style.display = 'block';
+            return;
         }
-        document.getElementById('modal-login').style.display = 'block';
-        return;
 
         const button = event.target;
         const idProducto = parseInt(button.dataset.id);
