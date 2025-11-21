@@ -1543,28 +1543,31 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnShowRegistro) btnShowRegistro.addEventListener('click', () => {
         document.getElementById('modal-registro').style.display = 'block';
     });
+    if (btnCloseRegistro) btnCloseRegistro.addEventListener('click', () => {
+        document.getElementById('modal-registro').style.display = 'none';
+    });
 
-// Comprueba si ya existe un token en localStorage al cargar la pÃ¡gina
-if (localStorage.getItem('authToken')) {
-    try {
-        // Si hay token, intenta decodificarlo para obtener el rol
-        const token = localStorage.getItem('authToken');
-        const payload = parseJwt(token);
-        // Valida si el token ha expirado
-        if (payload.exp * 1000 < Date.now()) {
-            throw new Error("Token expirado");
+    // Comprueba si ya existe un token en localStorage al cargar la pÃ¡gina
+    if (localStorage.getItem('authToken')) {
+        try {
+            // Si hay token, intenta decodificarlo para obtener el rol
+            const token = localStorage.getItem('authToken');
+            const payload = parseJwt(token);
+            // Valida si el token ha expirado
+            if (payload.exp * 1000 < Date.now()) {
+                throw new Error("Token expirado");
+            }
+            userRole = payload.rol || 'usuario';
+            currentUserId = payload.id || null;
+        } catch (e) {
+            console.error("Error al validar token almacenado:", e);
+            // Token malo o expirado
+            handleLogout(); // Limpia y establece rol 'visualizacion'
         }
-        userRole = payload.rol || 'usuario';
-        currentUserId = payload.id || null;
-    } catch (e) {
-        console.error("Error al validar token almacenado:", e);
-        // Token malo o expirado
-        handleLogout(); // Limpia y establece rol 'visualizacion'
+    } else {
+        userRole = 'visualizacion';
     }
-} else {
-    userRole = 'visualizacion';
-}
 
-actualizarUIPorRol();
+    actualizarUIPorRol();
 
 }); // Fin del addEventListener DOMContentLoaded
