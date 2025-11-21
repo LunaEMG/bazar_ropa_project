@@ -5,12 +5,12 @@
  * y operaciones CRUD para clientes, proveedores, direcciones y ventas.
  */
 
-// Espera a que el DOM estÃ© completamente cargado.
+// Espera a que el DOM esté completamente cargado.
 document.addEventListener("DOMContentLoaded", () => {
 
-    // --- ConfiguraciÃ³n ---
+    // --- Configuración ---
     /** URL base de la API backend desplegada. */
-    const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; //https://bazar-ropa-project-lunaemg.onrender.com
+    const API_URL = 'http://localhost:8000'; // 'https://bazar-ropa-project-lunaemg.onrender.com';
 
     // Referencias a elementos clave del DOM.
     const listaDeProductos = document.getElementById('productos-lista');
@@ -54,16 +54,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const detallesCalzado = document.getElementById('detalles-calzado');
     const detallesAccesorios = document.getElementById('detalles-accesorios');
 
-    // --- Estado de la AplicaciÃ³n ---
+    // --- Estado de la Aplicación ---
     /** Almacena los items del carrito: { id_producto, nombre, precio, cantidad } */
     let carrito = [];
-    /** Almacena el ID del cliente seleccionado para gestiÃ³n de direcciones. */
+    /** Almacena el ID del cliente seleccionado para gestión de direcciones. */
     let clienteSeleccionadoId = null;
 
 
     // --- Funciones Auxiliares ---
 
-    /** Muestra un mensaje temporal (Ã©xito/error) en un elemento DOM. */
+    /** Muestra un mensaje temporal (éxito/error) en un elemento DOM. */
     function mostrarMensaje(elemento, mensaje, exito = true) {
         if (!elemento) { console.warn("Elemento para mensaje no encontrado:", elemento); return; }
         elemento.textContent = mensaje;
@@ -76,12 +76,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 3500);
     }
 
-    /** Realiza una peticiÃ³n fetch genÃ©rica con manejo de errores bÃ¡sico. */
+    /** Realiza una petición fetch genérica con manejo de errores básico. */
     async function fetchData(url, options = {}) {
 
         const token = localStorage.getItem('authToken');
 
-        // Si tenemos un token, lo aÃ±adimos a la cabecera 'Authorization'
+        // Si tenemos un token, lo añadimos a la cabecera 'Authorization'
         if (token) {
             if (!options.headers) {
                 options.headers = {};
@@ -91,8 +91,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             const response = await fetch(url, options);
-            if (response.status === 401 || response.status === 403) {
-                console.warn("Acceso no autorizado. Cerrando sesiÃ³n...");
+            if (response.status === 401) {
+                console.warn("Acceso no autorizado. Cerrando sesión...");
                 handleLogout();
             }
             if (!response.ok) {
@@ -116,9 +116,9 @@ document.addEventListener("DOMContentLoaded", () => {
     /**
      * @function cargarProductos
      * @description Carga y muestra la lista de productos (ACTUALIZADO CON ROLES).
-     * - Rol VisualizaciÃ³n: Ve botones "AÃ±adir" deshabilitados.
-     * - Rol Usuario: Ve botones "AÃ±adir" habilitados.
-     * - Rol Admin: Ve botones "AÃ±adir", "Editar" y "Eliminar" habilitados.
+     * - Rol Visualización: Ve botones "Añadir" deshabilitados.
+     * - Rol Usuario: Ve botones "Añadir" habilitados.
+     * - Rol Admin: Ve botones "Añadir", "Editar" y "Eliminar" habilitados.
      */
     async function cargarProductos() {
         if (!listaDeProductos) return;
@@ -167,13 +167,13 @@ document.addEventListener("DOMContentLoaded", () => {
                             `;
                 }
 
-                // 2. BotÃ³n de AÃ±adir al Carrito
+                // 2. Botón de Añadir al Carrito
                 const deshabilitado = esVisualizacion ? 'disabled' : '';
 
                 // 3. Montaje del HTML
                 item.innerHTML = `
                             <h3>${producto.nombre}</h3>
-                            <p>${producto.descripcion || 'Sin descripciÃ³n'}</p>
+                            <p>${producto.descripcion || 'Sin descripción'}</p>
                             
                             ${detallesHTML}
                             
@@ -187,13 +187,13 @@ document.addEventListener("DOMContentLoaded", () => {
                                     data-id="${producto.id_producto}" 
                                     data-nombre="${producto.nombre}" 
                                     data-precio="${producto.precio}">
-                                    AÃ±adir
+                                    Añadir
                                 </button>
                                 ${botonesAdminHTML}
                             </div>
                         `;
 
-                // Listener AÃ±adir
+                // Listener Añadir
                 item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick);
 
                 // Listeners de Admin
@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 li.innerHTML = `
                     <div class="item-info">
                         <span>${cliente.nombre}</span> 
-                        <span>${cliente.telefono || 'Sin telÃ©fono'}</span>
+                        <span>${cliente.telefono || 'Sin teléfono'}</span>
                     </div>
                     <div class="item-acciones">
                         <button class="btn-accion btn-ver-direcciones" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre}">Direcciones</button>
@@ -240,13 +240,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         <button class="btn-accion btn-eliminar-cliente" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre}">Eliminar</button>
                     </div>
                 `;
-                // AsignaciÃ³n de Listeners de Clientes
+                // Asignación de Listeners de Clientes
                 li.querySelector('.btn-ver-direcciones').addEventListener('click', handleVerDireccionesClick);
                 li.querySelector('.btn-editar-cliente').addEventListener('click', handleEditarClienteClick);
                 li.querySelector('.btn-eliminar-cliente').addEventListener('click', handleDeleteClienteClick);
                 ul.appendChild(li);
 
-                // AÃ±adir al selector
+                // Añadir al selector
                 const option = document.createElement('option'); option.value = cliente.id_cliente; option.textContent = cliente.nombre;
                 selectorCliente.appendChild(option);
             });
@@ -258,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /** Carga y muestra la lista de proveedores (Corregido listener). */
     async function cargarProveedores() {
-        // AÃ±ade el selector del formulario de productos a la comprobaciÃ³n
+        // Añade el selector del formulario de productos a la comprobación
         if (!listaDeProveedores || !selectorProveedorProducto) return;
 
         listaDeProveedores.innerHTML = '<p>Cargando proveedores...</p>';
@@ -271,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
             listaDeProveedores.innerHTML = '';
             if (!proveedores || proveedores.length === 0) {
                 listaDeProveedores.innerHTML = '<p>No hay proveedores registrados.</p>';
-                // AsegÃºrate de que el selector tambiÃ©n lo refleje
+                // Asegúrate de que el selector también lo refleje
                 selectorProveedorProducto.innerHTML = '<option value="">No hay proveedores</option>';
                 return;
             }
@@ -282,7 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 li.innerHTML = `
                     <div class="item-info">
                         <span>${proveedor.nombre}</span> 
-                        <span>${proveedor.telefono || 'Sin telÃ©fono'}</span>
+                        <span>${proveedor.telefono || 'Sin teléfono'}</span>
                     </div>
                     <div class="item-acciones">
                          <button class="btn-accion btn-editar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}" data-telefono="${proveedor.telefono || ''}">Editar</button>
@@ -295,7 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 ul.appendChild(li);
 
-                // --- MODIFICADO: AÃ±adir al selector del formulario de productos ---
+                // --- MODIFICADO: Añadir al selector del formulario de productos ---
                 const option = document.createElement('option');
                 option.value = proveedor.id_proveedor;
                 option.textContent = proveedor.nombre;
@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    /** Carga y muestra las direcciones de un cliente especÃ­fico. */
+    /** Carga y muestra las direcciones de un cliente específico. */
     async function cargarDireccionesCliente(clienteId) {
         if (!listaDireccionesCliente) return;
         listaDireccionesCliente.innerHTML = '<p>Cargando direcciones...</p>';
@@ -339,7 +339,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 `;
 
-                // AÃ±adir listeners para los nuevos botones
+                // Añadir listeners para los nuevos botones
                 li.querySelector('.btn-editar-direccion').addEventListener('click', handleEditarDireccionClick);
                 li.querySelector('.btn-eliminar-direccion').addEventListener('click', handleDeleteDireccionClick);
 
@@ -370,13 +370,13 @@ document.addEventListener("DOMContentLoaded", () => {
             // Itera sobre las ventas (vienen ordenadas por fecha desde el backend)
             ventas.forEach(venta => {
                 const li = document.createElement('li');
-                li.className = 'venta-item'; // (AÃ±adiremos este estilo en CSS)
+                li.className = 'venta-item'; // (Añadiremos este estilo en CSS)
 
                 const nombreClienteMostrado = venta.nombre_cliente
                     ? `<strong>${venta.nombre_cliente}</strong> (ID: ${venta.id_cliente})`
                     : '<strong>(Cliente Eliminado)</strong>';
 
-                // Formatea la fecha para que sea mÃ¡s legible
+                // Formatea la fecha para que sea más legible
                 const fechaFormateada = new Date(venta.fecha).toLocaleDateString('es-ES', {
                     year: 'numeric', month: 'long', day: 'numeric'
                 });
@@ -469,7 +469,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // 1. FunciÃ³n para cargar mis compras
+    // 1. Función para cargar mis compras
     async function cargarMisCompras() {
         const contenedor = document.getElementById('mis-compras-lista');
         if (!contenedor) return;
@@ -479,7 +479,7 @@ document.addEventListener("DOMContentLoaded", () => {
             contenedor.innerHTML = '';
 
             if (!ventas || ventas.length === 0) {
-                contenedor.innerHTML = '<p>AÃºn no has realizado compras.</p>';
+                contenedor.innerHTML = '<p>Aún no has realizado compras.</p>';
                 return;
             }
 
@@ -511,9 +511,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Funciones de LÃ³gica de UI ---
+    // --- Funciones de Lógica de UI ---
 
-    /** Muestra la secciÃ³n de direcciones para un cliente especÃ­fico. */
+    /** Muestra la sección de direcciones para un cliente específico. */
     function mostrarSeccionDirecciones(clienteId, nombreCliente) {
         if (!direccionesClienteDiv || !nombreClienteSeleccionadoSpan || !idClienteDireccionInput) return;
         clienteSeleccionadoId = clienteId;
@@ -524,7 +524,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cargarDireccionesCliente(clienteId);
     }
 
-    /** Muestra el modal de ediciÃ³n de cliente con los datos precargados. */
+    /** Muestra el modal de edición de cliente con los datos precargados. */
     function mostrarModalEditarCliente(clienteId, nombre, telefono) {
         if (!modalEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput) return;
         editClienteIdInput.value = clienteId;
@@ -537,11 +537,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // Ajuste visual para el modal:
         const modalTitle = modalEditarCliente.querySelector('h3');
         if (modalTitle) modalTitle.textContent = "Editar Cliente";
-        // AÃ±adir una clase al formulario para diferenciar el manejador de envÃ­o
+        // Añadir una clase al formulario para diferenciar el manejador de envío
         formEditarCliente.setAttribute('data-target-entity', 'cliente');
     }
 
-    /** Muestra el modal de ediciÃ³n de proveedor con los datos precargados. */
+    /** Muestra el modal de edición de proveedor con los datos precargados. */
     function mostrarModalEditarProveedor(proveedorId, nombre, telefono) {
         if (!modalEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput) return;
 
@@ -554,13 +554,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // Ajuste visual para el modal:
         const modalTitle = modalEditarCliente.querySelector('h3');
         if (modalTitle) modalTitle.textContent = "Editar Proveedor";
-        // AÃ±adir una clase al formulario para diferenciar el manejador de envÃ­o
+        // Añadir una clase al formulario para diferenciar el manejador de envío
         formEditarCliente.setAttribute('data-target-entity', 'proveedor');
 
         modalEditarCliente.style.display = 'block';
     }
 
-    /** Oculta el modal de ediciÃ³n. */
+    /** Oculta el modal de edición. */
     function ocultarModalEditarCliente() {
         if (modalEditarCliente) {
             modalEditarCliente.style.display = 'none';
@@ -574,7 +574,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!carritoItemsDiv || !carritoTotalSpan || !btnFinalizarCompra) return;
         carritoItemsDiv.innerHTML = '';
         let total = 0;
-        if (carrito.length === 0) { carritoItemsDiv.innerHTML = '<p>El carrito estÃ¡ vacÃ­o.</p>'; btnFinalizarCompra.disabled = true; }
+        if (carrito.length === 0) { carritoItemsDiv.innerHTML = '<p>El carrito está vacío.</p>'; btnFinalizarCompra.disabled = true; }
         else {
             carrito.forEach(item => {
                 const itemDiv = document.createElement('div');
@@ -588,7 +588,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                     <span class="item-precio">$${(item.precio * item.cantidad).toFixed(2)}</span>
                 `;
-                // AÃ±adimos listeners a los nuevos botones de cantidad
+                // Añadimos listeners a los nuevos botones de cantidad
                 itemDiv.querySelector('.btn-decrease-qty').addEventListener('click', handleDecreaseQuantity);
                 itemDiv.querySelector('.btn-increase-qty').addEventListener('click', handleIncreaseQuantity);
                 carritoItemsDiv.appendChild(itemDiv); total += item.precio * item.cantidad;
@@ -596,11 +596,11 @@ document.addEventListener("DOMContentLoaded", () => {
             btnFinalizarCompra.disabled = false;
         }
         carritoTotalSpan.textContent = total.toFixed(2);
-    }/** Maneja el clic en "AÃ±adir al Carrito" (funciona como un Toggle/AÃ±adir). */
+    }/** Maneja el clic en "Añadir al Carrito" (funciona como un Toggle/Añadir). */
     function handleAddCarritoClick(event) {
 
         if (userRole === 'visualizacion') {
-            alert("âš ï¸ Registrate o inicia sesiÃ³n para agregar productos al carrito.")
+            alert("âš ï¸ Registrate o inicia sesión para agregar productos al carrito.")
         }
         document.getElementById('modal-login').style.display = 'block';
         return;
@@ -619,7 +619,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderizarCarrito(); // Actualiza la vista
     }
 
-    /** Maneja el clic en el botÃ³n "X" para remover item del carrito. */
+    /** Maneja el clic en el botón "X" para remover item del carrito. */
     function handleRemoveCarritoClick(event) {
         const button = event.target;
         const idProducto = parseInt(button.dataset.id);
@@ -627,7 +627,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderizarCarrito();
     }
 
-    /** Maneja el clic en el botÃ³n "-" para reducir la cantidad o eliminar */
+    /** Maneja el clic en el botón "-" para reducir la cantidad o eliminar */
     function handleDecreaseQuantity(event) {
         const idProducto = parseInt(event.target.dataset.id);
         const itemEnCarrito = carrito.find(item => item.id_producto === idProducto);
@@ -643,7 +643,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderizarCarrito(); // Actualiza la vista
     }
 
-    /** Maneja el clic en el botÃ³n "+" para aumentar la cantidad */
+    /** Maneja el clic en el botón "+" para aumentar la cantidad */
     function handleIncreaseQuantity(event) {
         const idProducto = parseInt(event.target.dataset.id);
         const itemEnCarrito = carrito.find(item => item.id_producto === idProducto);
@@ -660,7 +660,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /**
      * @function handleTipoProductoChange
      * @description Muestra u oculta los campos de detalles de subtipo
-     * basado en la selecciÃ³n del usuario.
+     * basado en la selección del usuario.
      */
     function handleTipoProductoChange() {
         // Oculta todos los contenedores de detalles
@@ -692,7 +692,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /**
     * @function handleEditarProductoClick
     * @description Obtiene los datos completos de un producto y llena el
-    * formulario de "Registrar Producto" para entrar en modo ediciÃ³n.
+    * formulario de "Registrar Producto" para entrar en modo edición.
     */
     async function handleEditarProductoClick(productoId) {
         try {
@@ -710,7 +710,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // 3. Llenar los campos de subtipo
 
-            // --- Â¡CORRECCIÃ“N AÃ‘ADIDA AQUÃ! ---
+            // --- ¡CORRECCIÃ“N AÑADIDA AQUÃ! ---
             // Almacena el tipo en el formulario antes de deshabilitar el select
             formNuevoProducto.setAttribute('data-editing-type', producto.tipo_producto);
 
@@ -732,13 +732,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById('accesorio-dimensiones').value = producto.detalles_subtipo.dimensiones || '';
             }
 
-            // 4. Poner el formulario en "Modo EdiciÃ³n"
+            // 4. Poner el formulario en "Modo Edición"
 
-            // Busca la <section> mÃ¡s cercana (padre) y luego busca el <h2> dentro de ella.
+            // Busca la <section> más cercana (padre) y luego busca el <h2> dentro de ella.
             formNuevoProducto.closest('section').querySelector('h2').textContent = "Editar Producto";
 
             formNuevoProducto.querySelector('button[type="submit"]').textContent = "Actualizar Producto";
-            btnCancelarEdicionProducto.style.display = 'inline-block'; // Muestra el botÃ³n de cancelar
+            btnCancelarEdicionProducto.style.display = 'inline-block'; // Muestra el botón de cancelar
 
             // Scroll para que el usuario vea el formulario
             formNuevoProducto.scrollIntoView({ behavior: 'smooth' });
@@ -761,14 +761,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         selectorTipoProducto.disabled = false; // Rehabilita el selector de tipo
 
-        // Busca la <section> mÃ¡s cercana (padre) y luego busca el <h2> dentro de ella.
+        // Busca la <section> más cercana (padre) y luego busca el <h2> dentro de ella.
         formNuevoProducto.closest('section').querySelector('h2').textContent = "Registrar Nuevo Producto";
 
         formNuevoProducto.querySelector('button[type="submit"]').textContent = "Registrar Producto";
-        btnCancelarEdicionProducto.style.display = 'none'; // Oculta el botÃ³n de cancelar
+        btnCancelarEdicionProducto.style.display = 'none'; // Oculta el botón de cancelar
     }
 
-    /** Resetea el formulario de direcciÃ³n al estado "Crear". */
+    /** Resetea el formulario de dirección al estado "Crear". */
     function resetFormularioDireccion() {
         document.getElementById('id-direccion-edit').value = '';
         formNuevaDireccion.reset(); // Limpia los campos de texto
@@ -778,12 +778,12 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('id-cliente-direccion').value = clienteSeleccionadoId;
         }
 
-        formNuevaDireccion.parentElement.querySelector('h4').textContent = "AÃ±adir Nueva DirecciÃ³n";
-        formNuevaDireccion.querySelector('button[type="submit"]').textContent = "AÃ±adir DirecciÃ³n";
+        formNuevaDireccion.parentElement.querySelector('h4').textContent = "Añadir Nueva Dirección";
+        formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Añadir Dirección";
         document.getElementById('btn-cancelar-edicion-direccion').style.display = 'none';
     }
 
-    // --- (AÃ±ade esto al final del archivo, en "InicializaciÃ³n y AsignaciÃ³n de Eventos") ---
+    // --- (Añade esto al final del archivo, en "Inicialización y Asignación de Eventos") ---
     const btnCancelarEdicionDireccion = document.getElementById('btn-cancelar-edicion-direccion');
     if (btnCancelarEdicionDireccion) {
         btnCancelarEdicionDireccion.addEventListener('click', resetFormularioDireccion);
@@ -791,8 +791,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /**
     * @function handleNuevoProductoSubmit
-    * @description Maneja el envÃ­o del formulario.
-    * Detecta si estÃ¡ en modo "Crear" (POST) o "Editar" (PUT)
+    * @description Maneja el envío del formulario.
+    * Detecta si está en modo "Crear" (POST) o "Editar" (PUT)
     * basado en el input oculto 'producto-id-edit'.
     */
     async function handleNuevoProductoSubmit(event) {
@@ -803,12 +803,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const editId = productoIdEditInput.value ? parseInt(productoIdEditInput.value) : null;
         const isEditMode = editId !== null;
 
-        // ðŸ”§ SoluciÃ³n: forzar tipo de producto incluso si el atributo no existe
+        // ðŸ”§ Solución: forzar tipo de producto incluso si el atributo no existe
         let tipoProducto = formNuevoProducto.getAttribute('data-editing-type') || selectorTipoProducto.value;
 
         if (!tipoProducto) {
-            mostrarMensaje(productoMensaje, "Error: No se detectÃ³ el tipo de producto.", false);
-            console.error("No se encontrÃ³ tipo_producto en el formulario.");
+            mostrarMensaje(productoMensaje, "Error: No se detectó el tipo de producto.", false);
+            console.error("No se encontró tipo_producto en el formulario.");
             return;
         }
 
@@ -844,12 +844,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     dimensiones: document.getElementById('accesorio-dimensiones').value || null
                 };
             } else {
-                throw new Error(`Tipo de producto no vÃ¡lido: ${tipoProducto}`);
+                throw new Error(`Tipo de producto no válido: ${tipoProducto}`);
             }
 
             if (!payload.id_proveedor) throw new Error("Debe seleccionar un proveedor.");
-            if (payload.precio < 0 || isNaN(payload.precio)) throw new Error("Precio no vÃ¡lido.");
-            if (payload.cantidad_stock < 0 || isNaN(payload.cantidad_stock)) throw new Error("Stock no vÃ¡lido.");
+            if (payload.precio < 0 || isNaN(payload.precio)) throw new Error("Precio no válido.");
+            if (payload.cantidad_stock < 0 || isNaN(payload.cantidad_stock)) throw new Error("Stock no válido.");
 
         } catch (error) {
             mostrarMensaje(productoMensaje, `Error al leer datos del formulario: ${error.message}`, false);
@@ -891,7 +891,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Manejadores de Eventos CRUD ---
 
-    /** Maneja el clic en "Ver/AÃ±adir Direcciones". */
+    /** Maneja el clic en "Ver/Añadir Direcciones". */
     function handleVerDireccionesClick(event) {
         const button = event.target;
         const clienteId = parseInt(button.dataset.id);
@@ -917,7 +917,7 @@ document.addEventListener("DOMContentLoaded", () => {
         mostrarModalEditarProveedor(proveedorId, nombre, telefono);
     }
 
-    /** Maneja el clic en "Editar DirecciÃ³n". */
+    /** Maneja el clic en "Editar Dirección". */
     function handleEditarDireccionClick(event) {
         const button = event.target;
         const dirId = button.dataset.idDir;
@@ -932,8 +932,8 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('cp-direccion').value = cp;
 
         // Cambia la UI del formulario
-        formNuevaDireccion.parentElement.querySelector('h4').textContent = "Editar DirecciÃ³n";
-        formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Actualizar DirecciÃ³n";
+        formNuevaDireccion.parentElement.querySelector('h4').textContent = "Editar Dirección";
+        formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Actualizar Dirección";
         document.getElementById('btn-cancelar-edicion-direccion').style.display = 'inline-block';
     }
 
@@ -945,7 +945,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const clienteId = parseInt(button.dataset.id);
         const nombreCliente = button.dataset.nombre;
 
-        if (!confirm(`Â¿EstÃ¡s seguro de que deseas eliminar al cliente "${nombreCliente}"?`)) {
+        if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombreCliente}"?`)) {
             return;
         }
 
@@ -953,7 +953,7 @@ document.addEventListener("DOMContentLoaded", () => {
             await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
                 method: 'DELETE',
             });
-            mostrarMensaje(clienteMensaje, `Cliente "${nombreCliente}" eliminado con Ã©xito.`, true);
+            mostrarMensaje(clienteMensaje, `Cliente "${nombreCliente}" eliminado con éxito.`, true);
             cargarClientes();
             if (clienteSeleccionadoId === clienteId && direccionesClienteDiv) {
                 direccionesClienteDiv.style.display = 'none';
@@ -964,13 +964,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    /** Maneja el clic en "Eliminar DirecciÃ³n". */
+    /** Maneja el clic en "Eliminar Dirección". */
     async function handleDeleteDireccionClick(event) {
         const button = event.target;
         const direccionId = parseInt(button.dataset.idDir);
         const clienteId = parseInt(button.dataset.idCli);
 
-        if (!confirm(`Â¿EstÃ¡s seguro de que deseas eliminar esta direcciÃ³n?`)) {
+        if (!confirm(`¿Estás seguro de que deseas eliminar esta dirección?`)) {
             return;
         }
 
@@ -978,10 +978,10 @@ document.addEventListener("DOMContentLoaded", () => {
             await fetchData(`${API_URL}/api/clientes/${clienteId}/direcciones/${direccionId}`, {
                 method: 'DELETE',
             });
-            mostrarMensaje(direccionMensaje, `DirecciÃ³n eliminada con Ã©xito.`, true);
+            mostrarMensaje(direccionMensaje, `Dirección eliminada con éxito.`, true);
             cargarDireccionesCliente(clienteId); // Recarga la lista de direcciones
         } catch (error) {
-            mostrarMensaje(direccionMensaje, `Error al eliminar direcciÃ³n: ${error.message}`, false);
+            mostrarMensaje(direccionMensaje, `Error al eliminar dirección: ${error.message}`, false);
         }
     }
 
@@ -992,7 +992,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const proveedorId = parseInt(button.dataset.id);
         const nombreProveedor = button.dataset.nombre;
 
-        if (!confirm(`Â¿EstÃ¡s seguro de que deseas eliminar al proveedor "${nombreProveedor}"?`)) {
+        if (!confirm(`¿Estás seguro de que deseas eliminar al proveedor "${nombreProveedor}"?`)) {
             return;
         }
 
@@ -1002,9 +1002,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 method: 'DELETE',
             });
             // Ã‰xito (status 204)
-            mostrarMensaje(proveedorMensaje, `Proveedor "${nombreProveedor}" eliminado con Ã©xito.`, true);
+            mostrarMensaje(proveedorMensaje, `Proveedor "${nombreProveedor}" eliminado con éxito.`, true);
             cargarProveedores(); // Recarga la lista de proveedores
-            // Opcional: Recargar productos ya que los productos de ese proveedor podrÃ­an haberse quedado huÃ©rfanos
+            // Opcional: Recargar productos ya que los productos de ese proveedor podrían haberse quedado huérfanos
             cargarProductos();
         } catch (error) {
             // Muestra el mensaje de error DETALLADO que viene de la API (ej. 409 Conflict)
@@ -1018,7 +1018,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const productoId = parseInt(button.dataset.id);
         const nombreProducto = button.dataset.nombre;
 
-        if (!confirm(`Â¿EstÃ¡s seguro de que deseas eliminar el producto "${nombreProducto}"?`)) {
+        if (!confirm(`¿Estás seguro de que deseas eliminar el producto "${nombreProducto}"?`)) {
             return;
         }
 
@@ -1026,16 +1026,16 @@ document.addEventListener("DOMContentLoaded", () => {
             await fetchData(`${API_URL}/api/productos/${productoId}`, {
                 method: 'DELETE',
             });
-            // Mensaje de Ã©xito (usaremos el de 'productoMensaje' del form de crear producto)
-            mostrarMensaje(productoMensaje, `Producto "${nombreProducto}" eliminado con Ã©xito.`, true);
-            cargarProductos(); // Recarga el catÃ¡logo
+            // Mensaje de éxito (usaremos el de 'productoMensaje' del form de crear producto)
+            mostrarMensaje(productoMensaje, `Producto "${nombreProducto}" eliminado con éxito.`, true);
+            cargarProductos(); // Recarga el catálogo
         } catch (error) {
-            // MostrarÃ¡ error 409 si el producto estÃ¡ en una venta (lo cual es correcto)
+            // Mostrará error 409 si el producto está en una venta (lo cual es correcto)
             mostrarMensaje(productoMensaje, `Error al eliminar producto: ${error.message}`, false);
         }
     }
 
-    /** Maneja el envÃ­o del formulario de ediciÃ³n de cliente/proveedor. */
+    /** Maneja el envío del formulario de edición de cliente/proveedor. */
     async function handleEditarSubmit(event) {
         event.preventDefault();
         // Obtiene la entidad objetivo ('cliente' o 'proveedor') del atributo data-target-entity
@@ -1048,9 +1048,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const nombre = editNombreClienteInput.value;
         const telefono = editTelefonoClienteInput.value || null;
 
-        // VerificaciÃ³n de ID vÃ¡lida
+        // Verificación de ID válida
         if (isNaN(id) || id <= 0) {
-            mostrarMensaje(editClienteMensaje, `Error: ID de ${entityType} no vÃ¡lido (${id}).`, false);
+            mostrarMensaje(editClienteMensaje, `Error: ID de ${entityType} no válido (${id}).`, false);
             return;
         }
 
@@ -1060,15 +1060,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
 
-            // ConstrucciÃ³n de la URL: /api/{entidad en plural}s/{id}
+            // Construcción de la URL: /api/{entidad en plural}s/{id}
             let pluralEntity = entityType;
             if (entityType === 'proveedor') pluralEntity = 'proveedores';
             else pluralEntity = `${entityType}s`;
 
             const endpoint = `${API_URL}/api/${pluralEntity}/${id}`;
 
-            console.log(`[EDIT] Enviando PUT a: ${endpoint}`); // Log de depuraciÃ³n
-            console.log(`[EDIT] Datos enviados:`, { nombre, telefono }); // Log de depuraciÃ³n
+            console.log(`[EDIT] Enviando PUT a: ${endpoint}`); // Log de depuración
+            console.log(`[EDIT] Datos enviados:`, { nombre, telefono }); // Log de depuración
 
             const actualizado = await fetchData(endpoint, {
                 method: 'PUT',
@@ -1076,7 +1076,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ nombre, telefono }),
             });
 
-            // LÃ³gica de UI segÃºn la entidad editada
+            // Lógica de UI según la entidad editada
             if (entityType === 'cliente') {
                 mostrarMensaje(clienteMensaje, `Cliente "${actualizado.nombre}" actualizado!`, true);
                 cargarClientes();
@@ -1094,7 +1094,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    /** Maneja el envÃ­o del formulario para crear un nuevo cliente. */
+    /** Maneja el envío del formulario para crear un nuevo cliente. */
     async function handleNuevoClienteSubmit(event) {
         event.preventDefault(); if (!formNuevoCliente || !clienteMensaje) return;
         const formData = new FormData(formNuevoCliente); const nombre = formData.get('nombre'); const telefono = formData.get('telefono') || null;
@@ -1106,7 +1106,7 @@ document.addEventListener("DOMContentLoaded", () => {
         finally { submitButton.disabled = false; submitButton.textContent = 'Registrar Cliente'; }
     }
 
-    /** Maneja el envÃ­o del formulario para crear un nuevo proveedor. */
+    /** Maneja el envío del formulario para crear un nuevo proveedor. */
     async function handleNuevoProveedorSubmit(event) {
         event.preventDefault(); if (!formNuevoProveedor || !proveedorMensaje) return;
         const formData = new FormData(formNuevoProveedor); const nombre = formData.get('nombre'); const telefono = formData.get('telefono') || null;
@@ -1120,7 +1120,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /** * @function handleNuevaDireccionSubmit
-     * @description Maneja el envÃ­o del formulario para AÃ‘ADIR o ACTUALIZAR una direcciÃ³n.
+     * @description Maneja el envío del formulario para AÑADIR o ACTUALIZAR una dirección.
      * (ACTUALIZADO CON LÃ“GICA DE ROLES)
      */
     async function handleNuevaDireccionSubmit(event) {
@@ -1134,7 +1134,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let idClienteParaDireccion = null;
 
         if (userRole === 'admin') {
-            // El Admin usa el ID del cliente que seleccionÃ³ de la lista
+            // El Admin usa el ID del cliente que seleccionó de la lista
             // (Esta variable se guarda cuando el admin hace clic en "Direcciones")
             idClienteParaDireccion = clienteSeleccionadoId;
         } else if (userRole === 'usuario') {
@@ -1143,7 +1143,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (idClienteParaDireccion === null) {
-            mostrarMensaje(direccionMensaje, "Error: No se pudo identificar al cliente. Inicia sesiÃ³n de nuevo.", false);
+            mostrarMensaje(direccionMensaje, "Error: No se pudo identificar al cliente. Inicia sesión de nuevo.", false);
             return;
         }
         // --- FIN DE LÃ“GICA DE ROLES ---
@@ -1164,7 +1164,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const submitButton = formNuevaDireccion.querySelector('button[type="submit"]');
         submitButton.disabled = true;
-        submitButton.textContent = isEditMode ? 'Actualizando...' : 'AÃ±adiendo...';
+        submitButton.textContent = isEditMode ? 'Actualizando...' : 'Añadiendo...';
 
         try {
             await fetchData(endpoint, {
@@ -1173,7 +1173,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify(payload),
             });
 
-            mostrarMensaje(direccionMensaje, isEditMode ? 'DirecciÃ³n actualizada!' : 'DirecciÃ³n aÃ±adida!', true);
+            mostrarMensaje(direccionMensaje, isEditMode ? 'Dirección actualizada!' : 'Dirección añadida!', true);
             resetFormularioDireccion(); // Limpia el formulario
 
             // Recarga la lista de direcciones
@@ -1184,7 +1184,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         finally {
             submitButton.disabled = false;
-            // El texto del botÃ³n se restaura en resetFormularioDireccion()
+            // El texto del botón se restaura en resetFormularioDireccion()
         }
     }
 
@@ -1193,15 +1193,15 @@ document.addEventListener("DOMContentLoaded", () => {
      * @function handleFinalizarCompraClick
      * @description Procesa el evento de clic para finalizar una compra.
      * Valida la entrada (cliente y carrito), construye el payload de la venta,
-     * lo envÃ­a a la API, y maneja la respuesta (Ã©xito o error) actualizando la UI.
+     * lo envía a la API, y maneja la respuesta (éxito o error) actualizando la UI.
      * * @async
-     * @returns {void} - Esta funciÃ³n no retorna valores, modifica el DOM y el estado de la app.
+     * @returns {void} - Esta función no retorna valores, modifica el DOM y el estado de la app.
      */
 
     async function handleFinalizarCompraClick() {
 
         if (!btnFinalizarCompra || !compraMensaje) {
-            console.error("Componentes crÃ­ticos del carrito no encontrados.");
+            console.error("Componentes críticos del carrito no encontrados.");
             return;
         }
 
@@ -1220,25 +1220,25 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (userRole === 'usuario') {
             // El Usuario usa su PROPIO ID (guardado en el login)
             if (!currentUserId) {
-                mostrarMensaje(compraMensaje, "Error de sesiÃ³n. Por favor, inicia sesiÃ³n de nuevo.", false);
+                mostrarMensaje(compraMensaje, "Error de sesión. Por favor, inicia sesión de nuevo.", false);
                 return;
             }
             idClienteParaVenta = currentUserId;
 
         } else {
-            // VisualizaciÃ³n (Aunque el botÃ³n deberÃ­a estar deshabilitado)
-            mostrarMensaje(compraMensaje, "Debes iniciar sesiÃ³n para comprar.", false);
+            // Visualización (Aunque el botón debería estar deshabilitado)
+            mostrarMensaje(compraMensaje, "Debes iniciar sesión para comprar.", false);
             return;
         }
 
         // --- FIN DE LÃ“GICA DE ROLES ---
 
         if (carrito.length === 0) {
-            mostrarMensaje(compraMensaje, "El carrito estÃ¡ vacÃ­o.", false);
+            mostrarMensaje(compraMensaje, "El carrito está vacío.", false);
             return;
         }
 
-        // 3. PreparaciÃ³n del Payload
+        // 3. Preparación del Payload
         const ventaData = {
             id_cliente: parseInt(idClienteParaVenta), // <-- Usa la variable correcta
             detalles: carrito.map(item => ({
@@ -1247,12 +1247,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }))
         };
 
-        // 4. GestiÃ³n de Estado UI
+        // 4. Gestión de Estado UI
         btnFinalizarCompra.disabled = true;
         btnFinalizarCompra.textContent = 'Procesando...';
 
         try {
-            // 5. PeticiÃ³n AsÃ­ncrona
+            // 5. Petición Asíncrona
             const ventaCreada = await fetchData(`${API_URL}/api/ventas`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1286,12 +1286,12 @@ document.addEventListener("DOMContentLoaded", () => {
         finally {
             // 8. Limpieza
             btnFinalizarCompra.textContent = 'Finalizar Compra';
-            renderizarCarrito(); // Esto re-habilitarÃ¡ el botÃ³n si aÃºn hay items
+            renderizarCarrito(); // Esto re-habilitará el botón si aún hay items
         }
     }
 
 
-    // Estado global para el rol (Â¡importante!)
+    // Estado global para el rol (¡importante!)
     let userRole = 'visualizacion'; // Rol por defecto
     let currentUserId = null; // ID del usuario logueado
 
@@ -1310,11 +1310,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             return JSON.parse(jsonPayload);
         } catch (e) {
-            throw new Error("Token invÃ¡lido");
+            throw new Error("Token inválido");
         }
     }
 
-    /** Maneja el envÃ­o del formulario de login */
+    /** Maneja el envío del formulario de login */
     async function handleLoginSubmit(event) {
         event.preventDefault();
         const email = document.getElementById('login-email').value;
@@ -1329,7 +1329,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append('password', password);
 
         try {
-            // Nota: NO usamos fetchData aquÃ­ porque el body no es JSON
+            // Nota: NO usamos fetchData aquí porque el body no es JSON
             const response = await fetch(`${API_URL}/api/auth/token`, {
                 method: 'POST',
                 body: formData,
@@ -1340,7 +1340,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!response.ok) {
                 const err = await response.json();
-                throw new Error(err.detail || "Email o contraseÃ±a incorrectos.");
+                throw new Error(err.detail || "Email o contraseña incorrectos.");
             }
 
             const data = await response.json(); // { access_token: "...", ... }
@@ -1357,7 +1357,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 currentUserId = null;
             }
 
-            mostrarMensaje(loginMensaje, "Â¡Bienvenido!", true);
+            mostrarMensaje(loginMensaje, "¡Bienvenido!", true);
             document.getElementById('modal-login').style.display = 'none';
             document.getElementById('form-login').reset();
 
@@ -1372,7 +1372,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    /** Maneja el envÃ­o del formulario de registro */
+    /** Maneja el envío del formulario de registro */
     async function handleRegistroSubmit(event) {
         event.preventDefault();
         const registroMensaje = document.getElementById('registro-mensaje');
@@ -1394,7 +1394,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify(payload)
             });
 
-            mostrarMensaje(registroMensaje, `Â¡Usuario ${nuevoUsuario.nombre} creado! Ahora puedes iniciar sesiÃ³n.`, true);
+            mostrarMensaje(registroMensaje, `¡Usuario ${nuevoUsuario.nombre} creado! Ahora puedes iniciar sesión.`, true);
             document.getElementById('modal-registro').style.display = 'none';
             document.getElementById('form-registro').reset();
 
@@ -1405,19 +1405,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    /** Cierra la sesiÃ³n del usuario */
+    /** Cierra la sesión del usuario */
     function handleLogout() {
         localStorage.removeItem('authToken');
         userRole = 'visualizacion';
         currentUserId = null;
-        // Llama a actualizarUIPorRol para "limpiar" la pÃ¡gina
+        // Llama a actualizarUIPorRol para "limpiar" la página
         actualizarUIPorRol();
-        // Recarga la pÃ¡gina para un estado 100% limpio (opcional pero recomendado)
+        // Recarga la página para un estado 100% limpio (opcional pero recomendado)
         window.location.reload();
     }
 
     /** * Actualiza la UI basado en el rol.
-     * Esta funciÃ³n es la que OCULTA y MUESTRA secciones.
+     * Esta función es la que OCULTA y MUESTRA secciones.
      */
     async function actualizarUIPorRol() {
         const esAdmin = userRole === 'admin';
@@ -1435,7 +1435,7 @@ document.addEventListener("DOMContentLoaded", () => {
             el.style.display = esAdmin ? 'block' : 'none';
         });
 
-        // 3. Saludo y Carga de Datos EspecÃ­ficos
+        // 3. Saludo y Carga de Datos Específicos
         const saludoSpan = document.getElementById('saludo-usuario');
         const selectorCliente = document.getElementById('selector-cliente');
         selectorCliente.innerHTML = '<option value="">Seleccione un cliente...</option>'; // Limpiar
@@ -1452,7 +1452,7 @@ document.addEventListener("DOMContentLoaded", () => {
             cargarReporteVentasCliente();
 
         } else if (esUsuario) {
-            saludoSpan.textContent = `Â¡Hola, usuario!`;
+            saludoSpan.textContent = `¡Hola, usuario!`;
             document.getElementById('seccion-mis-direcciones').style.display = 'block';
             document.getElementById('nombre-cliente-seleccionado').textContent = "tus direcciones";
 
@@ -1464,7 +1464,7 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('seccion-mis-compras').style.display = 'block';
             cargarMisCompras();
 
-        } else { // VisualizaciÃ³n
+        } else { // Visualización
             saludoSpan.textContent = 'Modo Visitante';
             document.getElementById('seccion-mis-direcciones').style.display = 'none';
         }
@@ -1475,11 +1475,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // 5. Carrito
         const btnFinalizar = document.getElementById('btn-finalizar-compra');
         if (esVisualizacion) {
-            btnFinalizar.textContent = "Iniciar sesiÃ³n para comprar";
+            btnFinalizar.textContent = "Iniciar sesión para comprar";
             btnFinalizar.disabled = false; // Habilitarlo para que puedan hacer click
             // Quitamos listeners anteriores y ponemos uno nuevo temporal
             btnFinalizar.onclick = () => {
-                alert("Por favor, inicia sesiÃ³n para completar tu compra.");
+                alert("Por favor, inicia sesión para completar tu compra.");
                 document.getElementById('modal-login').style.display = 'block';
             };
 
@@ -1490,13 +1490,13 @@ document.addEventListener("DOMContentLoaded", () => {
             btnFinalizar.textContent = "Finalizar Compra (Admin)";
             btnFinalizar.disabled = carrito.length === 0;
         }
-        renderizarCarrito(); // Renderiza el carrito (vacÃ­o o no)
+        renderizarCarrito(); // Renderiza el carrito (vacío o no)
     }
 
 
-    // --- InicializaciÃ³n y AsignaciÃ³n de Eventos ---
+    // --- Inicialización y Asignación de Eventos ---
 
-    // Asigna manejadores de eventos a formularios y botones estÃ¡ticos.
+    // Asigna manejadores de eventos a formularios y botones estáticos.
     if (formNuevoCliente) formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
     if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
     if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit);
@@ -1509,7 +1509,7 @@ document.addEventListener("DOMContentLoaded", () => {
         btnCancelarEdicionProducto.addEventListener('click', resetFormularioProducto);
     }
 
-    // Modal de EdiciÃ³n (Admin)
+    // Modal de Edición (Admin)
     if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarSubmit);
     if (cerrarModalClienteBtn) cerrarModalClienteBtn.addEventListener('click', ocultarModalEditarCliente);
     if (modalEditarCliente) {
@@ -1547,7 +1547,7 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modal-registro').style.display = 'none';
     });
 
-    // Comprueba si ya existe un token en localStorage al cargar la pÃ¡gina
+    // Comprueba si ya existe un token en localStorage al cargar la página
     if (localStorage.getItem('authToken')) {
         try {
             // Si hay token, intenta decodificarlo para obtener el rol

@@ -21,6 +21,10 @@ router = APIRouter(
 # --- FUNCIÓN DE VERIFICACIÓN ---
 def verificar_permiso_cliente(cliente_id: int, current_user: Cliente):
     """Verifica que el ID de la ruta coincida con el usuario logueado."""
+    # Permitir acceso si es admin
+    if current_user.rol == 'admin':
+        return
+
     if cliente_id != current_user.id_cliente:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
