@@ -12,6 +12,39 @@ document.addEventListener("DOMContentLoaded", () => {
     /** URL base de la API backend desplegada. */
     const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; // 'http://localhost:8000';
 
+    // --- Loading Utilities ---
+    const loadingOverlay = document.getElementById('loading-overlay');
+
+    /**
+     * Muestra el overlay de loading global
+     */
+    function showLoading() {
+        if (loadingOverlay) loadingOverlay.classList.add('active');
+    }
+
+    /**
+     * Oculta el overlay de loading global
+     */
+    function hideLoading() {
+        if (loadingOverlay) loadingOverlay.classList.remove('active');
+    }
+
+    /**
+     * Activa/desactiva el estado de loading en un botón
+     * @param {HTMLButtonElement} button - El botón a modificar
+     * @param {boolean} isLoading - true para mostrar loading, false para quitarlo
+     */
+    function setButtonLoading(button, isLoading) {
+        if (!button) return;
+        if (isLoading) {
+            button.classList.add('loading');
+            button.disabled = true;
+        } else {
+            button.classList.remove('loading');
+            button.disabled = false;
+        }
+    }
+
     // Referencias a elementos clave del DOM.
     const listaDeProductos = document.getElementById('productos-lista');
     const listaDeClientesContenedor = document.getElementById('clientes-lista-contenedor');

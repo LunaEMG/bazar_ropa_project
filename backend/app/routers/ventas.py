@@ -56,7 +56,7 @@ def create_new_venta(
     
     except ValueError as e: # Captura el error de "Stock insuficiente"
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
 
