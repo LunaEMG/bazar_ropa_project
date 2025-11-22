@@ -22,38 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Las funciones de UI, Auth, Cart y Sales también se importan de sus módulos respectivos
      */
 
-    // --- Loading Utilities ---
-    const loadingOverlay = document.getElementById('loading-overlay');
-
-    /**
-     * Muestra el overlay de loading global
-     */
-    function showLoading() {
-        if (loadingOverlay) loadingOverlay.classList.add('active');
-    }
-
-    /**
-     * Oculta el overlay de loading global
-     */
-    function hideLoading() {
-        if (loadingOverlay) loadingOverlay.classList.remove('active');
-    }
-
-    /**
-     * Activa/desactiva el estado de loading en un botón
-     * @param {HTMLButtonElement} button - El botón a modificar
-     * @param {boolean} isLoading - true para mostrar loading, false para quitarlo
-     */
-    function setButtonLoading(button, isLoading) {
-        if (!button) return;
-        if (isLoading) {
-            button.classList.add('loading');
-            button.disabled = true;
-        } else {
-            button.classList.remove('loading');
-            button.disabled = false;
-        }
-    }
+    // Inicializar módulos al cargar
 
     // Referencias a elementos clave del DOM.
     const listaDeProductos = document.getElementById('productos-lista');
@@ -1590,27 +1559,35 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('modal-registro').style.display = 'none';
     });
 
-    // Comprueba si ya existe un token en localStorage al cargar la página
-    if (localStorage.getItem('authToken')) {
-        try {
-            // Si hay token, intenta decodificarlo para obtener el rol
-            const token = localStorage.getItem('authToken');
-            const payload = parseJwt(token);
-            // Valida si el token ha expirado
-            if (payload.exp * 1000 < Date.now()) {
-                throw new Error("Token expirado");
-            }
-            userRole = payload.rol || 'usuario';
-            currentUserId = payload.id || null;
-        } catch (e) {
-            console.error("Error al validar token almacenado:", e);
-            // Token malo o expirado
-            handleLogout(); // Limpia y establece rol 'visualizacion'
-        }
-    } else {
-        userRole = 'visualizacion';
-    }
+    // === Inicializar Módulos ===
 
+    // 1. Inicializar Cart DOM
+    initCartDOM({
+        carritoItemsDiv,
+        carritoTotalSpan,
+        btnFinalizarCompra
+    });
+
+    // 2. Configurar callback de getUserRole para el cart
+    setGetUserRoleCallback(getUserRole);
+
+    // 3. Verificar token existente (auth module)
+    checkExistingToken();
+
+    // 4. Inicializar event listeners de autenticación
+    initAuthListeners();
+
+    // 5. Inicializar event listeners de ventas
+    initSalesListeners();
+
+    // 6. Configurar callback global para actualizarUIPorRol (usado por auth.js)
+    window.actualizarUIPorRolCallback = actualizarUIPorRol;
+
+    // 7. Exponer currentUserId globalmente para sales.js (temporal)
+    window.currentUserId = currentUserId;
+
+    // 8. Actualizar UI según rol
     actualizarUIPorRol();
 
 }); // Fin del addEventListener DOMContentLoaded
+
