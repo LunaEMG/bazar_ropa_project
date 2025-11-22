@@ -36,7 +36,8 @@ def create_new_venta(
     """
     
     # --- CHEQUEO DE SEGURIDAD ---
-    if venta.id_cliente != current_user.id_cliente:
+    # Si el usuario NO es admin Y intenta comprar para otro ID, lanzamos error.
+    if current_user.rol != 'admin' and venta.id_cliente != current_user.id_cliente:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No puedes realizar una compra para otro cliente."
