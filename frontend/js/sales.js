@@ -144,7 +144,7 @@ export async function cargarMisCompras() {
                     <span class="venta-total">Total: $${parseFloat(compra.monto_total).toFixed(2)}</span>
                 </div>
                 ${compra.detalles ? `<div class="venta-detalles"><h4>Productos:</h4><ul>
-                    ${compra.detalles.map(d => `<li>${d.nombre_producto} - x${d.cantidad} - $${parseFloat(d.subtotal).toFixed(2)}</li>`).join('')}
+                    ${compra.detalles.map(d => `<li>${d.nombre_producto} - x${d.cantidad} - $${(parseFloat(d.cantidad) * parseFloat(d.precio_unitario)).toFixed(2)}</li>`).join('')}
                 </ul></div>` : ''}
             `;
             ul.appendChild(li);
