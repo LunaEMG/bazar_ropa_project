@@ -1308,21 +1308,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-
-    // Listeners para mostrar/ocultar modales de auth
-    if (btnShowLogin) btnShowLogin.addEventListener('click', () => {
-        document.getElementById('modal-login').style.display = 'block';
-    });
-    if (btnCloseLogin) btnCloseLogin.addEventListener('click', () => {
-        document.getElementById('modal-login').style.display = 'none';
-    });
-    if (btnShowRegistro) btnShowRegistro.addEventListener('click', () => {
-        document.getElementById('modal-registro').style.display = 'block';
-    });
-    if (btnCloseRegistro) btnCloseRegistro.addEventListener('click', () => {
-        document.getElementById('modal-registro').style.display = 'none';
-    });
-
     // === Inicializar Módulos ===
 
     // 1. Inicializar Cart DOM
