@@ -115,7 +115,11 @@ function handleDecreaseQuantity(event) {
     if (itemEnCarrito) {
         itemEnCarrito.cantidad--;
         if (itemEnCarrito.cantidad <= 0) {
-            carrito = carrito.filter(item => item.id_producto !== idProducto);
+            // Usar splice para mutar el array, no crear uno nuevo
+            const index = carrito.findIndex(item => item.id_producto === idProducto);
+            if (index !== -1) {
+                carrito.splice(index, 1);
+            }
         }
     }
     renderizarCarrito();
@@ -138,6 +142,7 @@ function handleIncreaseQuantity(event) {
  * Limpia el carrito
  */
 export function clearCarrito() {
-    carrito = [];
+    // Mutar el array en lugar de crear uno nuevo
+    carrito.length = 0;
     renderizarCarrito();
 }
