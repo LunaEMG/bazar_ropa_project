@@ -4,23 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bazar de Ropa</title>
+    <title>Bazar de Ropa - Sistema de Gestión</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <header>
-        <h1>Bazar de Ropa</h1>
+        <div class="container">
+            <h1>🛍️ Bazar de Ropa</h1>
+            <nav>
+                <button id="btn-mostrar-login" class="btn-secondary">Iniciar Sesión</button>
+                <button id="btn-mostrar-registro" class="btn-secondary">Registrarse</button>
+                <button id="btn-logout" style="display: none;" class="btn-danger">Cerrar Sesión</button>
+            </nav>
+        </div>
     </header>
 
-    <div class="container"
-        style="padding: 10px 20px; text-align: right; background-color: #fff; max-width: 960px; margin: -30px auto 20px auto; border-radius: 0 0 8px 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <span id="saludo-usuario" style="font-weight: bold; margin-right: 15px;"></span>
-        <button id="btn-mostrar-login" style="margin-right: 10px; background-color: #2ecc71;">Iniciar Sesión</button>
-        <button id="btn-mostrar-registro" style="margin-right: 10px;">Registrarse</button>
-        <button id="btn-logout" style="display: none; background-color: #e74c3c;">Cerrar Sesión</button>
-    </div>
     <main class="container">
+        <!-- Catálogo de Productos -->
         <section>
             <h2>Catálogo de Productos</h2>
             <div id="productos-lista" class="grid-container">
@@ -30,107 +31,104 @@
 
         <hr>
 
+        <!-- Gestión de Productos (Admin) -->
         <section class="admin-only" style="display: none;">
-            <h2>Registrar Nuevo Producto</h2>
+            <h2>Gestión de Productos</h2>
             <form id="form-nuevo-producto">
-
-                <input type="hidden" id="producto-id-edit" value="">
-
-                <div class="form-group"><label for="producto-nombre">Nombre:</label><input type="text"
-                        id="producto-nombre" required></div>
-                <div class="form-group"><label for="producto-descripcion">Descripción:</label><input type="text"
-                        id="producto-descripcion"></div>
-                <div class="form-group"><label for="producto-precio">Precio:</label><input type="number"
-                        id="producto-precio" step="0.01" min="0" required></div>
-                <div class="form-group"><label for="producto-stock">Stock (Cantidad):</label><input type="number"
-                        id="producto-stock" step="1" min="0" required></div>
-                <div class="form-group">
-                    <label for="producto-proveedor">Proveedor:</label>
-                    <select id="producto-proveedor" required>
-                        <option value="">Cargando proveedores...</option>
-                    </select>
-                </div>
-
-                <hr style="margin: 20px 0;">
+                <h3 id="form-producto-titulo">Registrar Nuevo Producto</h3>
+                <input type="hidden" id="producto-id-edit">
 
                 <div class="form-group">
-                    <label for="producto-tipo">Tipo de Producto:</label>
-                    <select id="producto-tipo" required>
-                        <option value="">Seleccione un tipo...</option>
-                        <option value="ropa">Ropa</option>
-                        <option value="calzado">Calzado</option>
-                        <option value="accesorios">Accesorios</option>
+                    <label for="nombre-producto">Nombre:</label>
+                    <input type="text" id="nombre-producto" name="nombre" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="descripcion-producto">Descripción:</label>
+                    <textarea id="descripcion-producto" name="descripcion" rows="3"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="precio-producto">Precio:</label>
+                        <input type="number" id="precio-producto" name="precio" step="0.01" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stock-producto">Stock:</label>
+                        <input type="number" id="stock-producto" name="cantidad_stock" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="categoria-producto">Categoría:</label>
+                    <input type="text" id="categoria-producto" name="categoria">
+                </div>
+
+                <div class="form-group">
+                    <label for="proveedor-producto">Proveedor:</label>
+                    <select id="proveedor-producto" name="id_proveedor">
+                        <option value="">Sin proveedor</option>
                     </select>
-                </div>
-
-                <div id="detalles-ropa" class="detalles-subtipo" style="display: none;">
-                    <h4>Detalles de Ropa</h4>
-                    <div class="form-group"><label for="ropa-material">Material:</label><input type="text"
-                            id="ropa-material"></div>
-                    <div class="form-group"><label for="ropa-talla">Talla:</label><input type="text" id="ropa-talla"
-                            placeholder="Ej: S, M, L..."></div>
-                    <div class="form-group"><label for="ropa-corte">Tipo de Corte (Opcional):</label><input type="text"
-                            id="ropa-corte"></div>
-                </div>
-
-                <div id="detalles-calzado" class="detalles-subtipo" style="display: none;">
-                    <h4>Detalles de Calzado</h4>
-                    <div class="form-group"><label for="calzado-talla">Talla Numérica:</label><input type="number"
-                            step="0.5" id="calzado-talla"></div>
-                    <div class="form-group"><label for="calzado-suela">Material de Suela:</label><input type="text"
-                            id="calzado-suela"></div>
-                </div>
-
-                <div id="detalles-accesorios" class="detalles-subtipo" style="display: none;">
-                    <h4>Detalles de Accesorios</h4>
-                    <div class="form-group"><label for="accesorio-material">Material:</label><input type="text"
-                            id="accesorio-material"></div>
-                    <div class="form-group"><label for="accesorio-dimensiones">Dimensiones (Opcional):</label><input
-                            type="text" id="accesorio-dimensiones"></div>
                 </div>
 
                 <button type="submit">Registrar Producto</button>
-                <button type="button" id="btn-cancelar-edicion-producto"
-                    style="display: none; background-color: #95a5a6; margin-left: 10px;">Cancelar Edición</button>
+                <button type="button" id="btn-cancelar-edicion-producto" style="display: none;">Cancelar</button>
                 <p id="producto-mensaje" class="mensaje"></p>
             </form>
         </section>
 
         <hr>
 
+        <!-- Carrito de Compras -->
         <section id="carrito-seccion">
-            <h2>Carrito de Compras</h2>
+            <h2>🛒 Carrito de Compras</h2>
             <div id="carrito-items">
                 <p>El carrito está vacío.</p>
             </div>
             <p class="carrito-total">Total: $<span id="carrito-total">0.00</span></p>
-            <div class="form-group" style="margin-top: 15px;">
+
+            <div class="form-group admin-only" style="display: none; margin-top: 15px;">
                 <label for="selector-cliente">Comprar como:</label>
                 <select id="selector-cliente" name="cliente_id" required>
                     <option value="">Seleccione un cliente...</option>
                 </select>
             </div>
+
             <button id="btn-finalizar-compra" disabled>Finalizar Compra</button>
             <p id="compra-mensaje" class="mensaje"></p>
         </section>
 
         <hr>
 
+        <!-- Gestión de Clientes (Admin) -->
         <section class="admin-only" style="display: none;">
             <h2>Gestión de Clientes</h2>
 
             <div class="sub-section">
                 <h3>Registrar Nuevo Cliente (Admin)</h3>
                 <form id="form-nuevo-cliente">
-                    <div class="form-group"><label for="nombre-cliente">Nombre:</label><input type="text"
-                            id="nombre-cliente" name="nombre" required></div>
-                    <div class="form-group"><label for="telefono-cliente">Teléfono (Opcional):</label><input type="tel"
-                            id="telefono-cliente" name="telefono"></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nombre-cliente">Nombre:</label>
+                            <input type="text" id="nombre-cliente" name="nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="telefono-cliente">Teléfono:</label>
+                            <input type="tel" id="telefono-cliente" name="telefono">
+                        </div>
+                    </div>
 
-                    <div class="form-group"><label for="email-cliente">Email:</label><input type="text"
-                            id="email-cliente" name="email" required></div>
-                    <div class="form-group"><label for="password-cliente">Contraseña:</label><input type="password"
-                            id="password-cliente" name="password" required></div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email-cliente">Email:</label>
+                            <input type="email" id="email-cliente" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password-cliente">Contraseña:</label>
+                            <input type="password" id="password-cliente" name="password" required>
+                        </div>
+                    </div>
 
                     <button type="submit">Registrar Cliente</button>
                     <p id="cliente-mensaje" class="mensaje"></p>
@@ -143,60 +141,49 @@
                     <p>Cargando clientes...</p>
                 </div>
             </div>
-
-            <div id="modal-editar-cliente" class="modal" style="display: none;">
-                <div class="modal-contenido">
-                    <span class="cerrar-modal" id="cerrar-modal-cliente">&times;</span>
-                    <h3>Editar Cliente</h3>
-                    <form id="form-editar-cliente" data-target-entity=""> <input type="hidden" id="edit-cliente-id"
-                            name="id_cliente">
-                        <div class="form-group">
-                            <label for="edit-nombre-cliente">Nombre:</label>
-                            <input type="text" id="edit-nombre-cliente" name="nombre" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="edit-telefono-cliente">Teléfono (Opcional):</label>
-                            <input type="tel" id="edit-telefono-cliente" name="telefono">
-                        </div>
-                        <button type="submit">Guardar Cambios</button>
-                        <p id="edit-cliente-mensaje" class="mensaje"></p>
-                    </form>
-                </div>
-            </div>
-
         </section>
 
+        <!-- Mis Direcciones (Usuario) -->
         <section id="seccion-mis-direcciones" style="display: none;">
-            <h2>Mis Direcciones</h2>
+            <h2>📍 Mis Direcciones</h2>
             <div class="sub-section" id="direcciones-cliente">
                 <h3>Direcciones de <span id="nombre-cliente-seleccionado"></span></h3>
                 <div id="lista-direcciones-cliente"></div>
+
                 <h4>Añadir Nueva Dirección</h4>
                 <form id="form-nueva-direccion">
                     <input type="hidden" id="id-cliente-direccion" name="id_cliente">
                     <input type="hidden" id="id-direccion-edit" value="">
+
                     <div class="form-group">
                         <label for="calle-direccion">Calle y Número:</label>
                         <input type="text" id="calle-direccion" name="calle" required>
                     </div>
-                    <div class="form-group">
-                        <label for="ciudad-direccion">Ciudad:</label>
-                        <input type="text" id="ciudad-direccion" name="ciudad" required>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ciudad-direccion">Ciudad:</label>
+                            <input type="text" id="ciudad-direccion" name="ciudad" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cp-direccion">Código Postal:</label>
+                            <input type="text" id="cp-direccion" name="codigo_postal" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="cp-direccion">Código Postal:</label>
-                        <input type="text" id="cp-direccion" name="codigo_postal" required>
-                    </div>
+
                     <button type="submit">Añadir Dirección</button>
                     <button type="button" id="btn-cancelar-edicion-direccion"
-                        style="display: none; background-color: #95a5a6; margin-left: 10px;">Cancelar Edición</button>
+                        style="display: none; background-color: #95a5a6; margin-left: 10px;">
+                        Cancelar Edición
+                    </button>
                     <p id="direccion-mensaje" class="mensaje"></p>
                 </form>
             </div>
         </section>
 
+        <!-- Mis Compras (Usuario) -->
         <section id="seccion-mis-compras" style="display: none;">
-            <h2>Mis Compras</h2>
+            <h2>📦 Mis Compras</h2>
             <div id="mis-compras-lista">
                 <p>Cargando compras...</p>
             </div>
@@ -204,17 +191,25 @@
 
         <hr>
 
+        <!-- Proveedores (Admin) -->
         <section class="admin-only" style="display: none;">
             <h2>Proveedores</h2>
             <form id="form-nuevo-proveedor" style="margin-bottom: 30px;">
                 <h3>Registrar Nuevo Proveedor</h3>
-                <div class="form-group"><label for="nombre-proveedor">Nombre:</label><input type="text"
-                        id="nombre-proveedor" name="nombre" required></div>
-                <div class="form-group"><label for="telefono-proveedor">Teléfono (Opcional):</label><input type="tel"
-                        id="telefono-proveedor" name="telefono"></div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nombre-proveedor">Nombre:</label>
+                        <input type="text" id="nombre-proveedor" name="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono-proveedor">Teléfono:</label>
+                        <input type="tel" id="telefono-proveedor" name="telefono">
+                    </div>
+                </div>
                 <button type="submit">Registrar Proveedor</button>
                 <p id="proveedor-mensaje" class="mensaje"></p>
             </form>
+
             <h3>Lista de Proveedores</h3>
             <div id="proveedores-lista">
                 <p>Cargando proveedores...</p>
@@ -223,8 +218,9 @@
 
         <hr>
 
+        <!-- Reportes (Admin) -->
         <section class="admin-only" style="display: none;">
-            <h2>Reportes</h2>
+            <h2>📊 Reportes</h2>
 
             <div class="sub-section">
                 <h3>Productos con Bajo Stock (< 10)</h3>
@@ -243,15 +239,40 @@
 
         <hr>
 
+        <!-- Historial de Ventas (Admin) -->
         <section class="admin-only" style="display: none;">
-            <h2>Historial de Ventas</h2>
+            <h2>💰 Historial de Ventas</h2>
             <div id="historial-ventas-lista">
                 <p>Cargando historial de ventas...</p>
             </div>
         </section>
-
     </main>
 
+    <!-- Modal: Editar Cliente -->
+    <div id="modal-editar-cliente" class="modal" style="display: none;">
+        <div class="modal-contenido">
+            <span class="cerrar-modal" id="cerrar-modal-cliente">&times;</span>
+            <h3>Editar Cliente</h3>
+            <form id="form-editar-cliente" data-target-entity="">
+                <input type="hidden" id="edit-cliente-id" name="id_cliente">
+
+                <div class="form-group">
+                    <label for="edit-nombre-cliente">Nombre:</label>
+                    <input type="text" id="edit-nombre-cliente" name="nombre" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="edit-telefono-cliente">Teléfono:</label>
+                    <input type="tel" id="edit-telefono-cliente" name="telefono">
+                </div>
+
+                <button type="submit">Guardar Cambios</button>
+                <p id="edit-cliente-mensaje" class="mensaje"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Login -->
     <div id="modal-login" class="modal" style="display: none;">
         <div class="modal-contenido">
             <span class="cerrar-modal" id="cerrar-modal-login">&times;</span>
@@ -259,18 +280,21 @@
             <form id="form-login">
                 <div class="form-group">
                     <label for="login-email">Email:</label>
-                    <input type="text" id="login-email" required>
+                    <input type="email" id="login-email" required>
                 </div>
+
                 <div class="form-group">
                     <label for="login-password">Contraseña:</label>
                     <input type="password" id="login-password" required>
                 </div>
+
                 <button type="submit">Entrar</button>
                 <p id="login-mensaje" class="mensaje"></p>
             </form>
         </div>
     </div>
 
+    <!-- Modal: Registro -->
     <div id="modal-registro" class="modal" style="display: none;">
         <div class="modal-contenido">
             <span class="cerrar-modal" id="cerrar-modal-registro">&times;</span>
@@ -280,220 +304,30 @@
                     <label for="registro-nombre">Nombre:</label>
                     <input type="text" id="registro-nombre" required>
                 </div>
+
                 <div class="form-group">
                     <label for="registro-email">Email:</label>
-                    <input type="text" id="registro-email" required>
+                    <input type="email" id="registro-email" required>
                 </div>
+
                 <div class="form-group">
                     <label for="registro-password">Contraseña:</label>
                     <input type="password" id="registro-password" required>
                 </div>
+
                 <div class="form-group">
                     <label for="registro-telefono">Teléfono (Opcional):</label>
                     <input type="tel" id="registro-telefono">
                 </div>
+
                 <button type="submit">Crear Cuenta</button>
                 <p id="registro-mensaje" class="mensaje"></p>
             </form>
         </div>
     </div>
+
     <footer>
-        <p>&copy; 2025 Bazar de Ropa</p>
-    </footer>
-
-    <select id="selector-cliente" name="cliente_id" required>
-        <option value="">Seleccione un cliente...</option>
-    </select>
-    </div>
-    <button id="btn-finalizar-compra" disabled>Finalizar Compra</button>
-    <p id="compra-mensaje" class="mensaje"></p>
-    </section>
-
-    <hr>
-
-    <section class="admin-only" style="display: none;">
-        <h2>Gestión de Clientes</h2>
-
-        <div class="sub-section">
-            <h3>Registrar Nuevo Cliente (Admin)</h3>
-            <form id="form-nuevo-cliente">
-                <div class="form-group"><label for="nombre-cliente">Nombre:</label><input type="text"
-                        id="nombre-cliente" name="nombre" required></div>
-                <div class="form-group"><label for="telefono-cliente">Teléfono (Opcional):</label><input type="tel"
-                        id="telefono-cliente" name="telefono"></div>
-
-                <div class="form-group"><label for="email-cliente">Email:</label><input type="text" id="email-cliente"
-                        name="email" required></div>
-                <div class="form-group"><label for="password-cliente">Contraseña:</label><input type="password"
-                        id="password-cliente" name="password" required></div>
-
-                <button type="submit">Registrar Cliente</button>
-                <p id="cliente-mensaje" class="mensaje"></p>
-            </form>
-        </div>
-
-        <div class="sub-section">
-            <h3>Lista de Clientes</h3>
-            <div id="clientes-lista-contenedor">
-                <p>Cargando clientes...</p>
-            </div>
-        </div>
-
-        <div id="modal-editar-cliente" class="modal" style="display: none;">
-            <div class="modal-contenido">
-                <span class="cerrar-modal" id="cerrar-modal-cliente">&times;</span>
-                <h3>Editar Cliente</h3>
-                <form id="form-editar-cliente" data-target-entity=""> <input type="hidden" id="edit-cliente-id"
-                        name="id_cliente">
-                    <div class="form-group">
-                        <label for="edit-nombre-cliente">Nombre:</label>
-                        <input type="text" id="edit-nombre-cliente" name="nombre" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-telefono-cliente">Teléfono (Opcional):</label>
-                        <input type="tel" id="edit-telefono-cliente" name="telefono">
-                    </div>
-                    <button type="submit">Guardar Cambios</button>
-                    <p id="edit-cliente-mensaje" class="mensaje"></p>
-                </form>
-            </div>
-        </div>
-
-    </section>
-
-    <section id="seccion-mis-direcciones" style="display: none;">
-        <h2>Mis Direcciones</h2>
-        <div class="sub-section" id="direcciones-cliente">
-            <h3>Direcciones de <span id="nombre-cliente-seleccionado"></span></h3>
-            <div id="lista-direcciones-cliente"></div>
-            <h4>Añadir Nueva Dirección</h4>
-            <form id="form-nueva-direccion">
-                <input type="hidden" id="id-cliente-direccion" name="id_cliente">
-                <input type="hidden" id="id-direccion-edit" value="">
-                <div class="form-group">
-                    <label for="calle-direccion">Calle y Número:</label>
-                    <input type="text" id="calle-direccion" name="calle" required>
-                </div>
-                <div class="form-group">
-                    <label for="ciudad-direccion">Ciudad:</label>
-                    <input type="text" id="ciudad-direccion" name="ciudad" required>
-                </div>
-                <div class="form-group">
-                    <label for="cp-direccion">Código Postal:</label>
-                    <input type="text" id="cp-direccion" name="codigo_postal" required>
-                </div>
-                <button type="submit">Añadir Dirección</button>
-                <button type="button" id="btn-cancelar-edicion-direccion"
-                    style="display: none; background-color: #95a5a6; margin-left: 10px;">Cancelar Edición</button>
-                <p id="direccion-mensaje" class="mensaje"></p>
-            </form>
-        </div>
-    </section>
-
-    <section id="seccion-mis-compras" style="display: none;">
-        <h2>Mis Compras</h2>
-        <div id="mis-compras-lista">
-            <p>Cargando compras...</p>
-        </div>
-    </section>
-
-    <hr>
-
-    <section class="admin-only" style="display: none;">
-        <h2>Proveedores</h2>
-        <form id="form-nuevo-proveedor" style="margin-bottom: 30px;">
-            <h3>Registrar Nuevo Proveedor</h3>
-            <div class="form-group"><label for="nombre-proveedor">Nombre:</label><input type="text"
-                    id="nombre-proveedor" name="nombre" required></div>
-            <div class="form-group"><label for="telefono-proveedor">Teléfono (Opcional):</label><input type="tel"
-                    id="telefono-proveedor" name="telefono"></div>
-            <button type="submit">Registrar Proveedor</button>
-            <p id="proveedor-mensaje" class="mensaje"></p>
-        </form>
-        <h3>Lista de Proveedores</h3>
-        <div id="proveedores-lista">
-            <p>Cargando proveedores...</p>
-        </div>
-    </section>
-
-    <hr>
-
-    <section class="admin-only" style="display: none;">
-        <h2>Reportes</h2>
-
-        <div class="sub-section">
-            <h3>Productos con Bajo Stock (< 10)</h3>
-                    <div id="reporte-bajo-stock">
-                        <p>Cargando reporte...</p>
-                    </div>
-        </div>
-
-        <div class="sub-section">
-            <h3>Ventas por Cliente</h3>
-            <div id="reporte-ventas-cliente">
-                <p>Cargando reporte...</p>
-            </div>
-        </div>
-    </section>
-
-    <hr>
-
-    <section class="admin-only" style="display: none;">
-        <h2>Historial de Ventas</h2>
-        <div id="historial-ventas-lista">
-            <p>Cargando historial de ventas...</p>
-        </div>
-    </section>
-
-    </main>
-
-    <div id="modal-login" class="modal" style="display: none;">
-        <div class="modal-contenido">
-            <span class="cerrar-modal" id="cerrar-modal-login">&times;</span>
-            <h3>Iniciar Sesión</h3>
-            <form id="form-login">
-                <div class="form-group">
-                    <label for="login-email">Email:</label>
-                    <input type="text" id="login-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="login-password">Contraseña:</label>
-                    <input type="password" id="login-password" required>
-                </div>
-                <button type="submit">Entrar</button>
-                <p id="login-mensaje" class="mensaje"></p>
-            </form>
-        </div>
-    </div>
-
-    <div id="modal-registro" class="modal" style="display: none;">
-        <div class="modal-contenido">
-            <span class="cerrar-modal" id="cerrar-modal-registro">&times;</span>
-            <h3>Registrarse</h3>
-            <form id="form-registro">
-                <div class="form-group">
-                    <label for="registro-nombre">Nombre:</label>
-                    <input type="text" id="registro-nombre" required>
-                </div>
-                <div class="form-group">
-                    <label for="registro-email">Email:</label>
-                    <input type="text" id="registro-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="registro-password">Contraseña:</label>
-                    <input type="password" id="registro-password" required>
-                </div>
-                <div class="form-group">
-                    <label for="registro-telefono">Teléfono (Opcional):</label>
-                    <input type="tel" id="registro-telefono">
-                </div>
-                <button type="submit">Crear Cuenta</button>
-                <p id="registro-mensaje" class="mensaje"></p>
-            </form>
-        </div>
-    </div>
-    <footer>
-        <p>&copy; 2025 Bazar de Ropa</p>
+        <p>&copy; 2025 Bazar de Ropa - Sistema de Gestión</p>
     </footer>
 
     <!-- Loading Overlay -->
@@ -501,6 +335,7 @@
         <div class="spinner"></div>
     </div>
 
+    <!-- ES6 Module -->
     <script type="module" src="app.js"></script>
 </body>
 
