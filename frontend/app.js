@@ -205,7 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                         `;
 
-                // Listener Añadir
+                // Listener Añadir (usar función del módulo cart)
                 item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick);
 
                 // Listeners de Admin
