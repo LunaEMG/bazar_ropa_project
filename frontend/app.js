@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const listaDeProveedores = document.getElementById('proveedores-lista');
     const direccionesClienteDiv = document.getElementById('direcciones-cliente');
     const listaDireccionesCliente = document.getElementById('lista-direcciones-cliente');
-    const selectorProveedorProducto = document.getElementById('producto-proveedor');
+    const selectorProveedorProducto = document.getElementById('proveedor-producto');
     const selectorTipoProducto = document.getElementById('producto-tipo');
 
     // Inputs y Modales

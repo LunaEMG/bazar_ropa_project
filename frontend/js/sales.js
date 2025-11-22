@@ -45,7 +45,7 @@ export async function cargarHistorialVentas() {
                                     <span>${d.nombre_producto}</span>
                                     <span>x ${d.cantidad}</span>
                                     <span>$${parseFloat(d.precio_unitario).toFixed(2)} c/u</span>
-                                    <span>Subtotal: $${parseFloat(d.subtotal).toFixed(2)}</span>
+                                    <span>Subtotal: $${(parseFloat(d.cantidad) * parseFloat(d.precio_unitario)).toFixed(2)}</span>
                                 </li>
                             `).join('')}
                         </ul>
