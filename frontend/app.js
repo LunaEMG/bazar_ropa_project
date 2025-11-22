@@ -43,7 +43,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const listaDeProveedores = document.getElementById('proveedores-lista');
     const direccionesClienteDiv = document.getElementById('direcciones-cliente');
     const listaDireccionesCliente = document.getElementById('lista-direcciones-cliente');
-    const selectorProveedorProducto = document.getElementById('producto-proveedor');
+    
+    // --- CORRECCIÓN: IDs coincidentes con index.html ---
+    const selectorProveedorProducto = document.getElementById('producto-proveedor'); 
     const selectorTipoProducto = document.getElementById('producto-tipo');
 
     // Inputs y Modales
@@ -69,9 +71,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Funciones de Carga y Renderizado (Productos, Clientes, Proveedores) ---
 
-    /**
-     * Carga y muestra la lista de productos.
-     */
+    /** Carga y muestra la lista de productos. */
     async function cargarProductos() {
         if (!listaDeProductos) return;
         listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
@@ -135,10 +135,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 `;
 
-                // Listener Añadir (usa función importada de cart.js)
+                // Listener Añadir
                 item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick);
 
                 if (esAdmin) {
+                    // Usamos ?. por seguridad si el elemento no existe
                     item.querySelector('.btn-editar-producto')?.addEventListener('click', () => handleEditarProductoClick(producto.id_producto));
                     item.querySelector('.btn-eliminar-producto')?.addEventListener('click', handleDeleteProductoClick);
                 }
@@ -195,7 +196,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /** Carga proveedores */
     async function cargarProveedores() {
+        // Verifica si existen los elementos en el DOM
         if (!listaDeProveedores || !selectorProveedorProducto) return;
+        
         listaDeProveedores.innerHTML = '<p>Cargando proveedores...</p>';
         selectorProveedorProducto.innerHTML = '<option value="">Seleccione un proveedor...</option>';
 
@@ -347,13 +350,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const producto = await fetchData(`/api/productos/${productoId}`);
             if (!producto) throw new Error("No se pudieron cargar los datos.");
 
+            // Cargar datos en el formulario
             productoIdEditInput.value = producto.id_producto;
-            document.getElementById('producto-nombre').value = producto.nombre;
-            document.getElementById('producto-descripcion').value = producto.descripcion || '';
-            document.getElementById('producto-precio').value = producto.precio;
-            document.getElementById('producto-stock').value = producto.cantidad_stock;
+            
+            // --- CORRECCIÓN DE IDs: Usar los nombres que coinciden con index.html ---
+            document.getElementById('nombre-producto').value = producto.nombre;
+            document.getElementById('descripcion-producto').value = producto.descripcion || '';
+            document.getElementById('precio-producto').value = producto.precio;
+            document.getElementById('stock-producto').value = producto.cantidad_stock;
             selectorProveedorProducto.value = producto.id_proveedor;
 
+            // Configurar tipo y detalles
             formNuevoProducto.setAttribute('data-editing-type', producto.tipo_producto);
             selectorTipoProducto.value = producto.tipo_producto;
             handleTipoProductoChange();
@@ -412,11 +419,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const isEditMode = editId !== null;
         let tipoProducto = formNuevoProducto.getAttribute('data-editing-type') || selectorTipoProducto.value;
 
+        // --- CORRECCIÓN DE IDs: Usar los nombres correctos del HTML ---
         const payload = {
-            nombre: document.getElementById('producto-nombre').value,
-            descripcion: document.getElementById('producto-descripcion').value || null,
-            precio: parseFloat(document.getElementById('producto-precio').value),
-            cantidad_stock: parseInt(document.getElementById('producto-stock').value),
+            nombre: document.getElementById('nombre-producto').value,
+            descripcion: document.getElementById('descripcion-producto').value || null,
+            precio: parseFloat(document.getElementById('precio-producto').value),
+            cantidad_stock: parseInt(document.getElementById('stock-producto').value),
             id_proveedor: parseInt(selectorProveedorProducto.value),
             tipo_producto: tipoProducto,
             detalles_subtipo: {}
