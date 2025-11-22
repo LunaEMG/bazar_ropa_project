@@ -5,7 +5,7 @@
 
 import { fetchData } from './api.js';
 import { mostrarMensaje } from './ui.js';
-import { carrito, clearCarrito, renderizarCarrito } from './cart.js';
+import { getCarrito, clearCarrito, renderizarCarrito } from './cart.js';
 import { getUserRole } from './auth.js';
 import { cargarProductos } from './products.js';
 
@@ -188,6 +188,9 @@ export async function handleFinalizarCompraClick() {
         document.getElementById('modal-login').style.display = 'block';
         return;
     }
+
+    // Obtener carrito actual (referencia viva)
+    const carrito = getCarrito();
 
     if (carrito.length === 0) {
         mostrarMensaje(compraMensaje, "El carrito está vacío.", false);

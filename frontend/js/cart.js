@@ -15,6 +15,14 @@ let btnFinalizarCompra;
 let getUserRoleCallback = () => 'visualizacion';
 
 /**
+ * Obtiene el carrito actual (referencia viva)
+ * @returns {Array} El array del carrito actual
+ */
+export function getCarrito() {
+    return carrito;
+}
+
+/**
  * Inicializa las referencias DOM del carrito
  * @param {Object} elements - Elementos DOM necesarios
  */
