@@ -1,150 +1,89 @@
 ﻿/**
  * @file app.js
  * @description Script principal para la interfaz del Bazar de Ropa.
- * Maneja la carga de datos, interacciones del carrito,
- * y operaciones CRUD para clientes, proveedores, direcciones y ventas.
+ * Coordina los módulos y maneja CRUD de Productos, Clientes y Proveedores.
  */
 
 // === ES6 Module Imports ===
 import { API_URL } from './js/config.js';
-import { showLoading, hideLoading, setButtonLoading, mostrarMensaje } from './js/ui.js';
+import { showLoading, hideLoading, mostrarMensaje } from './js/ui.js';
 import { fetchData } from './js/api.js';
-import { carrito, renderizarCarrito, handleAddCarritoClick, clearCarrito, initCartDOM, setGetUserRoleCallback } from './js/cart.js';
+import { initCartDOM, setGetUserRoleCallback, handleAddCarritoClick, renderizarCarrito, carrito } from './js/cart.js';
 import { userRole, currentUserId, getUserRole, checkExistingToken, initAuthListeners } from './js/auth.js';
 import { cargarHistorialVentas, cargarReporteBajoStock, cargarReporteVentasCliente, cargarMisCompras, initSalesListeners } from './js/sales.js';
 
 // Espera a que el DOM esté completamente cargado.
 document.addEventListener("DOMContentLoaded", () => {
 
-    // --- Configuración ---
-    /*
-     * NOTA: API_URL ahora se importa desde ./js/config.js
-     * Las funciones de UI, Auth, Cart y Sales también se importan de sus módulos respectivos
-     */
-
-    // Inicializar módulos al cargar
-
-    // Referencias a elementos clave del DOM.
+    // --- Referencias a elementos clave del DOM ---
     const listaDeProductos = document.getElementById('productos-lista');
     const listaDeClientesContenedor = document.getElementById('clientes-lista-contenedor');
+    
+    // Formularios
     const formNuevoCliente = document.getElementById('form-nuevo-cliente');
+    const formNuevoProveedor = document.getElementById('form-nuevo-proveedor');
+    const formNuevaDireccion = document.getElementById('form-nueva-direccion');
+    const formNuevoProducto = document.getElementById('form-nuevo-producto');
+    const formEditarCliente = document.getElementById('form-editar-cliente');
+
+    // Mensajes
     const clienteMensaje = document.getElementById('cliente-mensaje');
+    const proveedorMensaje = document.getElementById('proveedor-mensaje');
+    const direccionMensaje = document.getElementById('direccion-mensaje');
+    const productoMensaje = document.getElementById('producto-mensaje');
+    const editClienteMensaje = document.getElementById('edit-cliente-mensaje');
+
+    // Elementos del Carrito (para inicializar módulo)
     const carritoItemsDiv = document.getElementById('carrito-items');
     const carritoTotalSpan = document.getElementById('carrito-total');
     const btnFinalizarCompra = document.getElementById('btn-finalizar-compra');
-    const compraMensaje = document.getElementById('compra-mensaje');
+
+    // Selectores y Listas
     const selectorCliente = document.getElementById('selector-cliente');
     const listaDeProveedores = document.getElementById('proveedores-lista');
-    const formNuevoProveedor = document.getElementById('form-nuevo-proveedor');
-    const proveedorMensaje = document.getElementById('proveedor-mensaje');
     const direccionesClienteDiv = document.getElementById('direcciones-cliente');
     const listaDireccionesCliente = document.getElementById('lista-direcciones-cliente');
-    const formNuevaDireccion = document.getElementById('form-nueva-direccion');
-    const direccionMensaje = document.getElementById('direccion-mensaje');
-    const nombreClienteSeleccionadoSpan = document.getElementById('nombre-cliente-seleccionado');
-    const idClienteDireccionInput = document.getElementById('id-cliente-direccion');
-    const modalEditarCliente = document.getElementById('modal-editar-cliente');
-    const formEditarCliente = document.getElementById('form-editar-cliente');
-    const editClienteIdInput = document.getElementById('edit-cliente-id');
-    const editNombreClienteInput = document.getElementById('edit-nombre-cliente');
-    const editTelefonoClienteInput = document.getElementById('edit-telefono-cliente');
-    const editClienteMensaje = document.getElementById('edit-cliente-mensaje');
-    const cerrarModalClienteBtn = document.getElementById('cerrar-modal-cliente');
-    const historialVentasLista = document.getElementById('historial-ventas-lista');
-    const productoIdEditInput = document.getElementById('producto-id-edit');
-    const btnCancelarEdicionProducto = document.getElementById('btn-cancelar-edicion-producto');
-
-
-    // --- NUEVAS REFERENCIAS PARA FORMULARIO DE PRODUCTOS ---
-    const formNuevoProducto = document.getElementById('form-nuevo-producto');
-    const productoMensaje = document.getElementById('producto-mensaje');
     const selectorProveedorProducto = document.getElementById('producto-proveedor');
     const selectorTipoProducto = document.getElementById('producto-tipo');
 
-    // Contenedores de detalles
+    // Inputs y Modales
+    const nombreClienteSeleccionadoSpan = document.getElementById('nombre-cliente-seleccionado');
+    const idClienteDireccionInput = document.getElementById('id-cliente-direccion');
+    const modalEditarCliente = document.getElementById('modal-editar-cliente');
+    const editClienteIdInput = document.getElementById('edit-cliente-id');
+    const editNombreClienteInput = document.getElementById('edit-nombre-cliente');
+    const editTelefonoClienteInput = document.getElementById('edit-telefono-cliente');
+    const cerrarModalClienteBtn = document.getElementById('cerrar-modal-cliente');
+    const productoIdEditInput = document.getElementById('producto-id-edit');
+    const btnCancelarEdicionProducto = document.getElementById('btn-cancelar-edicion-producto');
+
+    // Contenedores de detalles de producto
     const detallesRopa = document.getElementById('detalles-ropa');
     const detallesCalzado = document.getElementById('detalles-calzado');
     const detallesAccesorios = document.getElementById('detalles-accesorios');
 
-    // --- Estado de la Aplicación ---
+    // --- Estado Local ---
     /** Almacena el ID del cliente seleccionado para gestión de direcciones. */
     let clienteSeleccionadoId = null;
 
 
-    // --- Funciones Auxiliares ---
-
-    /** Muestra un mensaje temporal (éxito/error) en un elemento DOM. */
-    function mostrarMensaje(elemento, mensaje, exito = true) {
-        if (!elemento) { console.warn("Elemento para mensaje no encontrado:", elemento); return; }
-        elemento.textContent = mensaje;
-        elemento.className = exito ? 'mensaje exito visible' : 'mensaje error visible';
-        setTimeout(() => {
-            if (elemento) {
-                elemento.textContent = '';
-                elemento.className = 'mensaje';
-            }
-        }, 3500);
-    }
-
-    /** Realiza una petición fetch genérica con manejo de errores básico. */
-    async function fetchData(url, options = {}) {
-
-        const token = localStorage.getItem('authToken');
-
-        // Si tenemos un token, lo añadimos a la cabecera 'Authorization'
-        if (token) {
-            if (!options.headers) {
-                options.headers = {};
-            }
-            options.headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        try {
-            const response = await fetch(url, options);
-            if (response.status === 401) {
-                console.warn("Acceso no autorizado. Cerrando sesión...");
-                handleLogout();
-            }
-            if (!response.ok) {
-                let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`;
-                try {
-                    const errJson = await response.json();
-                    errorDetail = errJson.detail || errorDetail;
-                } catch (e) { /* Ignora si el cuerpo no es JSON */ }
-                throw new Error(errorDetail);
-            }
-            if (response.status === 204) { return null; }
-            return await response.json();
-        } catch (error) {
-            console.error(`Error en fetch a ${url}:`, error);
-            throw error;
-        }
-    }
-
-    // --- Funciones de Carga y Renderizado ---
+    // --- Funciones de Carga y Renderizado (Productos, Clientes, Proveedores) ---
 
     /**
-     * @function cargarProductos
-     * @description Carga y muestra la lista de productos (ACTUALIZADO CON ROLES).
-     * - Rol Visualización: Ve botones "Añadir" deshabilitados.
-     * - Rol Usuario: Ve botones "Añadir" habilitados.
-     * - Rol Admin: Ve botones "Añadir", "Editar" y "Eliminar" habilitados.
+     * Carga y muestra la lista de productos.
      */
     async function cargarProductos() {
         if (!listaDeProductos) return;
         listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
         try {
-            const productos = await fetchData(`${API_URL}/api/productos`);
+            const productos = await fetchData('/api/productos');
             listaDeProductos.innerHTML = '';
 
             if (!productos || productos.length === 0) {
                 listaDeProductos.innerHTML = '<p>No hay productos disponibles.</p>'; return;
             }
 
-            // Asumimos que 'userRole' es una variable global 
             const esAdmin = (userRole === 'admin');
-            const esUsuario = (userRole === 'usuario');
-            const esVisualizacion = (userRole === 'visualizacion');
 
             productos.forEach(producto => {
                 const item = document.createElement('div');
@@ -168,55 +107,40 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
 
-                // 1. Botones de Admin (Editar/Eliminar)
                 let botonesAdminHTML = '';
                 if (esAdmin) {
                     botonesAdminHTML = `
-                                <button class="btn-accion btn-editar-producto btn-editar" data-id="${producto.id_producto}">Editar</button>
-                                <button class="btn-accion btn-eliminar-producto btn-eliminar" data-id="${producto.id_producto}" data-nombre="${producto.nombre}">Eliminar</button>
-                            `;
+                        <button class="btn-accion btn-editar-producto btn-editar" data-id="${producto.id_producto}">Editar</button>
+                        <button class="btn-accion btn-eliminar-producto btn-eliminar" data-id="${producto.id_producto}" data-nombre="${producto.nombre}">Eliminar</button>
+                    `;
                 }
 
-                // 2. Botón de Añadir al Carrito
-                const deshabilitado = esVisualizacion ? 'disabled' : '';
-
-                // 3. Montaje del HTML
                 item.innerHTML = `
-                            <h3>${producto.nombre}</h3>
-                            <p>${producto.descripcion || 'Sin descripción'}</p>
-                            
-                            ${detallesHTML}
-                            
-                            <p style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
-                                Disponibles: <strong>${producto.cantidad_stock}</strong>
-                            </p>
-                            <p class="precio">$${producto.precio.toFixed(2)}</p>
-                            
-                            <div class="producto-acciones">
-                                <button class="btn-accion btn-add-carrito" 
-                                    data-id="${producto.id_producto}" 
-                                    data-nombre="${producto.nombre}" 
-                                    data-precio="${producto.precio}">
-                                    Añadir
-                                </button>
-                                ${botonesAdminHTML}
-                            </div>
-                        `;
+                    <h3>${producto.nombre}</h3>
+                    <p>${producto.descripcion || 'Sin descripción'}</p>
+                    ${detallesHTML}
+                    <p style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
+                        Disponibles: <strong>${producto.cantidad_stock}</strong>
+                    </p>
+                    <p class="precio">$${producto.precio.toFixed(2)}</p>
+                    
+                    <div class="producto-acciones">
+                        <button class="btn-accion btn-add-carrito" 
+                            data-id="${producto.id_producto}" 
+                            data-nombre="${producto.nombre}" 
+                            data-precio="${producto.precio}">
+                            Añadir
+                        </button>
+                        ${botonesAdminHTML}
+                    </div>
+                `;
 
-                // Listener Añadir (usar función del módulo cart)
+                // Listener Añadir (usa función importada de cart.js)
                 item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick);
 
-                // Listeners de Admin
                 if (esAdmin) {
-                    const editButton = item.querySelector('.btn-editar-producto');
-                    if (editButton) {
-                        editButton.addEventListener('click', () => handleEditarProductoClick(producto.id_producto));
-                    }
-
-                    const deleteButton = item.querySelector('.btn-eliminar-producto');
-                    if (deleteButton) {
-                        deleteButton.addEventListener('click', handleDeleteProductoClick);
-                    }
+                    item.querySelector('.btn-editar-producto')?.addEventListener('click', () => handleEditarProductoClick(producto.id_producto));
+                    item.querySelector('.btn-eliminar-producto')?.addEventListener('click', handleDeleteProductoClick);
                 }
 
                 listaDeProductos.appendChild(item);
@@ -226,15 +150,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    /** Carga y muestra la lista de clientes y puebla el selector. */
+    /** Carga clientes y llena el selector */
     async function cargarClientes() {
         if (!listaDeClientesContenedor || !selectorCliente) return;
         listaDeClientesContenedor.innerHTML = '<p>Cargando clientes...</p>';
         selectorCliente.innerHTML = '<option value="">Seleccione un cliente...</option>';
         try {
-            const clientes = await fetchData(`${API_URL}/api/clientes`);
+            const clientes = await fetchData('/api/clientes');
             listaDeClientesContenedor.innerHTML = '';
-            if (!clientes || clientes.length === 0) { listaDeClientesContenedor.innerHTML = '<p>No hay clientes registrados.</p>'; return; }
+            if (!clientes || clientes.length === 0) { 
+                listaDeClientesContenedor.innerHTML = '<p>No hay clientes registrados.</p>'; 
+                return; 
+            }
 
             const ul = document.createElement('ul');
             clientes.forEach(cliente => {
@@ -250,38 +177,33 @@ document.addEventListener("DOMContentLoaded", () => {
                         <button class="btn-accion btn-eliminar-cliente" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre}">Eliminar</button>
                     </div>
                 `;
-                // Asignación de Listeners de Clientes
                 li.querySelector('.btn-ver-direcciones').addEventListener('click', handleVerDireccionesClick);
                 li.querySelector('.btn-editar-cliente').addEventListener('click', handleEditarClienteClick);
                 li.querySelector('.btn-eliminar-cliente').addEventListener('click', handleDeleteClienteClick);
                 ul.appendChild(li);
 
-                // Añadir al selector
-                const option = document.createElement('option'); option.value = cliente.id_cliente; option.textContent = cliente.nombre;
+                const option = document.createElement('option'); 
+                option.value = cliente.id_cliente; 
+                option.textContent = cliente.nombre;
                 selectorCliente.appendChild(option);
             });
             listaDeClientesContenedor.appendChild(ul);
         } catch (error) {
-            listaDeClientesContenedor.innerHTML = `<p style="color: red;">Error al cargar clientes: ${error.message}</p>`;
+            listaDeClientesContenedor.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
         }
     }
 
-    /** Carga y muestra la lista de proveedores (Corregido listener). */
+    /** Carga proveedores */
     async function cargarProveedores() {
-        // Añade el selector del formulario de productos a la comprobación
         if (!listaDeProveedores || !selectorProveedorProducto) return;
-
         listaDeProveedores.innerHTML = '<p>Cargando proveedores...</p>';
-
-        // --- MODIFICADO: Limpia el selector del formulario de productos ---
         selectorProveedorProducto.innerHTML = '<option value="">Seleccione un proveedor...</option>';
 
         try {
-            const proveedores = await fetchData(`${API_URL}/api/proveedores`);
+            const proveedores = await fetchData('/api/proveedores');
             listaDeProveedores.innerHTML = '';
             if (!proveedores || proveedores.length === 0) {
-                listaDeProveedores.innerHTML = '<p>No hay proveedores registrados.</p>';
-                // Asegúrate de que el selector también lo refleje
+                listaDeProveedores.innerHTML = '<p>No hay proveedores.</p>';
                 selectorProveedorProducto.innerHTML = '<option value="">No hay proveedores</option>';
                 return;
             }
@@ -299,13 +221,10 @@ document.addEventListener("DOMContentLoaded", () => {
                          <button class="btn-accion btn-eliminar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}">Eliminar</button>
                     </div>
                 `;
-                // --- ASIGNACIÃ“N DE LISTENERS DE PROVEEDORES (CORRECCIÃ“N) ---
                 li.querySelector('.btn-editar-proveedor').addEventListener('click', handleEditarProveedorClick);
                 li.querySelector('.btn-eliminar-proveedor').addEventListener('click', handleDeleteProveedorClick);
-
                 ul.appendChild(li);
 
-                // --- MODIFICADO: Añadir al selector del formulario de productos ---
                 const option = document.createElement('option');
                 option.value = proveedor.id_proveedor;
                 option.textContent = proveedor.nombre;
@@ -313,20 +232,22 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             listaDeProveedores.appendChild(ul);
         } catch (error) {
-            listaDeProveedores.innerHTML = `<p style="color: red;">Error al cargar proveedores: ${error.message}</p>`;
-            // --- MODIFICADO: Mostrar error en el selector ---
+            listaDeProveedores.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
             selectorProveedorProducto.innerHTML = '<option value="">Error al cargar</option>';
         }
     }
 
-    /** Carga y muestra las direcciones de un cliente específico. */
+    /** Carga direcciones de un cliente */
     async function cargarDireccionesCliente(clienteId) {
         if (!listaDireccionesCliente) return;
         listaDireccionesCliente.innerHTML = '<p>Cargando direcciones...</p>';
         try {
-            const direcciones = await fetchData(`${API_URL}/api/clientes/${clienteId}/direcciones`);
+            const direcciones = await fetchData(`/api/clientes/${clienteId}/direcciones`);
             listaDireccionesCliente.innerHTML = '';
-            if (!direcciones || direcciones.length === 0) { listaDireccionesCliente.innerHTML = '<p>Este cliente no tiene direcciones registradas.</p>'; return; }
+            if (!direcciones || direcciones.length === 0) { 
+                listaDireccionesCliente.innerHTML = '<p>Sin direcciones registradas.</p>'; 
+                return; 
+            }
             const ul = document.createElement('ul');
             direcciones.forEach(dir => {
                 const li = document.createElement('li');
@@ -340,192 +261,26 @@ document.addEventListener("DOMContentLoaded", () => {
                             data-id-dir="${dir.id_direccion}" 
                             data-calle="${dir.calle}"
                             data-ciudad="${dir.ciudad}"
-                            data-cp="${dir.codigo_postal}"
-                        >Editar</button>
+                            data-cp="${dir.codigo_postal}">Editar</button>
                         <button class="btn-accion btn-eliminar-direccion btn-eliminar" 
                             data-id-dir="${dir.id_direccion}" 
-                            data-id-cli="${dir.id_cliente}"
-                        >Eliminar</button>
+                            data-id-cli="${dir.id_cliente}">Eliminar</button>
                     </div>
                 `;
-
-                // Añadir listeners para los nuevos botones
                 li.querySelector('.btn-editar-direccion').addEventListener('click', handleEditarDireccionClick);
                 li.querySelector('.btn-eliminar-direccion').addEventListener('click', handleDeleteDireccionClick);
-
                 ul.appendChild(li);
             });
             listaDireccionesCliente.appendChild(ul);
         } catch (error) {
-            listaDireccionesCliente.innerHTML = `<p style="color: red;">Error al cargar direcciones: ${error.message}</p>`;
+            listaDireccionesCliente.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
         }
     }
 
-    /** Carga y muestra el historial de ventas. */
-    async function cargarHistorialVentas() {
-        if (!historialVentasLista) return;
-        historialVentasLista.innerHTML = '<p>Cargando historial de ventas...</p>';
+    // --- Funciones de Lógica de UI y Formularios ---
 
-        try {
-            // Llama al endpoint GET /api/ventas
-            const ventas = await fetchData(`${API_URL}/api/ventas`);
-            historialVentasLista.innerHTML = '';
-
-            if (!ventas || ventas.length === 0) {
-                historialVentasLista.innerHTML = '<p>No hay ventas registradas.</p>';
-                return;
-            }
-
-            const ul = document.createElement('ul');
-            // Itera sobre las ventas (vienen ordenadas por fecha desde el backend)
-            ventas.forEach(venta => {
-                const li = document.createElement('li');
-                li.className = 'venta-item'; // (Añadiremos este estilo en CSS)
-
-                const nombreClienteMostrado = venta.nombre_cliente
-                    ? `<strong>${venta.nombre_cliente}</strong> (ID: ${venta.id_cliente})`
-                    : '<strong>(Cliente Eliminado)</strong>';
-
-                // Formatea la fecha para que sea más legible
-                const fechaFormateada = new Date(venta.fecha).toLocaleDateString('es-ES', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
-
-                // Header de la venta
-                let ventaHTML = `
-                    <div class="venta-header">
-                        <span><strong>Venta #${venta.id_venta}</strong></span>
-                        <span>${fechaFormateada}</span>
-                        <span class="venta-total">Total: $${venta.monto_total.toFixed(2)}</span>
-                    </div>
-                    <p>Cliente: ${nombreClienteMostrado}</p> <div class="venta-detalles">
-                        <h4>Detalles de la Venta:</h4>
-                        <ul>
-                `;
-
-                // Itera sobre los detalles (productos) de esa venta
-                venta.detalles.forEach(detalle => {
-                    ventaHTML += `
-                        <li class="detalle-item">
-                            <span>${detalle.nombre_producto || '(Producto no disponible)'}</span>
-                            <span>Cant: ${detalle.cantidad}</span>
-                            <span>@ $${detalle.precio_unitario.toFixed(2)} c/u</span>
-                        </li>
-                    `;
-                });
-
-                ventaHTML += `</ul></div>`;
-                li.innerHTML = ventaHTML;
-                ul.appendChild(li);
-            });
-            historialVentasLista.appendChild(ul);
-
-        } catch (error) {
-            historialVentasLista.innerHTML = `<p style="color: red;">Error al cargar el historial de ventas: ${error.message}</p>`;
-        }
-    }
-
-    /** Carga y muestra el reporte de productos con bajo stock. */
-    async function cargarReporteBajoStock() {
-        const contenedor = document.getElementById('reporte-bajo-stock');
-        if (!contenedor) return;
-        contenedor.innerHTML = '<p>Cargando reporte...</p>';
-        try {
-            const data = await fetchData(`${API_URL}/api/reportes/bajo-stock`);
-            if (!data || data.length === 0) {
-                contenedor.innerHTML = '<p>No hay productos con bajo stock.</p>'; return;
-            }
-
-            let tablaHTML = '<table class="reporte-tabla"><thead><tr><th>ID</th><th>Nombre</th><th class="numero">Stock</th></tr></thead><tbody>';
-            data.forEach(item => {
-                tablaHTML += `<tr><td>${item.id_producto}</td><td>${item.nombre}</td><td class="numero">${item.cantidad_stock}</td></tr>`;
-            });
-            tablaHTML += '</tbody></table>';
-            contenedor.innerHTML = tablaHTML;
-
-        } catch (error) {
-            contenedor.innerHTML = `<p style="color: red;">Error al cargar reporte: ${error.message}</p>`;
-        }
-    }
-
-
-    /** Carga y muestra el reporte de ventas por cliente. */
-    async function cargarReporteVentasCliente() {
-        const contenedor = document.getElementById('reporte-ventas-cliente');
-        if (!contenedor) return;
-        contenedor.innerHTML = '<p>Cargando reporte...</p>';
-        try {
-            const data = await fetchData(`${API_URL}/api/reportes/ventas-cliente`);
-            if (!data || data.length === 0) {
-                contenedor.innerHTML = '<p>No hay ventas registradas para mostrar.</p>'; return;
-            }
-
-            let tablaHTML = '<table class="reporte-tabla"><thead><tr><th>Cliente (ID)</th><th>Nombre</th><th class="numero">Total Compras</th><th class="numero">Gasto Total</th></tr></thead><tbody>';
-            data.forEach(item => {
-                tablaHTML += `
-                <tr>
-                    <td>${item.id_cliente}</td>
-                    <td>${item.nombre}</td>
-                    <td class="numero">${item.total_compras}</td>
-                    <td class="numero">$${item.gasto_total.toFixed(2)}</td>
-                </tr>`;
-            });
-            tablaHTML += '</tbody></table>';
-            contenedor.innerHTML = tablaHTML;
-
-        } catch (error) {
-            contenedor.innerHTML = `<p style="color: red;">Error al cargar reporte: ${error.message}</p>`;
-        }
-    }
-
-
-    // 1. Función para cargar mis compras
-    async function cargarMisCompras() {
-        const contenedor = document.getElementById('mis-compras-lista');
-        if (!contenedor) return;
-
-        try {
-            const ventas = await fetchData(`${API_URL}/api/ventas/mis-compras`); // Nuevo Endpoint
-            contenedor.innerHTML = '';
-
-            if (!ventas || ventas.length === 0) {
-                contenedor.innerHTML = '<p>Aún no has realizado compras.</p>';
-                return;
-            }
-
-            const ul = document.createElement('ul');
-            ventas.forEach(venta => {
-                const li = document.createElement('li');
-                li.className = 'venta-item';
-                const fecha = new Date(venta.fecha).toLocaleDateString();
-
-                let html = `
-                <div class="venta-header">
-                    <span><strong>Compra #${venta.id_venta}</strong></span>
-                    <span>${fecha}</span>
-                    <span class="venta-total">$${venta.monto_total.toFixed(2)}</span>
-                </div>
-                <div class="venta-detalles"><ul>`;
-
-                venta.detalles.forEach(d => {
-                    html += `<li>${d.cantidad}x ${d.nombre_producto} ($${d.precio_unitario})</li>`;
-                });
-
-                html += `</ul></div>`;
-                li.innerHTML = html;
-                ul.appendChild(li);
-            });
-            contenedor.appendChild(ul);
-        } catch (error) {
-            contenedor.innerHTML = `<p style="color:red">Error: ${error.message}</p>`;
-        }
-    }
-
-    // --- Funciones de Lógica de UI ---
-
-    /** Muestra la sección de direcciones para un cliente específico. */
     function mostrarSeccionDirecciones(clienteId, nombreCliente) {
-        if (!direccionesClienteDiv || !nombreClienteSeleccionadoSpan || !idClienteDireccionInput) return;
+        if (!direccionesClienteDiv) return;
         clienteSeleccionadoId = clienteId;
         nombreClienteSeleccionadoSpan.textContent = nombreCliente;
         idClienteDireccionInput.value = clienteId;
@@ -534,158 +289,45 @@ document.addEventListener("DOMContentLoaded", () => {
         cargarDireccionesCliente(clienteId);
     }
 
-    /** Muestra el modal de edición de cliente con los datos precargados. */
     function mostrarModalEditarCliente(clienteId, nombre, telefono) {
-        if (!modalEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput) return;
         editClienteIdInput.value = clienteId;
         editNombreClienteInput.value = nombre;
         editTelefonoClienteInput.value = telefono || '';
         editClienteMensaje.textContent = 'Editando Cliente';
-        editClienteMensaje.className = 'mensaje';
-        modalEditarCliente.style.display = 'block';
-
-        // Ajuste visual para el modal:
+        
         const modalTitle = modalEditarCliente.querySelector('h3');
         if (modalTitle) modalTitle.textContent = "Editar Cliente";
-        // Añadir una clase al formulario para diferenciar el manejador de envío
         formEditarCliente.setAttribute('data-target-entity', 'cliente');
+        
+        modalEditarCliente.style.display = 'block';
     }
 
-    /** Muestra el modal de edición de proveedor con los datos precargados. */
     function mostrarModalEditarProveedor(proveedorId, nombre, telefono) {
-        if (!modalEditarCliente || !editClienteIdInput || !editNombreClienteInput || !editTelefonoClienteInput) return;
-
         editClienteIdInput.value = proveedorId;
         editNombreClienteInput.value = nombre;
         editTelefonoClienteInput.value = telefono || '';
         editClienteMensaje.textContent = 'Editando Proveedor';
-        editClienteMensaje.className = 'mensaje';
 
-        // Ajuste visual para el modal:
         const modalTitle = modalEditarCliente.querySelector('h3');
         if (modalTitle) modalTitle.textContent = "Editar Proveedor";
-        // Añadir una clase al formulario para diferenciar el manejador de envío
         formEditarCliente.setAttribute('data-target-entity', 'proveedor');
 
         modalEditarCliente.style.display = 'block';
     }
 
-    /** Oculta el modal de edición. */
     function ocultarModalEditarCliente() {
-        if (modalEditarCliente) {
-            modalEditarCliente.style.display = 'none';
-        }
+        if (modalEditarCliente) modalEditarCliente.style.display = 'none';
     }
 
-    // --- Funciones del Carrito ---
-
-    /** Actualiza la vista del carrito en el HTML y calcula el total. */
-    function renderizarCarrito() {
-        if (!carritoItemsDiv || !carritoTotalSpan || !btnFinalizarCompra) return;
-        carritoItemsDiv.innerHTML = '';
-        let total = 0;
-        if (carrito.length === 0) { carritoItemsDiv.innerHTML = '<p>El carrito está vacío.</p>'; btnFinalizarCompra.disabled = true; }
-        else {
-            carrito.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'carrito-item';
-                itemDiv.innerHTML = `
-                    <span class="item-nombre">${item.nombre}</span>
-                    <div class="carrito-item-controles">
-                        <button class="btn-qty btn-decrease-qty" data-id="${item.id_producto}">-</button>
-                        <span class="item-cantidad">x ${item.cantidad}</span>
-                        <button class="btn-qty btn-increase-qty" data-id="${item.id_producto}">+</button>
-                    </div>
-                    <span class="item-precio">$${(item.precio * item.cantidad).toFixed(2)}</span>
-                `;
-                // Añadimos listeners a los nuevos botones de cantidad
-                itemDiv.querySelector('.btn-decrease-qty').addEventListener('click', handleDecreaseQuantity);
-                itemDiv.querySelector('.btn-increase-qty').addEventListener('click', handleIncreaseQuantity);
-                carritoItemsDiv.appendChild(itemDiv); total += item.precio * item.cantidad;
-            });
-            btnFinalizarCompra.disabled = false;
-        }
-        carritoTotalSpan.textContent = total.toFixed(2);
-    }
-
-    /** Maneja el clic en "Añadir al Carrito" (funciona como un Toggle/Añadir). */
-    function handleAddCarritoClick(event) {
-        if (userRole === 'visualizacion') {
-            alert("⚠️ Registrate o inicia sesión para agregar productos al carrito.");
-            document.getElementById('modal-login').style.display = 'block';
-            return;
-        }
-
-        const button = event.target;
-        const idProducto = parseInt(button.dataset.id);
-        const nombre = button.dataset.nombre;
-        const precio = parseFloat(button.dataset.precio);
-
-        const itemExistente = carrito.find(item => item.id_producto === idProducto);
-        if (itemExistente) {
-            itemExistente.cantidad++;
-        } else {
-            carrito.push({ id_producto: idProducto, nombre, precio, cantidad: 1 });
-        }
-        renderizarCarrito(); // Actualiza la vista
-    }
-
-    /** Maneja el clic en el botón "X" para remover item del carrito. */
-    function handleRemoveCarritoClick(event) {
-        const button = event.target;
-        const idProducto = parseInt(button.dataset.id);
-        carrito = carrito.filter(item => item.id_producto !== idProducto);
-        renderizarCarrito();
-    }
-
-    /** Maneja el clic en el botón "-" para reducir la cantidad o eliminar */
-    function handleDecreaseQuantity(event) {
-        const idProducto = parseInt(event.target.dataset.id);
-        const itemEnCarrito = carrito.find(item => item.id_producto === idProducto);
-
-        if (itemEnCarrito) {
-            itemEnCarrito.cantidad--; // Reduce la cantidad
-
-            // Si la cantidad llega a 0, elimina el item del carrito
-            if (itemEnCarrito.cantidad <= 0) {
-                carrito = carrito.filter(item => item.id_producto !== idProducto);
-            }
-        }
-        renderizarCarrito(); // Actualiza la vista
-    }
-
-    /** Maneja el clic en el botón "+" para aumentar la cantidad */
-    function handleIncreaseQuantity(event) {
-        const idProducto = parseInt(event.target.dataset.id);
-        const itemEnCarrito = carrito.find(item => item.id_producto === idProducto);
-
-        if (itemEnCarrito) {
-            itemEnCarrito.cantidad++; // Aumenta la cantidad
-        }
-        renderizarCarrito(); // Actualiza la vista
-    }
-
-
-    // --- NUEVAS FUNCIONES PARA EL FORMULARIO DE PRODUCTOS ---
-
-    /**
-     * @function handleTipoProductoChange
-     * @description Muestra u oculta los campos de detalles de subtipo
-     * basado en la selección del usuario.
-     */
     function handleTipoProductoChange() {
-        // Oculta todos los contenedores de detalles
         if (detallesRopa) detallesRopa.style.display = 'none';
         if (detallesCalzado) detallesCalzado.style.display = 'none';
         if (detallesAccesorios) detallesAccesorios.style.display = 'none';
-
-        // Pone todos los inputs de subtipos como no-requeridos
         document.querySelectorAll('.detalles-subtipo input').forEach(input => input.required = false);
 
         if (!selectorTipoProducto) return;
         const tipo = selectorTipoProducto.value;
 
-        // Muestra el contenedor relevante y marca sus campos como 'required'
         if (tipo === 'ropa') {
             detallesRopa.style.display = 'block';
             document.querySelector('#ropa-material').required = true;
@@ -700,18 +342,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    /**
-    * @function handleEditarProductoClick
-    * @description Obtiene los datos completos de un producto y llena el
-    * formulario de "Registrar Producto" para entrar en modo edición.
-    */
     async function handleEditarProductoClick(productoId) {
         try {
-            // 1. Obtener los datos completos del producto (incluyendo subtipo)
-            const producto = await fetchData(`${API_URL}/api/productos/${productoId}`);
-            if (!producto) throw new Error("No se pudieron cargar los datos del producto.");
+            const producto = await fetchData(`/api/productos/${productoId}`);
+            if (!producto) throw new Error("No se pudieron cargar los datos.");
 
-            // 2. Llenar los campos base
             productoIdEditInput.value = producto.id_producto;
             document.getElementById('producto-nombre').value = producto.nombre;
             document.getElementById('producto-descripcion').value = producto.descripcion || '';
@@ -719,113 +354,64 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('producto-stock').value = producto.cantidad_stock;
             selectorProveedorProducto.value = producto.id_proveedor;
 
-            // 3. Llenar los campos de subtipo
-
-            // --- ¡CORRECCIÃ“N AÑADIDA AQUÃ! ---
-            // Almacena el tipo en el formulario antes de deshabilitar el select
             formNuevoProducto.setAttribute('data-editing-type', producto.tipo_producto);
-
             selectorTipoProducto.value = producto.tipo_producto;
-            handleTipoProductoChange(); // Muestra los campos correctos
-
-            // Deshabilita el selector de tipo, no se puede cambiar el tipo de un producto
+            handleTipoProductoChange();
             selectorTipoProducto.disabled = true;
 
-            if (producto.tipo_producto === 'ropa' && producto.detalles_subtipo) {
-                document.getElementById('ropa-material').value = producto.detalles_subtipo.material;
-                document.getElementById('ropa-talla').value = producto.detalles_subtipo.talla;
-                document.getElementById('ropa-corte').value = producto.detalles_subtipo.tipo_corte || '';
-            } else if (producto.tipo_producto === 'calzado' && producto.detalles_subtipo) {
-                document.getElementById('calzado-talla').value = producto.detalles_subtipo.talla_numerica;
-                document.getElementById('calzado-suela').value = producto.detalles_subtipo.material_suela;
-            } else if (producto.tipo_producto === 'accesorios' && producto.detalles_subtipo) {
-                document.getElementById('accesorio-material').value = producto.detalles_subtipo.material;
-                document.getElementById('accesorio-dimensiones').value = producto.detalles_subtipo.dimensiones || '';
+            if (producto.detalles_subtipo) {
+                const d = producto.detalles_subtipo;
+                if (producto.tipo_producto === 'ropa') {
+                    document.getElementById('ropa-material').value = d.material;
+                    document.getElementById('ropa-talla').value = d.talla;
+                    document.getElementById('ropa-corte').value = d.tipo_corte || '';
+                } else if (producto.tipo_producto === 'calzado') {
+                    document.getElementById('calzado-talla').value = d.talla_numerica;
+                    document.getElementById('calzado-suela').value = d.material_suela;
+                } else if (producto.tipo_producto === 'accesorios') {
+                    document.getElementById('accesorio-material').value = d.material;
+                    document.getElementById('accesorio-dimensiones').value = d.dimensiones || '';
+                }
             }
 
-            // 4. Poner el formulario en "Modo Edición"
-
-            // Busca la <section> más cercana (padre) y luego busca el <h2> dentro de ella.
             formNuevoProducto.closest('section').querySelector('h2').textContent = "Editar Producto";
-
             formNuevoProducto.querySelector('button[type="submit"]').textContent = "Actualizar Producto";
-            btnCancelarEdicionProducto.style.display = 'inline-block'; // Muestra el botón de cancelar
-
-            // Scroll para que el usuario vea el formulario
+            btnCancelarEdicionProducto.style.display = 'inline-block';
             formNuevoProducto.scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
-            mostrarMensaje(productoMensaje, `Error al cargar producto para editar: ${error.message}`, false);
+            mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
         }
     }
 
-    /**
-    * @function resetFormularioProducto
-    * @description Resetea el formulario de producto al estado "Crear".
-    */
     function resetFormularioProducto() {
-        productoIdEditInput.value = ''; // Limpia el ID oculto
+        productoIdEditInput.value = '';
         formNuevoProducto.removeAttribute('data-editing-type');
-        formNuevoProducto.reset(); // Limpia todos los campos
-
-        handleTipoProductoChange(); // Oculta los campos de subtipo
-
-        selectorTipoProducto.disabled = false; // Rehabilita el selector de tipo
-
-        // Busca la <section> más cercana (padre) y luego busca el <h2> dentro de ella.
+        formNuevoProducto.reset();
+        handleTipoProductoChange();
+        selectorTipoProducto.disabled = false;
         formNuevoProducto.closest('section').querySelector('h2').textContent = "Registrar Nuevo Producto";
-
         formNuevoProducto.querySelector('button[type="submit"]').textContent = "Registrar Producto";
-        btnCancelarEdicionProducto.style.display = 'none'; // Oculta el botón de cancelar
+        btnCancelarEdicionProducto.style.display = 'none';
     }
 
-    /** Resetea el formulario de dirección al estado "Crear". */
     function resetFormularioDireccion() {
         document.getElementById('id-direccion-edit').value = '';
-        formNuevaDireccion.reset(); // Limpia los campos de texto
-
-        // Restaura el ID del cliente (que se borra con reset())
-        if (clienteSeleccionadoId) {
-            document.getElementById('id-cliente-direccion').value = clienteSeleccionadoId;
-        }
-
+        formNuevaDireccion.reset();
+        if (clienteSeleccionadoId) document.getElementById('id-cliente-direccion').value = clienteSeleccionadoId;
         formNuevaDireccion.parentElement.querySelector('h4').textContent = "Añadir Nueva Dirección";
         formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Añadir Dirección";
         document.getElementById('btn-cancelar-edicion-direccion').style.display = 'none';
     }
 
-    // --- (Añade esto al final del archivo, en "Inicialización y Asignación de Eventos") ---
-    const btnCancelarEdicionDireccion = document.getElementById('btn-cancelar-edicion-direccion');
-    if (btnCancelarEdicionDireccion) {
-        btnCancelarEdicionDireccion.addEventListener('click', resetFormularioDireccion);
-    }
-
-    /**
-    * @function handleNuevoProductoSubmit
-    * @description Maneja el envío del formulario.
-    * Detecta si está en modo "Crear" (POST) o "Editar" (PUT)
-    * basado en el input oculto 'producto-id-edit'.
-    */
     async function handleNuevoProductoSubmit(event) {
         event.preventDefault();
-        if (!formNuevoProducto || !productoMensaje) return;
+        if (!formNuevoProducto) return;
 
-        // Detectar modo
         const editId = productoIdEditInput.value ? parseInt(productoIdEditInput.value) : null;
         const isEditMode = editId !== null;
-
-        // ðŸ”§ Solución: forzar tipo de producto incluso si el atributo no existe
         let tipoProducto = formNuevoProducto.getAttribute('data-editing-type') || selectorTipoProducto.value;
 
-        if (!tipoProducto) {
-            mostrarMensaje(productoMensaje, "Error: No se detectó el tipo de producto.", false);
-            console.error("No se encontró tipo_producto en el formulario.");
-            return;
-        }
-
-        console.log("Tipo de producto detectado:", tipoProducto);
-
-        // 1. Datos comunes
         const payload = {
             nombre: document.getElementById('producto-nombre').value,
             descripcion: document.getElementById('producto-descripcion').value || null,
@@ -836,7 +422,6 @@ document.addEventListener("DOMContentLoaded", () => {
             detalles_subtipo: {}
         };
 
-        // 2. Subtipos
         try {
             if (tipoProducto === 'ropa') {
                 payload.detalles_subtipo = {
@@ -854,489 +439,314 @@ document.addEventListener("DOMContentLoaded", () => {
                     material: document.getElementById('accesorio-material').value,
                     dimensiones: document.getElementById('accesorio-dimensiones').value || null
                 };
-            } else {
-                throw new Error(`Tipo de producto no válido: ${tipoProducto}`);
             }
-
-            if (!payload.id_proveedor) throw new Error("Debe seleccionar un proveedor.");
-            if (payload.precio < 0 || isNaN(payload.precio)) throw new Error("Precio no válido.");
-            if (payload.cantidad_stock < 0 || isNaN(payload.cantidad_stock)) throw new Error("Stock no válido.");
-
-        } catch (error) {
-            mostrarMensaje(productoMensaje, `Error al leer datos del formulario: ${error.message}`, false);
+        } catch (e) {
+            mostrarMensaje(productoMensaje, "Error leyendo formulario", false);
             return;
         }
 
-        // 3. Enviar a la API
         const submitButton = formNuevoProducto.querySelector('button[type="submit"]');
         submitButton.disabled = true;
-        submitButton.textContent = isEditMode ? 'Actualizando...' : 'Registrando...';
-
+        
         const method = isEditMode ? 'PUT' : 'POST';
-        const endpoint = isEditMode ? `${API_URL}/api/productos/${editId}` : `${API_URL}/api/productos`;
+        const endpoint = isEditMode ? `/api/productos/${editId}` : `/api/productos`;
 
         try {
-            const resultado = await fetchData(endpoint, {
+            await fetchData(endpoint, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
-            const mensajeExito = isEditMode
-                ? `Producto "${resultado.nombre}" actualizado!`
-                : `Producto "${resultado.nombre}" registrado!`;
-
-            mostrarMensaje(productoMensaje, mensajeExito, true);
+            mostrarMensaje(productoMensaje, isEditMode ? "Producto actualizado!" : "Producto registrado!", true);
             resetFormularioProducto();
             cargarProductos();
-
         } catch (error) {
             mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
         } finally {
             submitButton.disabled = false;
-            submitButton.textContent = isEditMode ? 'Actualizar Producto' : 'Registrar Producto';
         }
     }
 
+    // --- Manejadores de Eventos (Clicks) ---
 
-
-    // --- Manejadores de Eventos CRUD ---
-
-    /** Maneja el clic en "Ver/Añadir Direcciones". */
     function handleVerDireccionesClick(event) {
         const button = event.target;
-        const clienteId = parseInt(button.dataset.id);
-        const nombreCliente = button.dataset.nombre;
-        mostrarSeccionDirecciones(clienteId, nombreCliente);
+        mostrarSeccionDirecciones(parseInt(button.dataset.id), button.dataset.nombre);
     }
 
-    /** Maneja el clic en "Editar Cliente". */
     function handleEditarClienteClick(event) {
-        const button = event.target;
-        const clienteId = parseInt(button.dataset.id);
-        const nombre = button.dataset.nombre;
-        const telefono = button.dataset.telefono;
-        mostrarModalEditarCliente(clienteId, nombre, telefono);
+        const btn = event.target;
+        mostrarModalEditarCliente(parseInt(btn.dataset.id), btn.dataset.nombre, btn.dataset.telefono);
     }
 
-    /** Maneja el clic en "Editar Proveedor". */
     function handleEditarProveedorClick(event) {
-        const button = event.target;
-        const proveedorId = parseInt(button.dataset.id);
-        const nombre = button.dataset.nombre;
-        const telefono = button.dataset.telefono;
-        mostrarModalEditarProveedor(proveedorId, nombre, telefono);
+        const btn = event.target;
+        mostrarModalEditarProveedor(parseInt(btn.dataset.id), btn.dataset.nombre, btn.dataset.telefono);
     }
 
-    /** Maneja el clic en "Editar Dirección". */
     function handleEditarDireccionClick(event) {
-        const button = event.target;
-        const dirId = button.dataset.idDir;
-        const calle = button.dataset.calle;
-        const ciudad = button.dataset.ciudad;
-        const cp = button.dataset.cp;
+        const btn = event.target;
+        document.getElementById('id-direccion-edit').value = btn.dataset.idDir;
+        document.getElementById('calle-direccion').value = btn.dataset.calle;
+        document.getElementById('ciudad-direccion').value = btn.dataset.ciudad;
+        document.getElementById('cp-direccion').value = btn.dataset.cp;
 
-        // Puebla el formulario
-        document.getElementById('id-direccion-edit').value = dirId;
-        document.getElementById('calle-direccion').value = calle;
-        document.getElementById('ciudad-direccion').value = ciudad;
-        document.getElementById('cp-direccion').value = cp;
-
-        // Cambia la UI del formulario
         formNuevaDireccion.parentElement.querySelector('h4').textContent = "Editar Dirección";
         formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Actualizar Dirección";
         document.getElementById('btn-cancelar-edicion-direccion').style.display = 'inline-block';
     }
 
-
-
-    /** Maneja el clic en "Eliminar Cliente". */
     async function handleDeleteClienteClick(event) {
-        const button = event.target;
-        const clienteId = parseInt(button.dataset.id);
-        const nombreCliente = button.dataset.nombre;
-
-        if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${nombreCliente}"?`)) {
-            return;
-        }
-
+        const btn = event.target;
+        if (!confirm(`¿Eliminar cliente "${btn.dataset.nombre}"?`)) return;
         try {
-            await fetchData(`${API_URL}/api/clientes/${clienteId}`, {
-                method: 'DELETE',
-            });
-            mostrarMensaje(clienteMensaje, `Cliente "${nombreCliente}" eliminado con éxito.`, true);
+            await fetchData(`/api/clientes/${btn.dataset.id}`, { method: 'DELETE' });
+            mostrarMensaje(clienteMensaje, "Cliente eliminado.", true);
             cargarClientes();
-            if (clienteSeleccionadoId === clienteId && direccionesClienteDiv) {
-                direccionesClienteDiv.style.display = 'none';
-                clienteSeleccionadoId = null;
-            }
+            if (clienteSeleccionadoId === parseInt(btn.dataset.id)) direccionesClienteDiv.style.display = 'none';
         } catch (error) {
-            mostrarMensaje(clienteMensaje, `Error al eliminar cliente: ${error.message}`, false);
+            mostrarMensaje(clienteMensaje, `Error: ${error.message}`, false);
         }
     }
 
-    /** Maneja el clic en "Eliminar Dirección". */
     async function handleDeleteDireccionClick(event) {
-        const button = event.target;
-        const direccionId = parseInt(button.dataset.idDir);
-        const clienteId = parseInt(button.dataset.idCli);
-
-        if (!confirm(`¿Estás seguro de que deseas eliminar esta dirección?`)) {
-            return;
-        }
-
+        const btn = event.target;
+        if (!confirm("¿Eliminar dirección?")) return;
         try {
-            await fetchData(`${API_URL}/api/clientes/${clienteId}/direcciones/${direccionId}`, {
-                method: 'DELETE',
-            });
-            mostrarMensaje(direccionMensaje, `Dirección eliminada con éxito.`, true);
-            cargarDireccionesCliente(clienteId); // Recarga la lista de direcciones
-        } catch (error) {
-            mostrarMensaje(direccionMensaje, `Error al eliminar dirección: ${error.message}`, false);
-        }
-    }
-
-
-    /** Maneja el clic en "Eliminar Proveedor". */
-    async function handleDeleteProveedorClick(event) {
-        const button = event.target;
-        const proveedorId = parseInt(button.dataset.id);
-        const nombreProveedor = button.dataset.nombre;
-
-        if (!confirm(`¿Estás seguro de que deseas eliminar al proveedor "${nombreProveedor}"?`)) {
-            return;
-        }
-
-        try {
-            // Llama al endpoint DELETE
-            await fetchData(`${API_URL}/api/proveedores/${proveedorId}`, {
-                method: 'DELETE',
-            });
-            // Ã‰xito (status 204)
-            mostrarMensaje(proveedorMensaje, `Proveedor "${nombreProveedor}" eliminado con éxito.`, true);
-            cargarProveedores(); // Recarga la lista de proveedores
-            // Opcional: Recargar productos ya que los productos de ese proveedor podrían haberse quedado huérfanos
-            cargarProductos();
-        } catch (error) {
-            // Muestra el mensaje de error DETALLADO que viene de la API (ej. 409 Conflict)
-            mostrarMensaje(proveedorMensaje, `Error al eliminar proveedor: ${error.message}`, false);
-        }
-    }
-
-    /** Maneja el clic en "Eliminar Producto". */
-    async function handleDeleteProductoClick(event) {
-        const button = event.target;
-        const productoId = parseInt(button.dataset.id);
-        const nombreProducto = button.dataset.nombre;
-
-        if (!confirm(`¿Estás seguro de que deseas eliminar el producto "${nombreProducto}"?`)) {
-            return;
-        }
-
-        try {
-            await fetchData(`${API_URL}/api/productos/${productoId}`, {
-                method: 'DELETE',
-            });
-            // Mensaje de éxito (usaremos el de 'productoMensaje' del form de crear producto)
-            mostrarMensaje(productoMensaje, `Producto "${nombreProducto}" eliminado con éxito.`, true);
-            cargarProductos(); // Recarga el catálogo
-        } catch (error) {
-            // Mostrará error 409 si el producto está en una venta (lo cual es correcto)
-            mostrarMensaje(productoMensaje, `Error al eliminar producto: ${error.message}`, false);
-        }
-    }
-
-    /** Maneja el envío del formulario de edición de cliente/proveedor. */
-    async function handleEditarSubmit(event) {
-        event.preventDefault();
-        // Obtiene la entidad objetivo ('cliente' o 'proveedor') del atributo data-target-entity
-        const entityType = formEditarCliente.getAttribute('data-target-entity');
-
-        if (!entityType || !formEditarCliente || !editClienteIdInput || !editClienteMensaje) return;
-
-        // --- PUNTO CRÃTICO 1: Obtenemos el ID del input oculto (reutilizado) ---
-        const id = parseInt(editClienteIdInput.value);
-        const nombre = editNombreClienteInput.value;
-        const telefono = editTelefonoClienteInput.value || null;
-
-        // Verificación de ID válida
-        if (isNaN(id) || id <= 0) {
-            mostrarMensaje(editClienteMensaje, `Error: ID de ${entityType} no válido (${id}).`, false);
-            return;
-        }
-
-        const submitButton = formEditarCliente.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = 'Guardando...';
-
-        try {
-
-            // Construcción de la URL: /api/{entidad en plural}s/{id}
-            let pluralEntity = entityType;
-            if (entityType === 'proveedor') pluralEntity = 'proveedores';
-            else pluralEntity = `${entityType}s`;
-
-            const endpoint = `${API_URL}/api/${pluralEntity}/${id}`;
-
-            console.log(`[EDIT] Enviando PUT a: ${endpoint}`); // Log de depuración
-            console.log(`[EDIT] Datos enviados:`, { nombre, telefono }); // Log de depuración
-
-            const actualizado = await fetchData(endpoint, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, telefono }),
-            });
-
-            // Lógica de UI según la entidad editada
-            if (entityType === 'cliente') {
-                mostrarMensaje(clienteMensaje, `Cliente "${actualizado.nombre}" actualizado!`, true);
-                cargarClientes();
-            } else if (entityType === 'proveedor') {
-                mostrarMensaje(proveedorMensaje, `Proveedor "${actualizado.nombre}" actualizado!`, true);
-                cargarProveedores();
-            }
-
-            ocultarModalEditarCliente();
-        } catch (error) {
-            mostrarMensaje(editClienteMensaje, `Error al actualizar: ${error.message}`, false);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.textContent = 'Guardar Cambios';
-        }
-    }
-
-    /** Maneja el envío del formulario para crear un nuevo cliente. */
-    async function handleNuevoClienteSubmit(event) {
-        event.preventDefault(); if (!formNuevoCliente || !clienteMensaje) return;
-        const formData = new FormData(formNuevoCliente); const nombre = formData.get('nombre'); const telefono = formData.get('telefono') || null;
-        const submitButton = formNuevoCliente.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Registrando...';
-        try {
-            const nuevoCliente = await fetchData(`${API_URL}/api/clientes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono }), });
-            mostrarMensaje(clienteMensaje, `Cliente "${nuevoCliente.nombre}" registrado!`, true); formNuevoCliente.reset(); cargarClientes();
-        } catch (error) { mostrarMensaje(clienteMensaje, `Error: ${error.message}`, false); }
-        finally { submitButton.disabled = false; submitButton.textContent = 'Registrar Cliente'; }
-    }
-
-    /** Maneja el envío del formulario para crear un nuevo proveedor. */
-    async function handleNuevoProveedorSubmit(event) {
-        event.preventDefault(); if (!formNuevoProveedor || !proveedorMensaje) return;
-        const formData = new FormData(formNuevoProveedor); const nombre = formData.get('nombre'); const telefono = formData.get('telefono') || null;
-        const submitButton = formNuevoProveedor.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.textContent = 'Registrando...';
-        try {
-            const nuevoProveedor = await fetchData(`${API_URL}/api/proveedores`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, telefono }), });
-            mostrarMensaje(proveedorMensaje, `Proveedor "${nuevoProveedor.nombre}" registrado!`, true); formNuevoProveedor.reset(); cargarProveedores();
-        } catch (error) { mostrarMensaje(proveedorMensaje, `Error: ${error.message}`, false); }
-        finally { submitButton.disabled = false; submitButton.textContent = 'Registrar Proveedor'; }
-    }
-
-
-    /** * @function handleNuevaDireccionSubmit
-     * @description Maneja el envío del formulario para AÑADIR o ACTUALIZAR una dirección.
-     * (ACTUALIZADO CON LÃ“GICA DE ROLES)
-     */
-    async function handleNuevaDireccionSubmit(event) {
-        event.preventDefault();
-        if (!formNuevaDireccion || !direccionMensaje) return;
-
-        const direccionEditId = document.getElementById('id-direccion-edit').value;
-        const isEditMode = direccionEditId !== '';
-
-        // --- INICIO DE LÃ“GICA DE ROLES ---
-        let idClienteParaDireccion = null;
-
-        if (userRole === 'admin') {
-            // El Admin usa el ID del cliente que seleccionó de la lista
-            // (Esta variable se guarda cuando el admin hace clic en "Direcciones")
-            idClienteParaDireccion = clienteSeleccionadoId;
-        } else if (userRole === 'usuario') {
-            // El Usuario usa su propio ID
-            idClienteParaDireccion = currentUserId;
-        }
-
-        if (idClienteParaDireccion === null) {
-            mostrarMensaje(direccionMensaje, "Error: No se pudo identificar al cliente. Inicia sesión de nuevo.", false);
-            return;
-        }
-        // --- FIN DE LÃ“GICA DE ROLES ---
-
-        const formData = new FormData(formNuevaDireccion);
-        const calle = formData.get('calle');
-        const ciudad = formData.get('ciudad');
-        const codigo_postal = formData.get('codigo_postal');
-
-        const payload = { calle, ciudad, codigo_postal };
-
-        const method = isEditMode ? 'PUT' : 'POST';
-
-        // Usamos la variable idClienteParaDireccion para construir la URL
-        const endpoint = isEditMode
-            ? `${API_URL}/api/clientes/${idClienteParaDireccion}/direcciones/${direccionEditId}`
-            : `${API_URL}/api/clientes/${idClienteParaDireccion}/direcciones`;
-
-        const submitButton = formNuevaDireccion.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.textContent = isEditMode ? 'Actualizando...' : 'Añadiendo...';
-
-        try {
-            await fetchData(endpoint, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            mostrarMensaje(direccionMensaje, isEditMode ? 'Dirección actualizada!' : 'Dirección añadida!', true);
-            resetFormularioDireccion(); // Limpia el formulario
-
-            // Recarga la lista de direcciones
-            cargarDireccionesCliente(idClienteParaDireccion);
-
+            await fetchData(`/api/clientes/${btn.dataset.idCli}/direcciones/${btn.dataset.idDir}`, { method: 'DELETE' });
+            mostrarMensaje(direccionMensaje, "Dirección eliminada.", true);
+            cargarDireccionesCliente(btn.dataset.idCli);
         } catch (error) {
             mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false);
         }
-        finally {
-            submitButton.disabled = false;
-            // El texto del botón se restaura en resetFormularioDireccion()
+    }
+
+    async function handleDeleteProveedorClick(event) {
+        const btn = event.target;
+        if (!confirm(`¿Eliminar proveedor "${btn.dataset.nombre}"?`)) return;
+        try {
+            await fetchData(`/api/proveedores/${btn.dataset.id}`, { method: 'DELETE' });
+            mostrarMensaje(proveedorMensaje, "Proveedor eliminado.", true);
+            cargarProveedores();
+            cargarProductos();
+        } catch (error) {
+            mostrarMensaje(proveedorMensaje, `Error: ${error.message}`, false);
         }
     }
 
-    /** Cierra la sesión del usuario */
-    function handleLogout() {
-        localStorage.removeItem('authToken');
-        userRole = 'visualizacion';
-        currentUserId = null;
-        // Llama a actualizarUIPorRol para "limpiar" la página
-        actualizarUIPorRol();
-        // Recarga la página para un estado 100% limpio (opcional pero recomendado)
-        window.location.reload();
+    async function handleDeleteProductoClick(event) {
+        const btn = event.target;
+        if (!confirm(`¿Eliminar producto "${btn.dataset.nombre}"?`)) return;
+        try {
+            await fetchData(`/api/productos/${btn.dataset.id}`, { method: 'DELETE' });
+            mostrarMensaje(productoMensaje, "Producto eliminado.", true);
+            cargarProductos();
+        } catch (error) {
+            mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
+        }
     }
 
-    /** * Actualiza la UI basado en el rol.
-     * Esta función es la que OCULTA y MUESTRA secciones.
+    async function handleEditarSubmit(event) {
+        event.preventDefault();
+        const entityType = formEditarCliente.getAttribute('data-target-entity');
+        const id = parseInt(editClienteIdInput.value);
+        const payload = {
+            nombre: editNombreClienteInput.value,
+            telefono: editTelefonoClienteInput.value || null
+        };
+
+        const endpoint = entityType === 'proveedor' ? `/api/proveedores/${id}` : `/api/clientes/${id}`;
+        
+        try {
+            const res = await fetchData(endpoint, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            if (entityType === 'cliente') {
+                mostrarMensaje(clienteMensaje, `Cliente "${res.nombre}" actualizado`, true);
+                cargarClientes();
+            } else {
+                mostrarMensaje(proveedorMensaje, `Proveedor "${res.nombre}" actualizado`, true);
+                cargarProveedores();
+            }
+            ocultarModalEditarCliente();
+        } catch (error) {
+            mostrarMensaje(editClienteMensaje, `Error: ${error.message}`, false);
+        }
+    }
+
+    async function handleNuevoClienteSubmit(event) {
+        event.preventDefault();
+        const formData = new FormData(formNuevoCliente);
+        try {
+            await fetchData('/api/clientes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(formData))
+            });
+            mostrarMensaje(clienteMensaje, "Cliente registrado", true);
+            formNuevoCliente.reset();
+            cargarClientes();
+        } catch (error) {
+            mostrarMensaje(clienteMensaje, `Error: ${error.message}`, false);
+        }
+    }
+
+    async function handleNuevoProveedorSubmit(event) {
+        event.preventDefault();
+        const formData = new FormData(formNuevoProveedor);
+        try {
+            await fetchData('/api/proveedores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(formData))
+            });
+            mostrarMensaje(proveedorMensaje, "Proveedor registrado", true);
+            formNuevoProveedor.reset();
+            cargarProveedores();
+        } catch (error) {
+            mostrarMensaje(proveedorMensaje, `Error: ${error.message}`, false);
+        }
+    }
+
+    async function handleNuevaDireccionSubmit(event) {
+        event.preventDefault();
+        const idEdit = document.getElementById('id-direccion-edit').value;
+        const isEdit = idEdit !== '';
+        
+        let targetClientId = userRole === 'admin' ? clienteSeleccionadoId : currentUserId;
+        if (!targetClientId) return;
+
+        const formData = new FormData(formNuevaDireccion);
+        const payload = {
+            calle: formData.get('calle'),
+            ciudad: formData.get('ciudad'),
+            codigo_postal: formData.get('codigo_postal')
+        };
+
+        const endpoint = isEdit 
+            ? `/api/clientes/${targetClientId}/direcciones/${idEdit}` 
+            : `/api/clientes/${targetClientId}/direcciones`;
+
+        try {
+            await fetchData(endpoint, {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            mostrarMensaje(direccionMensaje, isEdit ? "Dirección actualizada" : "Dirección añadida", true);
+            resetFormularioDireccion();
+            cargarDireccionesCliente(targetClientId);
+        } catch (error) {
+            mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false);
+        }
+    }
+
+    /**
+     * Actualiza la UI basado en el rol.
+     * Esta función es llamada por auth.js después del login.
      */
     async function actualizarUIPorRol() {
         const esAdmin = userRole === 'admin';
         const esUsuario = userRole === 'usuario';
         const esVisualizacion = userRole === 'visualizacion';
 
-        // 1. Botones de login/logout
+        // Botones Auth
         document.getElementById('btn-mostrar-login').style.display = esVisualizacion ? 'inline-block' : 'none';
         document.getElementById('btn-mostrar-registro').style.display = esVisualizacion ? 'inline-block' : 'none';
         document.getElementById('btn-logout').style.display = esVisualizacion ? 'none' : 'inline-block';
 
-        // 2. Secciones "admin-only"
-        // (Tu HTML ya tiene la clase 'admin-only' en las secciones correctas)
-        document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = esAdmin ? 'block' : 'none';
-        });
+        // Secciones Admin
+        document.querySelectorAll('.admin-only').forEach(el => el.style.display = esAdmin ? 'block' : 'none');
 
-        // 3. Saludo y Carga de Datos Específicos
+        // Saludo y datos
         const saludoSpan = document.getElementById('saludo-usuario');
-        const selectorCliente = document.getElementById('selector-cliente');
-        selectorCliente.innerHTML = '<option value="">Seleccione un cliente...</option>'; // Limpiar
-        selectorCliente.style.display = 'none'; // Ocultar por defecto
+        selectorCliente.style.display = 'none';
 
         if (esAdmin) {
             saludoSpan.textContent = 'Modo Administrador';
-            selectorCliente.style.display = 'block'; // Admin ve el selector
-            // Admin carga TODOS los datos
-            cargarClientes(); // Llena el selector
+            selectorCliente.style.display = 'block';
+            cargarClientes();
             cargarProveedores();
             cargarHistorialVentas();
             cargarReporteBajoStock();
             cargarReporteVentasCliente();
-
         } else if (esUsuario) {
             saludoSpan.textContent = `¡Hola, usuario!`;
             document.getElementById('seccion-mis-direcciones').style.display = 'block';
             document.getElementById('nombre-cliente-seleccionado').textContent = "tus direcciones";
-
             if (currentUserId) {
                 document.getElementById('id-cliente-direccion').value = currentUserId;
                 cargarDireccionesCliente(currentUserId);
             }
-
             document.getElementById('seccion-mis-compras').style.display = 'block';
             cargarMisCompras();
-
-        } else { // Visualización
+        } else {
             saludoSpan.textContent = 'Modo Visitante';
             document.getElementById('seccion-mis-direcciones').style.display = 'none';
+            document.getElementById('seccion-mis-compras').style.display = 'none';
         }
 
-        // 4. Carga de Productos (Todos la necesitan)
+        // Carga productos para todos
         cargarProductos();
 
-        // 5. Carrito
-        const btnFinalizar = document.getElementById('btn-finalizar-compra');
+        // Botón Carrito
         if (esVisualizacion) {
-            btnFinalizar.textContent = "Iniciar sesión para comprar";
-            btnFinalizar.disabled = false; // Habilitarlo para que puedan hacer click
-
-        } else if (esUsuario) {
-            btnFinalizar.textContent = "Finalizar Compra";
-            btnFinalizar.disabled = carrito.length === 0;
-        } else if (esAdmin) {
-            btnFinalizar.textContent = "Finalizar Compra (Admin)";
-            btnFinalizar.disabled = carrito.length === 0;
+            btnFinalizarCompra.textContent = "Iniciar sesión para comprar";
+            btnFinalizarCompra.disabled = false;
+        } else {
+            btnFinalizarCompra.textContent = "Finalizar Compra";
+            btnFinalizarCompra.disabled = carrito.length === 0;
         }
-        renderizarCarrito(); // Renderiza el carrito (vacío o no)
+        renderizarCarrito();
     }
 
 
-    // --- Inicialización y Asignación de Eventos ---
+    // --- Inicialización y Listeners ---
 
-    // Asigna manejadores de eventos a formularios y botones estáticos.
     if (formNuevoCliente) formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
     if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
     if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit);
-    // btnFinalizarCompra event listener now handled by sales.js initSalesListeners()
-
-    // Formulario de Producto (Admin)
+    
     if (selectorTipoProducto) selectorTipoProducto.addEventListener('change', handleTipoProductoChange);
     if (formNuevoProducto) formNuevoProducto.addEventListener('submit', handleNuevoProductoSubmit);
-    if (btnCancelarEdicionProducto) {
-        btnCancelarEdicionProducto.addEventListener('click', resetFormularioProducto);
+    if (btnCancelarEdicionProducto) btnCancelarEdicionProducto.addEventListener('click', resetFormularioProducto);
+    if (document.getElementById('btn-cancelar-edicion-direccion')) {
+        document.getElementById('btn-cancelar-edicion-direccion').addEventListener('click', resetFormularioDireccion);
     }
 
-    // Modal de Edición (Admin)
     if (formEditarCliente) formEditarCliente.addEventListener('submit', handleEditarSubmit);
     if (cerrarModalClienteBtn) cerrarModalClienteBtn.addEventListener('click', ocultarModalEditarCliente);
     if (modalEditarCliente) {
-        modalEditarCliente.addEventListener('click', (event) => {
-            if (event.target === modalEditarCliente) {
-                ocultarModalEditarCliente();
-            }
+        modalEditarCliente.addEventListener('click', (e) => {
+            if (e.target === modalEditarCliente) ocultarModalEditarCliente();
         });
     }
-    // === Inicializar Módulos ===
 
-    // 1. Inicializar Cart DOM
-    initCartDOM({
-        carritoItemsDiv,
-        carritoTotalSpan,
-        btnFinalizarCompra
-    });
-
-    // 2. Configurar callback de getUserRole para el cart
+    // === Inicializar Módulos Externos ===
+    
+    // 1. Inicializar Cart
+    initCartDOM({ carritoItemsDiv, carritoTotalSpan, btnFinalizarCompra });
+    
+    // 2. Configurar Auth Callback
     setGetUserRoleCallback(getUserRole);
 
-    // 3. Verificar token existente (auth module)
+    // 3. Verificar Sesión
     checkExistingToken();
 
-    // 4. Inicializar event listeners de autenticación
+    // 4. Inicializar Listeners de Auth (Login, Registro, Logout)
     initAuthListeners();
 
-    // 5. Inicializar event listeners de ventas
+    // 5. Inicializar Listeners de Sales (Finalizar Compra)
     initSalesListeners();
 
-    // 6. Configurar callback global para actualizarUIPorRol (usado por auth.js)
+    // 6. Configurar Callbacks Globales para Auth.js
     window.actualizarUIPorRolCallback = actualizarUIPorRol;
-
-    // 7. Exponer currentUserId globalmente para sales.js (temporal)
     window.currentUserId = currentUserId;
 
-    // 8. Actualizar UI según rol
+    // 7. Render inicial
     actualizarUIPorRol();
 
-}); // Fin del addEventListener DOMContentLoaded
-
+});
