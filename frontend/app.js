@@ -1309,19 +1309,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Asigna los listeners a los nuevos formularios y botones de Auth
-    const formLogin = document.getElementById('form-login');
-    const formRegistro = document.getElementById('form-registro');
-    const btnLogout = document.getElementById('btn-logout');
-    const btnShowLogin = document.getElementById('btn-mostrar-login');
-    const btnShowRegistro = document.getElementById('btn-mostrar-registro');
-    const btnCloseLogin = document.getElementById('cerrar-modal-login');
-    const btnCloseRegistro = document.getElementById('cerrar-modal-registro');
-
-    if (formLogin) formLogin.addEventListener('submit', handleLoginSubmit);
-    if (formRegistro) formRegistro.addEventListener('submit', handleRegistroSubmit);
-    if (btnLogout) btnLogout.addEventListener('click', handleLogout);
-
     // Listeners para mostrar/ocultar modales de auth
     if (btnShowLogin) btnShowLogin.addEventListener('click', () => {
         document.getElementById('modal-login').style.display = 'block';
