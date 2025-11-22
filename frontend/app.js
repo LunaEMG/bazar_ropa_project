@@ -733,18 +733,18 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. Configurar Auth Callback
     setGetUserRoleCallback(getUserRole);
 
-    // 3. Verificar Sesión
-    checkExistingToken();
-
-    // 4. Inicializar Listeners de Auth (Login, Registro, Logout)
-    initAuthListeners();
-
-    // 5. Inicializar Listeners de Sales (Finalizar Compra)
-    initSalesListeners();
-
-    // 6. Configurar Callbacks Globales para Auth.js
+    // 3. Configurar Callbacks Globales (IMPORTANTE: Hacer esto ANTES de initAuthListeners)
     window.actualizarUIPorRolCallback = actualizarUIPorRol;
     window.currentUserId = currentUserId;
+
+    // 4. Verificar Sesión
+    checkExistingToken();
+
+    // 5. Inicializar Listeners de Auth (Login, Registro, Logout)
+    initAuthListeners();
+
+    // 6. Inicializar Listeners de Sales (Finalizar Compra)
+    initSalesListeners();
 
     // 7. Render inicial
     actualizarUIPorRol();
