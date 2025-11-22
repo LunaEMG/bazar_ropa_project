@@ -301,12 +301,207 @@
         <p>&copy; 2025 Bazar de Ropa</p>
     </footer>
 
+    <select id="selector-cliente" name="cliente_id" required>
+        <option value="">Seleccione un cliente...</option>
+    </select>
+    </div>
+    <button id="btn-finalizar-compra" disabled>Finalizar Compra</button>
+    <p id="compra-mensaje" class="mensaje"></p>
+    </section>
+
+    <hr>
+
+    <section class="admin-only" style="display: none;">
+        <h2>Gestión de Clientes</h2>
+
+        <div class="sub-section">
+            <h3>Registrar Nuevo Cliente (Admin)</h3>
+            <form id="form-nuevo-cliente">
+                <div class="form-group"><label for="nombre-cliente">Nombre:</label><input type="text"
+                        id="nombre-cliente" name="nombre" required></div>
+                <div class="form-group"><label for="telefono-cliente">Teléfono (Opcional):</label><input type="tel"
+                        id="telefono-cliente" name="telefono"></div>
+
+                <div class="form-group"><label for="email-cliente">Email:</label><input type="text" id="email-cliente"
+                        name="email" required></div>
+                <div class="form-group"><label for="password-cliente">Contraseña:</label><input type="password"
+                        id="password-cliente" name="password" required></div>
+
+                <button type="submit">Registrar Cliente</button>
+                <p id="cliente-mensaje" class="mensaje"></p>
+            </form>
+        </div>
+
+        <div class="sub-section">
+            <h3>Lista de Clientes</h3>
+            <div id="clientes-lista-contenedor">
+                <p>Cargando clientes...</p>
+            </div>
+        </div>
+
+        <div id="modal-editar-cliente" class="modal" style="display: none;">
+            <div class="modal-contenido">
+                <span class="cerrar-modal" id="cerrar-modal-cliente">&times;</span>
+                <h3>Editar Cliente</h3>
+                <form id="form-editar-cliente" data-target-entity=""> <input type="hidden" id="edit-cliente-id"
+                        name="id_cliente">
+                    <div class="form-group">
+                        <label for="edit-nombre-cliente">Nombre:</label>
+                        <input type="text" id="edit-nombre-cliente" name="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-telefono-cliente">Teléfono (Opcional):</label>
+                        <input type="tel" id="edit-telefono-cliente" name="telefono">
+                    </div>
+                    <button type="submit">Guardar Cambios</button>
+                    <p id="edit-cliente-mensaje" class="mensaje"></p>
+                </form>
+            </div>
+        </div>
+
+    </section>
+
+    <section id="seccion-mis-direcciones" style="display: none;">
+        <h2>Mis Direcciones</h2>
+        <div class="sub-section" id="direcciones-cliente">
+            <h3>Direcciones de <span id="nombre-cliente-seleccionado"></span></h3>
+            <div id="lista-direcciones-cliente"></div>
+            <h4>Añadir Nueva Dirección</h4>
+            <form id="form-nueva-direccion">
+                <input type="hidden" id="id-cliente-direccion" name="id_cliente">
+                <input type="hidden" id="id-direccion-edit" value="">
+                <div class="form-group">
+                    <label for="calle-direccion">Calle y Número:</label>
+                    <input type="text" id="calle-direccion" name="calle" required>
+                </div>
+                <div class="form-group">
+                    <label for="ciudad-direccion">Ciudad:</label>
+                    <input type="text" id="ciudad-direccion" name="ciudad" required>
+                </div>
+                <div class="form-group">
+                    <label for="cp-direccion">Código Postal:</label>
+                    <input type="text" id="cp-direccion" name="codigo_postal" required>
+                </div>
+                <button type="submit">Añadir Dirección</button>
+                <button type="button" id="btn-cancelar-edicion-direccion"
+                    style="display: none; background-color: #95a5a6; margin-left: 10px;">Cancelar Edición</button>
+                <p id="direccion-mensaje" class="mensaje"></p>
+            </form>
+        </div>
+    </section>
+
+    <section id="seccion-mis-compras" style="display: none;">
+        <h2>Mis Compras</h2>
+        <div id="mis-compras-lista">
+            <p>Cargando compras...</p>
+        </div>
+    </section>
+
+    <hr>
+
+    <section class="admin-only" style="display: none;">
+        <h2>Proveedores</h2>
+        <form id="form-nuevo-proveedor" style="margin-bottom: 30px;">
+            <h3>Registrar Nuevo Proveedor</h3>
+            <div class="form-group"><label for="nombre-proveedor">Nombre:</label><input type="text"
+                    id="nombre-proveedor" name="nombre" required></div>
+            <div class="form-group"><label for="telefono-proveedor">Teléfono (Opcional):</label><input type="tel"
+                    id="telefono-proveedor" name="telefono"></div>
+            <button type="submit">Registrar Proveedor</button>
+            <p id="proveedor-mensaje" class="mensaje"></p>
+        </form>
+        <h3>Lista de Proveedores</h3>
+        <div id="proveedores-lista">
+            <p>Cargando proveedores...</p>
+        </div>
+    </section>
+
+    <hr>
+
+    <section class="admin-only" style="display: none;">
+        <h2>Reportes</h2>
+
+        <div class="sub-section">
+            <h3>Productos con Bajo Stock (< 10)</h3>
+                    <div id="reporte-bajo-stock">
+                        <p>Cargando reporte...</p>
+                    </div>
+        </div>
+
+        <div class="sub-section">
+            <h3>Ventas por Cliente</h3>
+            <div id="reporte-ventas-cliente">
+                <p>Cargando reporte...</p>
+            </div>
+        </div>
+    </section>
+
+    <hr>
+
+    <section class="admin-only" style="display: none;">
+        <h2>Historial de Ventas</h2>
+        <div id="historial-ventas-lista">
+            <p>Cargando historial de ventas...</p>
+        </div>
+    </section>
+
+    </main>
+
+    <div id="modal-login" class="modal" style="display: none;">
+        <div class="modal-contenido">
+            <span class="cerrar-modal" id="cerrar-modal-login">&times;</span>
+            <h3>Iniciar Sesión</h3>
+            <form id="form-login">
+                <div class="form-group">
+                    <label for="login-email">Email:</label>
+                    <input type="text" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Contraseña:</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit">Entrar</button>
+                <p id="login-mensaje" class="mensaje"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-registro" class="modal" style="display: none;">
+        <div class="modal-contenido">
+            <span class="cerrar-modal" id="cerrar-modal-registro">&times;</span>
+            <h3>Registrarse</h3>
+            <form id="form-registro">
+                <div class="form-group">
+                    <label for="registro-nombre">Nombre:</label>
+                    <input type="text" id="registro-nombre" required>
+                </div>
+                <div class="form-group">
+                    <label for="registro-email">Email:</label>
+                    <input type="text" id="registro-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="registro-password">Contraseña:</label>
+                    <input type="password" id="registro-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="registro-telefono">Teléfono (Opcional):</label>
+                    <input type="tel" id="registro-telefono">
+                </div>
+                <button type="submit">Crear Cuenta</button>
+                <p id="registro-mensaje" class="mensaje"></p>
+            </form>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; 2025 Bazar de Ropa</p>
+    </footer>
+
     <!-- Loading Overlay -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner"></div>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 
 </html>

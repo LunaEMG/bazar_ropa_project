@@ -5,22 +5,12 @@
  * y operaciones CRUD para clientes, proveedores, direcciones y ventas.
  */
 
-// === ES6 Module Imports ===
-import { API_URL } from './js/config.js';
-import { showLoading, hideLoading, setButtonLoading, mostrarMensaje } from './js/ui.js';
-import { fetchData } from './js/api.js';
-import { carrito, renderizarCarrito, handleAddCarritoClick, clearCarrito, initCartDOM, setGetUserRoleCallback } from './js/cart.js';
-import { userRole, currentUserId, getUserRole, checkExistingToken, initAuthListeners } from './js/auth.js';
-import { cargarHistorialVentas, cargarReporteBajoStock, cargarReporteVentasCliente, cargarMisCompras, initSalesListeners } from './js/sales.js';
-
 // Espera a que el DOM esté completamente cargado.
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- Configuración ---
-    /*
-     * NOTA: API_URL ahora se importa desde ./js/config.js
-     * Las funciones de UI, Auth, Cart y Sales también se importan de sus módulos respectivos
-     */
+    /** URL base de la API backend desplegada. */
+    const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com'; // 'http://localhost:8000';
 
     // --- Loading Utilities ---
     const loadingOverlay = document.getElementById('loading-overlay');
