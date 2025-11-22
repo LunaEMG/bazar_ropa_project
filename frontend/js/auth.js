@@ -80,6 +80,9 @@ export async function handleLoginSubmit(event) {
         document.getElementById('modal-login').style.display = 'none';
         document.getElementById('form-login').reset();
 
+        // Sincronizar currentUserId con window para acceso global (usado por sales.js)
+        window.currentUserId = currentUserId;
+
         // Actualiza toda la UI (se configurará desde app.js)
         if (window.actualizarUIPorRolCallback) {
             window.actualizarUIPorRolCallback();
@@ -153,11 +156,15 @@ export function checkExistingToken() {
             const payload = parseJwt(token);
             userRole = payload.rol || 'usuario';
             currentUserId = payload.id || null;
+
+            // Sincronizar con window para acceso global
+            window.currentUserId = currentUserId;
         } catch (e) {
             console.error("Token inválido, eliminando...", e);
             localStorage.removeItem('authToken');
             userRole = 'visualizacion';
             currentUserId = null;
+            window.currentUserId = null;
         }
     }
 }
