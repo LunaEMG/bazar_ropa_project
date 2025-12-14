@@ -1,16 +1,8 @@
-/**
- * @file sales.js
- * @description Gestión de ventas, reportes y finalización de compra
- */
-
 import { fetchData } from './api.js';
 import { mostrarMensaje } from './ui.js';
 import { getCarrito, clearCarrito, renderizarCarrito } from './cart.js';
 import { getUserRole } from './auth.js';
 
-/**
- * Carga el historial de ventas (Admin only)
- */
 export async function cargarHistorialVentas() {
     const listaVentas = document.getElementById('historial-ventas-lista');
     if (!listaVentas) return;
@@ -59,9 +51,6 @@ export async function cargarHistorialVentas() {
     }
 }
 
-/**
- * Carga el reporte de productos con bajo stock
- */
 export async function cargarReporteBajoStock() {
     const contenedor = document.getElementById('reporte-bajo-stock');
     if (!contenedor) return;
@@ -86,9 +75,6 @@ export async function cargarReporteBajoStock() {
     }
 }
 
-/**
- * Carga el reporte de ventas por cliente
- */
 export async function cargarReporteVentasCliente() {
     const contenedor = document.getElementById('reporte-ventas-cliente');
     if (!contenedor) return;
@@ -116,9 +102,6 @@ export async function cargarReporteVentasCliente() {
     }
 }
 
-/**
- * Carga las compras del usuario actual
- */
 export async function cargarMisCompras() {
     const listaCompras = document.getElementById('mis-compras-lista');
     if (!listaCompras) return;
@@ -154,9 +137,6 @@ export async function cargarMisCompras() {
     }
 }
 
-/**
- * Maneja el clic en finalizar compra
- */
 export async function handleFinalizarCompraClick() {
     const btnFinalizarCompra = document.getElementById('btn-finalizar-compra');
     const compraMensaje = document.getElementById('compra-mensaje');
@@ -243,9 +223,6 @@ export async function handleFinalizarCompraClick() {
     }
 }
 
-/**
- * Inicializa event listeners de ventas
- */
 export function initSalesListeners() {
     document.getElementById('btn-finalizar-compra')?.addEventListener('click', handleFinalizarCompraClick);
 }

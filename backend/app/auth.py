@@ -4,8 +4,8 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-import bcrypt  # <--- Usamos bcrypt directamente en lugar de passlib
-from sqlalchemy.orm import Session # Changed to Session from psycopg Connection
+import bcrypt  
+from sqlalchemy.orm import Session 
 from pydantic import BaseModel
 
 from app.db.database import get_db
@@ -14,8 +14,6 @@ from app.db.database import get_db
 SECRET_KEY = os.getenv("SECRET_KEY", "tu_super_secreto_por_defecto_cambiame")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 
-
-# (Eliminamos pwd_context de passlib)
 
 # Esquema de OAuth2
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
@@ -29,7 +27,7 @@ class TokenData(BaseModel):
     email: Optional[str] = None
     rol: Optional[str] = None
 
-# --- Funciones de Utilidad de Contraseña (CORREGIDAS) ---
+# --- Funciones de Utilidad de Contraseña ---
 
 def verify_password(plain_password, hashed_password):
     """Verifica si la contraseña plana coincide con el hash."""

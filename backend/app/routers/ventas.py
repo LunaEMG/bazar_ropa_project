@@ -1,20 +1,13 @@
-# Importaciones de FastAPI y tipos necesarios
 from fastapi import APIRouter, HTTPException, status, Depends 
 from typing import List 
 from sqlalchemy.orm import Session 
 
-# Importa las funciones CRUD para ventas
 from app.crud import crud_ventas 
-# Importa los schemas Pydantic para validar entrada y salida
 from app.schemas import Venta, VentaCreate 
-
-# Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
 from app.auth import get_current_user, get_current_admin_user
 from app.schemas import Cliente
 
-
-# Crea un router específico para las rutas de ventas
 router = APIRouter()
 
 # --- Endpoint para CREAR una nueva venta ---
@@ -31,18 +24,16 @@ def create_new_venta(
     current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Registra una nueva venta en la base de datos. (Usuario Only)
+    Registra una nueva venta en la base de datos (Solo Usuario).
     El ID del cliente en la venta DEBE coincidir con el usuario logueado.
     """
     
-    # --- CHEQUEO DE SEGURIDAD ---
-    # Si el usuario NO es admin Y intenta comprar para otro ID, lanzamos error.
+    # Seguridad: Si el usuario NO es admin Y intenta comprar para otro ID, lanzamos error.
     if current_user.rol != 'admin' and venta.id_cliente != current_user.id_cliente:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No puedes realizar una compra para otro cliente."
         )
-    # --- FIN DE CHEQUEO ---
 
     try:
         db_venta = crud_ventas.create_venta(db=db, venta_data=venta) 
@@ -73,7 +64,7 @@ def read_ventas(
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """
-    Obtiene una lista de todas las ventas registradas... (Admin Only)
+    Obtiene una lista de todas las ventas registradas (Solo Admin).
     """
     ventas = crud_ventas.get_all_ventas(db=db) 
     return ventas
@@ -87,7 +78,7 @@ def read_ventas(
 )
 def read_mis_ventas(
     db: Session = Depends(get_db),
-    current_user: Cliente = Depends(get_current_user) # <-- Esto asegura que sea el usuario logueado
+    current_user: Cliente = Depends(get_current_user)
 ):
     """
     Obtiene el historial de compras del usuario autenticado.

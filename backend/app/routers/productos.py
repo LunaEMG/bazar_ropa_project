@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
-from sqlalchemy.orm import Session # Changed from psycopg Connection
+from sqlalchemy.orm import Session
 
 from app.crud import crud_productos 
 from app.schemas import Producto, ProductoUpdate, ProductoCreate, ProductoUpdateConSubtipo
 
 from app.db.database import get_db
-
 from app.auth import get_current_admin_user
 from app.schemas import Cliente
 
@@ -25,8 +24,7 @@ def create_new_producto(
     admin_user: Cliente = Depends(get_current_admin_user) 
 ):
     """
-    Crea un  producto en la base de datos. (Admin Only)
-    ...
+    Crea un producto en la base de datos (Solo Admin).
     """
     db_producto = crud_productos.create_producto(db=db, producto_data=producto) 
     
@@ -46,7 +44,7 @@ def create_new_producto(
 )
 def read_productos(db: Session = Depends(get_db)): # Changed to Session
     """
-    Obtiene una lista de todos los productos del bazar... (Público)
+    Obtiene una lista de todos los productos del bazar (Público).
     """
     productos = crud_productos.get_all_productos(db=db) 
     return productos
@@ -63,7 +61,7 @@ def read_producto(
     db: Session = Depends(get_db) 
 ):
     """
-    Obtiene los detalles de un producto específico... (Público)
+    Obtiene los detalles de un producto específico (Público).
     """
     db_producto = crud_productos.get_producto_by_id(db=db, producto_id=producto_id) 
     if db_producto is None:
@@ -84,7 +82,7 @@ def update_existing_producto(
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """
-    Actualiza los datos de un producto existente... (Admin Only)
+    Actualiza los datos de un producto existente (Solo Admin).
     """
     updated_producto = crud_productos.update_producto(
         db=db, 

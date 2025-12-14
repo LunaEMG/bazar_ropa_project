@@ -1,24 +1,14 @@
-# Importaciones necesarias de FastAPI, tipos y estado HTTP
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 from sqlalchemy.orm import Session
 
-# Importa las funciones CRUD y los schemas Pydantic para clientes
 from app.crud import crud_clientes
 from app.schemas import Cliente, ClienteCreate, ClienteUpdate
-
-# Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
-
-
 from app.auth import get_current_admin_user
-# (Cliente ya estaba importado en schemas)
 
-
-# Crea un router específico para las rutas de clientes
 router = APIRouter()
 
-# --- Endpoint para CREAR un nuevo cliente ---
 @router.post(
     "/api/clientes", 
     response_model=Cliente, 
@@ -32,11 +22,10 @@ def create_new_cliente(
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """
-    Crea un nuevo cliente en la base de datos. (Admin Only)
-    Nota: Para registro público, usar /api/auth/register
-    ...
+    Crea un nuevo cliente en la base de datos (Solo Admin).
+    Nota: Para registro público, usar /api/auth/register.
     """
-    # Check if email exists (active or inactive)
+    # Verificar si el email ya existe (activo o inactivo)
     existing_cliente = crud_clientes.get_cliente_by_email_any(db, email=cliente.email)
     if existing_cliente:
         raise HTTPException(
@@ -52,7 +41,6 @@ def create_new_cliente(
         )
     return new_cliente
 
-# --- Endpoint para LEER todos los clientes ---
 @router.get(
     "/api/clientes", 
     response_model=List[Cliente],
@@ -64,13 +52,12 @@ def read_clientes(
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """
-    Obtiene una lista de todos los clientes registrados. (Admin Only)
+    Obtiene una lista de todos los clientes registrados (Solo Admin).
     """
     clientes = crud_clientes.get_all_clientes(db=db) 
     return clientes
 
 
-# --- Endpoint para LEER un cliente específico por ID ---
 @router.get(
     "/api/clientes/{cliente_id}", 
     response_model=Cliente,
@@ -83,14 +70,13 @@ def read_cliente(
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """
-    Obtiene los detalles de un cliente específico. (Admin Only)
+    Obtiene los detalles de un cliente específico (Solo Admin).
     """
     db_cliente = crud_clientes.get_cliente_by_id(db=db, cliente_id=cliente_id) 
     if db_cliente is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
     return db_cliente
 
-# --- Endpoint para ACTUALIZAR un cliente existente ---
 @router.put(
     "/api/clientes/{cliente_id}",
     response_model=Cliente,

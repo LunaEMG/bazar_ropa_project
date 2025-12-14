@@ -8,17 +8,16 @@ class ProductoBase(BaseModel):
     """Schema base para Producto, define campos comunes."""
     nombre: str
     descripcion: Optional[str] = None
-    imagen_url: Optional[str] = None # Added field
+    imagen_url: Optional[str] = None 
     precio: float = Field(ge=0) 
     cantidad_stock: int = Field(ge=0) 
-    # Mantenemos 'int' aquí para que ProductoCreate lo herede como requerido
     id_proveedor: int 
 
 class ProductoUpdate(BaseModel):
     """Schema para actualizar un Producto. Todos los campos son opcionales."""
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
-    imagen_url: Optional[str] = None # Added field
+    imagen_url: Optional[str] = None 
     precio: Optional[float] = Field(None, ge=0) 
     cantidad_stock: Optional[int] = Field(None, ge=0)
     id_proveedor: Optional[int] = None
@@ -36,7 +35,7 @@ class Producto(ProductoBase):
     class Config:
         from_attributes = True 
 
-# --- Schemas para Detalles de Subtipos (NUEVO) ---
+# --- Schemas para Detalles de Subtipos ---
 class RopaDetalles(BaseModel):
     material: str = Field(..., example="Lino")
     tipo_corte: Optional[str] = Field(None, example="Slim Fit")
@@ -72,23 +71,23 @@ class AccesoriosDetallesUpdate(BaseModel):
     material: Optional[str] = None
     dimensiones: Optional[str] = None
 
-# --- Schema para Actualización de Producto (NUEVO) ---
+# --- Schema para Actualización de Producto ---
 class ProductoUpdateConSubtipo(ProductoUpdate):
     """
     Schema para actualizar un producto. Incluye campos base opcionales
     y detalles de subtipo opcionales.
     """
-    tipo_producto: str # Requerido para saber qué tabla de subtipo actualizar
+    tipo_producto: str 
     detalles_subtipo: Optional[Union[RopaDetallesUpdate, CalzadoDetallesUpdate, AccesoriosDetallesUpdate]] = None
 
-# --- Schema para Creación de Producto (NUEVO) ---
+# --- Schema para Creación de Producto ---
 class ProductoCreate(ProductoBase):
     """
     Schema para crear un producto. Incluye un campo 'tipo_producto' 
     y un campo de detalles que es una unión de los posibles subtipos.
     """
     # Hereda id_proveedor: int de ProductoBase, por lo que sigue siendo requerido al crear.
-    tipo_producto: str # "ropa", "calzado", o "accesorios"
+    tipo_producto: str 
     detalles_subtipo: Union[RopaDetalles, CalzadoDetalles, AccesoriosDetalles]
 
 # --- Schemas de Cliente ---

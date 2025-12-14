@@ -1,18 +1,13 @@
-# Importaciones necesarias de FastAPI, tipos y estado HTTP
 from fastapi import APIRouter, HTTPException, status, Depends 
 from typing import List
 from sqlalchemy.orm import Session 
 
-# Importa las funciones CRUD y los schemas Pydantic para proveedores
 from app.crud import crud_proveedores
 from app.schemas import Proveedor, ProveedorCreate, ProveedorUpdate 
-
-# Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
 from app.auth import get_current_admin_user
 from app.schemas import Cliente 
 
-# Crea un router específico para las rutas de proveedores
 router = APIRouter()
 
 # --- Endpoint para CREAR un nuevo proveedor ---
@@ -28,7 +23,7 @@ def create_new_proveedor(
     db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
-    """Crea un nuevo proveedor. (Admin Only)"""
+    """Crea un nuevo proveedor (Solo Admin)."""
     db_proveedor = crud_proveedores.create_proveedor(db=db, proveedor=proveedor) 
     if db_proveedor is None:
         raise HTTPException(
@@ -48,7 +43,7 @@ def read_proveedores(
     db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
-    """Obtiene una lista de todos los proveedores. (Admin Only)"""
+    """Obtiene una lista de todos los proveedores (Solo Admin)."""
     proveedores = crud_proveedores.get_all_proveedores(db=db) 
     return proveedores
 
@@ -64,7 +59,7 @@ def read_proveedor(
     db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
-    """Obtiene un proveedor específico. (Admin Only)"""
+    """Obtiene un proveedor específico (Solo Admin)."""
     db_proveedor = crud_proveedores.get_proveedor_by_id(db=db, proveedor_id=proveedor_id) 
     if db_proveedor is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado")
@@ -83,7 +78,7 @@ def update_existing_proveedor(
     db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
-    """Actualiza datos de un proveedor por ID. (Admin Only)"""
+    """Actualiza datos de un proveedor por ID (Solo Admin)."""
     updated_proveedor = crud_proveedores.update_proveedor(
         db=db, 
         proveedor_id=proveedor_id, 

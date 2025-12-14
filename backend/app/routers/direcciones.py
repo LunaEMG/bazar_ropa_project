@@ -1,24 +1,18 @@
-# Importaciones necesarias de FastAPI, tipos y estado HTTP
 from fastapi import APIRouter, HTTPException, status, Path, Depends 
 from typing import List
 from sqlalchemy.orm import Session 
 
-# Importa las funciones CRUD y los schemas Pydantic relevantes
 from app.crud import crud_direcciones, crud_clientes 
 from app.schemas import Direccion, DireccionCreate, DireccionUpdate
-
-# Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
 from app.auth import get_current_user
 from app.schemas import Cliente
 
-# Crea un router específico para las rutas de direcciones, anidado bajo clientes
 router = APIRouter(
     prefix="/api/clientes/{cliente_id}", 
     tags=["Direcciones"] 
 )
 
-# --- FUNCIÓN DE VERIFICACIÓN ---
 def verificar_permiso_cliente(cliente_id: int, current_user: Cliente):
     """Verifica que el ID de la ruta coincida con el usuario logueado."""
     # Permitir acceso si es admin
@@ -31,7 +25,6 @@ def verificar_permiso_cliente(cliente_id: int, current_user: Cliente):
             detail="No tienes permiso para acceder a los recursos de este cliente."
         )
 
-# --- Endpoint para CREAR una nueva dirección para un cliente ---
 @router.post(
     "/direcciones", 
     response_model=Direccion, 
@@ -46,7 +39,7 @@ def create_direccion_for_existing_cliente(
     current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Crea una nueva dirección asociada al cliente logueado. (Usuario Only)
+    Crea una nueva dirección asociada al cliente logueado (Solo Usuario).
     """
     verificar_permiso_cliente(cliente_id, current_user)
      
@@ -62,7 +55,6 @@ def create_direccion_for_existing_cliente(
         )
     return db_direccion
 
-# --- Endpoint para LEER todas las direcciones de un cliente ---
 @router.get(
     "/direcciones", 
     response_model=List[Direccion],
@@ -75,14 +67,13 @@ def read_direcciones_for_cliente(
     current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Obtiene las direcciones del cliente logueado. (Usuario Only)
+    Obtiene las direcciones del cliente logueado (Solo Usuario).
     """
     verificar_permiso_cliente(cliente_id, current_user)
 
     direcciones = crud_direcciones.get_direcciones_by_cliente(db=db, cliente_id=cliente_id)
     return direcciones
 
-# --- NUEVO Endpoint para ACTUALIZAR una dirección específica ---
 @router.put(
     "/direcciones/{direccion_id}", 
     response_model=Direccion,
@@ -97,7 +88,7 @@ def update_existing_direccion(
     current_user: Cliente = Depends(get_current_user)
 ):
     """
-    Actualiza una dirección del cliente logueado. (Usuario Only)
+    Actualiza una dirección del cliente logueado (Solo Usuario).
     """
     verificar_permiso_cliente(cliente_id, current_user)
 
@@ -113,7 +104,7 @@ def update_existing_direccion(
         
     return updated_direccion
 
-# --- NUEVO Endpoint para ELIMINAR una dirección específica ---
+
 @router.delete(
     "/direcciones/{direccion_id}",
     status_code=status.HTTP_204_NO_CONTENT,

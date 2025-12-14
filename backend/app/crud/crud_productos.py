@@ -1,6 +1,5 @@
 # backend/app/crud/crud_productos.py
 
-# Importaciones necesarias
 from sqlalchemy.orm import Session
 from app.models import Producto, Ropa, Calzado, Accesorios
 from app.schemas import (
@@ -8,13 +7,9 @@ from app.schemas import (
     ProductoUpdateConSubtipo, RopaDetallesUpdate, CalzadoDetallesUpdate, AccesoriosDetallesUpdate
 )
 
-# --- CREAR (Create): Añadir un nuevo producto ---
 def create_producto(db: Session, producto_data: ProductoCreate):
-    """
-    Crea un nuevo producto en la tabla 'producto' y su correspondiente
-    registro en la tabla de subtipo (ropa, calzado o accesorios).
-    """
-
+    """Crea un producto y su subtipo asociado (ropa/calzado/accesorios)."""
+    
     # 1. Crear instancia base
     db_producto = Producto(
         nombre=producto_data.nombre,
@@ -27,8 +22,9 @@ def create_producto(db: Session, producto_data: ProductoCreate):
 
     detalles = producto_data.detalles_subtipo
 
-    # 2. Crear instancia de subtipo y asociar (SQLAlchemy manejará las FKs al hacer flush)
-    # Nota: Asociamos directamente a la relación del modelo
+    detalles = producto_data.detalles_subtipo
+
+    # 2. Crear instancia de subtipo y asociar
     try:
         if producto_data.tipo_producto == "ropa" and isinstance(detalles, RopaDetalles):
             db_ropa = Ropa(
@@ -67,17 +63,12 @@ def create_producto(db: Session, producto_data: ProductoCreate):
         print(f"Error al crear producto: {e}")
         return None
 
-# --- Funciones CRUD para Productos ---
-
 def _enrich_producto(db_producto: Producto):
-    """
-    Helper para añadir 'tipo_producto' y 'detalles_subtipo' al objeto 
-    antes de pasarlo a Pydantic (ya que Pydantic from_attributes los buscará).
-    """
+    """Helper para poblar 'tipo_producto' y 'detalles_subtipo' antes de la serialización."""
     if not db_producto:
         return None
         
-    # Detectamos el tipo basado en qué relación secundaria existe
+    # Detectamos el tipo basado en relaciones
     if db_producto.ropa_detalle:
         db_producto.tipo_producto = "ropa"
         db_producto.detalles_subtipo = RopaDetalles.model_validate(db_producto.ropa_detalle)
@@ -93,9 +84,8 @@ def _enrich_producto(db_producto: Producto):
     
     return db_producto
 
-# LEER (Read): Obtener todos los productos
 def get_all_productos(db: Session):
-    """Obtiene todos los productos de la tabla 'producto', determinando su tipo."""
+    """Obtiene todos los productos activos, ordenados por nombre."""
     productos = db.query(Producto).filter(Producto.esta_activo == True).order_by(Producto.nombre).all()
     # Enriquecer cada uno
     # Nota: Esto podría optimizarse con joinedload, pero para simplicidad lo hacemos así,

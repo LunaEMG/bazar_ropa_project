@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session # Changed from psycopg Connection
+from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.db.database import get_db
@@ -19,7 +19,7 @@ router = APIRouter()
 )
 
 async def login_for_access_token(
-    db: Session = Depends(get_db), # Changed to Session
+    db: Session = Depends(get_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
     user = crud_clientes.get_cliente_by_email(db, email=form_data.username)
@@ -31,7 +31,7 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    if not verify_password(form_data.password, user.hashed_password): # Fixed attribute access
+    if not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos",
@@ -40,15 +40,15 @@ async def login_for_access_token(
         
     
     token_data = {
-        "sub": user.email, # Fixed attribute access
-        "rol": user.rol,   # Fixed attribute access
-        "id": user.id_cliente  # Fixed attribute access
+        "sub": user.email,
+        "rol": user.rol,
+        "id": user.id_cliente
     }
     
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data=token_data, # Pasa el diccionario completo
+        data=token_data,
         expires_delta=access_token_expires
     )
     
@@ -62,10 +62,10 @@ async def login_for_access_token(
 )
 def register_new_user(
     cliente: ClienteCreate, 
-    db: Session = Depends(get_db) # Changed to session
+    db: Session = Depends(get_db)
 ):
     """
-    Endpoint de Registro.
+    Registra un nuevo usuario en el sistema.
     """
     db_user = crud_clientes.get_cliente_by_email(db, email=cliente.email)
     if db_user:

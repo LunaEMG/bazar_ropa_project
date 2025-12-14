@@ -1,11 +1,9 @@
 from fastapi import APIRouter, HTTPException, status, Depends 
 from typing import List
-from sqlalchemy.orm import Session # Changed to Session
+from sqlalchemy.orm import Session 
 
 from app.crud import crud_reportes
 from app.schemas import ReporteStock, ReporteVentasCliente
-
-# Importa nuestro nuevo 'inyector' de DB
 from app.db.database import get_db
 from app.auth import get_current_admin_user
 from app.schemas import Cliente 
@@ -22,7 +20,7 @@ def read_reporte_bajo_stock(
     db: Session = Depends(get_db), # Changed to Session
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
-    """Obtiene una lista de productos con stock < 10. (Admin Only)"""
+    """Obtiene una lista de productos con stock < 10 (Solo Admin)."""
     reporte = crud_reportes.get_productos_bajo_stock(db=db) 
     return reporte
 
@@ -36,6 +34,6 @@ def read_reporte_ventas_cliente(
     db: Session = Depends(get_db), # Changed to Session
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
-    """Obtiene un resumen de compras y gasto total por cliente. (Admin Only)"""
+    """Obtiene un resumen de compras y gasto total por cliente (Solo Admin)."""
     reporte = crud_reportes.get_ventas_por_cliente(db=db) 
     return reporte

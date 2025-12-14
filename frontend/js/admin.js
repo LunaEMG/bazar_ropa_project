@@ -2,7 +2,8 @@ import { fetchData, deleteData } from './api.js';
 import { API_URL } from './config.js';
 import { mostrarMensaje, showGlobalNotification } from './ui.js';
 
-// --- Tab Switching Logic ---
+
+
 export function switchAdminTab(tabId) {
     document.querySelectorAll('.admin-tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
@@ -31,13 +32,11 @@ export async function cargarDatosAdminResumen() {
         ]);
         usuariosData.forEach(u => usersCache[u.id_cliente] = u.nombre);
 
-        // Stats UI
         const totalVentas = ventasData.reduce((acc, v) => acc + v.monto_total, 0);
         document.getElementById('stat-total-ventas').textContent = `$${totalVentas.toFixed(2)}`;
         document.getElementById('stat-total-usuarios').textContent = usuariosData.length;
         document.getElementById('stat-stock-bajo').textContent = stockData.length;
 
-        // Render Stock View Table
         const stockContainer = document.getElementById('general-view-stock');
         if(stockData.length === 0) {
             stockContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">Todo el stock está en orden.</div>';
@@ -57,7 +56,6 @@ export async function cargarDatosAdminResumen() {
             `;
         }
 
-        // Render Clients View Table
         const clientsContainer = document.getElementById('general-view-clientes');
         if(topClientesData.length === 0) {
             clientsContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #888;">No hay datos de compras recientes.</div>';
