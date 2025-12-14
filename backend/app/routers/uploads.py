@@ -1,38 +1,45 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException
-import shutil
+import cloudinary
+import cloudinary.uploader
 import os
-import secrets
-from pathlib import Path
+from dotenv import load_dotenv
+
+# Cargar variables de entorno (por si no se han cargado aún)
+load_dotenv()
+
+# Configuración de Cloudinary
+# Asegúrate de tener estas variables en tu archivo .env
+cloudinary.config( 
+  cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"), 
+  api_key = os.getenv("CLOUDINARY_API_KEY"), 
+  api_secret = os.getenv("CLOUDINARY_API_SECRET"),
+  secure = True
+)
 
 router = APIRouter(
     prefix="/api/upload",
     tags=["Uploads"]
 )
 
-UPLOAD_DIR = Path("static/uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
 @router.post("")
 async def upload_image(file: UploadFile = File(...)):
+    """
+    Sube una imagen a Cloudinary y retorna su URL segura.
+    """
     try:
         # Validar extensión
         filename = file.filename
-        extension = os.path.splitext(filename)[1].lower()
-        if extension not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
-            raise HTTPException(status_code=400, detail="Solo se permiten imagenes (.jpg, .png, .webp)")
+        # Simple validación de extensión
+        if not filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif')):
+             raise HTTPException(status_code=400, detail="Solo se permiten imágenes (.jpg, .png, .webp, .gif)")
 
-        # Generar nombre único
-        token = secrets.token_hex(4)
-        safe_filename = f"{token}_{filename.replace(' ', '_')}"
-        file_path = UPLOAD_DIR / safe_filename
+        # Subir a Cloudinary
+        # 'folder' organiza las imágenes en una carpeta específica en tu Cloudinary
+        result = cloudinary.uploader.upload(file.file, folder="bazar_ropa_productos")
         
-        # Guardar archivo
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
-        # Retornar URL
-        # Asumiendo que la API se sirve en root y static está montado en /static
-        return {"url": f"/static/uploads/{safe_filename}"}
+        # Retornar URL segura
+        return {"url": result.get("secure_url")}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error subiendo archivo: {str(e)}")
+        print(f"Error de Cloudinary: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al subir imagen: {str(e)}")
