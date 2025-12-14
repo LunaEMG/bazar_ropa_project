@@ -1,125 +1,71 @@
+# backend/app/crud/crud_direcciones.py
+
 # Importaciones necesarias
-
-from app.schemas import DireccionCreate, DireccionUpdate 
-import psycopg
-from psycopg import Connection 
-
-# Importación de la función auxiliar para conversión de filas
-from .crud_productos import row_to_dict 
+from sqlalchemy.orm import Session
+from app.models import Direccion
+from app.schemas import DireccionCreate, DireccionUpdate
 
 # --- Funciones CRUD para Direcciones ---
 
-def create_direccion_for_cliente(db: Connection, cliente_id: int, direccion: DireccionCreate): 
+def create_direccion_for_cliente(db: Session, cliente_id: int, direccion: DireccionCreate):
     """Inserta una nueva dirección asociada a un cliente específico."""
-    new_direccion = None
+    db_direccion = Direccion(
+        **direccion.model_dump(),
+        id_cliente=cliente_id
+    )
+    
     try:
-        with db.cursor() as cur, db.transaction(): 
-            cur.execute(
-                """
-                INSERT INTO direccion (calle, ciudad, codigo_postal, id_cliente) 
-                VALUES (%s, %s, %s, %s) 
-                RETURNING id_direccion, calle, ciudad, codigo_postal, id_cliente
-                """,
-                (direccion.calle, direccion.ciudad, direccion.codigo_postal, cliente_id)
-            )
-            new_direccion_row = cur.fetchone()
-            if new_direccion_row: new_direccion = row_to_dict(cur, new_direccion_row)
-            
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al crear dirección para cliente {cliente_id}: {error}")
-        
-    return new_direccion
+        db.add(db_direccion)
+        db.commit()
+        db.refresh(db_direccion)
+        return db_direccion
+    except Exception as e:
+        db.rollback()
+        print(f"Error al crear dirección para cliente {cliente_id}: {e}")
+        return None
 
-def get_direcciones_by_cliente(db: Connection, cliente_id: int): 
+def get_direcciones_by_cliente(db: Session, cliente_id: int):
     """Obtiene todas las direcciones asociadas a un cliente específico."""
-    direcciones = []
-    try:
-        with db.cursor() as cur: 
-            cur.execute(
-                """
-                SELECT id_direccion, calle, ciudad, codigo_postal, id_cliente 
-                FROM direccion 
-                WHERE id_cliente = %s 
-                ORDER BY id_direccion
-                """, 
-                (cliente_id,)
-            )
-            direcciones_rows = cur.fetchall()
-            direcciones = [row_to_dict(cur, row) for row in direcciones_rows]
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al obtener direcciones para cliente {cliente_id}: {error}")
-        
-    return direcciones
+    return db.query(Direccion).filter(Direccion.id_cliente == cliente_id).order_by(Direccion.id_direccion).all()
 
-def update_direccion(db: Connection, cliente_id: int, direccion_id: int, direccion_update: DireccionUpdate): 
-    """
-    Actualiza una dirección específica perteneciente a un cliente.
-    """
-    update_fields = []
-    update_values = []
-    update_data = direccion_update.model_dump(exclude_unset=True) 
-
-    for key, value in update_data.items():
-        if value is not None: 
-            update_fields.append(f"{key} = %s")
-            update_values.append(value)
-
-    if not update_fields:
-        return get_direccion_by_id(db=db, direccion_id=direccion_id) 
-
-    update_values.append(direccion_id)
-    update_values.append(cliente_id) 
-
-    updated_direccion = None
-    try:
-        with db.cursor() as cur, db.transaction(): 
-            query = f"""
-                UPDATE direccion 
-                SET {', '.join(update_fields)} 
-                WHERE id_direccion = %s AND id_cliente = %s 
-                RETURNING id_direccion, calle, ciudad, codigo_postal, id_cliente
-            """
-            cur.execute(query, tuple(update_values))
-            
-            updated_direccion_row = cur.fetchone()
-            if updated_direccion_row:
-                updated_direccion = row_to_dict(cur, updated_direccion_row)
-            
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al actualizar dirección {direccion_id} para cliente {cliente_id}: {error}")
-     
-    return updated_direccion
-
-def delete_direccion(db: Connection, cliente_id: int, direccion_id: int): 
-    """
-    Elimina una dirección específica perteneciente a un cliente.
-    """
-    rows_deleted = 0
-    try:
-        with db.cursor() as cur, db.transaction(): 
-            cur.execute(
-                "DELETE FROM direccion WHERE id_direccion = %s AND id_cliente = %s", 
-                (direccion_id, cliente_id)
-            )
-            rows_deleted = cur.rowcount 
-            
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al eliminar dirección {direccion_id} para cliente {cliente_id}: {error}")       
-    return rows_deleted == 1 
-
-
-def get_direccion_by_id(db: Connection, direccion_id: int): 
+def get_direccion_by_id(db: Session, direccion_id: int):
     """Obtiene una dirección específica por su 'id_direccion'."""
-    direccion = None
+    return db.query(Direccion).filter(Direccion.id_direccion == direccion_id).first()
+
+def update_direccion(db: Session, cliente_id: int, direccion_id: int, direccion_update: DireccionUpdate):
+    """Actualiza una dirección específica perteneciente a un cliente."""
+    # Verificamos que sea del cliente
+    db_direccion = db.query(Direccion).filter(Direccion.id_direccion == direccion_id, Direccion.id_cliente == cliente_id).first()
+    
+    if not db_direccion:
+        return None
+        
+    update_data = direccion_update.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(db_direccion, key, value)
+        
     try:
-        with db.cursor() as cur: 
-            cur.execute(
-                "SELECT id_direccion, calle, ciudad, codigo_postal, id_cliente FROM direccion WHERE id_direccion = %s", 
-                (direccion_id,)
-            )
-            direccion_row = cur.fetchone()
-            direccion = row_to_dict(cur, direccion_row) 
-    except (Exception, psycopg.Error) as error:
-         print(f"Error al obtener dirección {direccion_id}: {error}")
-   
-    return direccion
+        db.commit()
+        db.refresh(db_direccion)
+        return db_direccion
+    except Exception as e:
+        db.rollback()
+        print(f"Error al actualizar dirección {direccion_id}: {e}")
+        return None
+
+def delete_direccion(db: Session, cliente_id: int, direccion_id: int):
+    """Elimina una dirección específica perteneciente a un cliente."""
+    db_direccion = db.query(Direccion).filter(Direccion.id_direccion == direccion_id, Direccion.id_cliente == cliente_id).first()
+    
+    if not db_direccion:
+        return False
+        
+    try:
+        db.delete(db_direccion)
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        print(f"Error al eliminar dirección {direccion_id}: {e}")
+        return False

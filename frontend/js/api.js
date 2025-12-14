@@ -35,6 +35,11 @@ export async function fetchData(url, options = {}) {
         }
         options.headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    // Ensure JSON content type for POST/PUT/PATCH if body is present and not FormData
+    if (options.body && typeof options.body === 'string' && !options.headers['Content-Type']) {
+         options.headers['Content-Type'] = 'application/json';
+    }
 
     try {
         const response = await fetch(fullUrl, options);
@@ -48,7 +53,11 @@ export async function fetchData(url, options = {}) {
             let errorDetail = `Error HTTP ${response.status}: ${response.statusText}`;
             try {
                 const errJson = await response.json();
-                errorDetail = errJson.detail || errorDetail;
+                if (errJson.detail) {
+                    errorDetail = typeof errJson.detail === 'object' 
+                        ? JSON.stringify(errJson.detail) 
+                        : errJson.detail;
+                }
             } catch (e) { /* Ignora si el cuerpo no es JSON */ }
             throw new Error(errorDetail);
         }
@@ -59,4 +68,35 @@ export async function fetchData(url, options = {}) {
         console.error(`Error en fetch a ${fullUrl}:`, error);
         throw error;
     }
+}
+
+/**
+ * Helper para peticiones POST (Crear)
+ */
+export async function postData(url, data) {
+    return fetchData(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+}
+
+/**
+ * Helper para peticiones PUT (Actualizar)
+ */
+export async function putData(url, data) {
+    return fetchData(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+}
+
+/**
+ * Helper para peticiones DELETE (Eliminar)
+ */
+export async function deleteData(url) {
+    return fetchData(url, {
+        method: 'DELETE'
+    });
 }

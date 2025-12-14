@@ -1,7 +1,7 @@
 # Importaciones necesarias de FastAPI, tipos y estado HTTP
 from fastapi import APIRouter, HTTPException, status, Path, Depends 
 from typing import List
-from psycopg import Connection 
+from sqlalchemy.orm import Session 
 
 # Importa las funciones CRUD y los schemas Pydantic relevantes
 from app.crud import crud_direcciones, crud_clientes 
@@ -42,7 +42,7 @@ def create_direccion_for_existing_cliente(
     *, 
     cliente_id: int = Path(..., title="ID del Cliente", ge=1), 
     direccion: DireccionCreate,
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: Cliente = Depends(get_current_user)
 ):
     """
@@ -71,7 +71,7 @@ def create_direccion_for_existing_cliente(
 def read_direcciones_for_cliente(
     *,
     cliente_id: int = Path(..., title="ID del Cliente", ge=1),
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: Cliente = Depends(get_current_user)
 ):
     """
@@ -93,7 +93,7 @@ def update_existing_direccion(
     cliente_id: int = Path(..., title="ID del Cliente", ge=1),
     direccion_id: int = Path(..., title="ID de la Dirección", ge=1),
     direccion_update: DireccionUpdate,
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: Cliente = Depends(get_current_user)
 ):
     """
@@ -123,7 +123,7 @@ def delete_existing_direccion(
     *,
     cliente_id: int = Path(..., title="ID del Cliente", ge=1),
     direccion_id: int = Path(..., title="ID de la Dirección", ge=1),
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: Cliente = Depends(get_current_user)
 ):
     """

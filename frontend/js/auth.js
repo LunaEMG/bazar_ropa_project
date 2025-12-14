@@ -4,7 +4,7 @@
  */
 
 import { API_URL } from './config.js';
-import { mostrarMensaje } from './ui.js';
+import { mostrarMensaje, showGlobalNotification } from './ui.js';
 import { setLogoutCallback } from './api.js';
 
 // Estado global de autenticación
@@ -64,20 +64,31 @@ export async function handleLoginSubmit(event) {
         }
 
         const data = await response.json();
+        console.log("Login Response:", data); // DEBUG
         localStorage.setItem('authToken', data.access_token);
 
         try {
             const payload = parseJwt(data.access_token);
-            userRole = payload.rol || 'usuario';
-            currentUserId = payload.id || null;
+            console.log("Token Payload:", payload); // DEBUG
+            userRole = payload.rol || payload.role || 'usuario'; // Fallback to 'role' just in case
+            currentUserId = payload.id || payload.sub || null;
+            console.log("Determined Role:", userRole); // DEBUG
         } catch (e) {
             console.error("Error al decodificar token:", e);
             userRole = 'usuario';
             currentUserId = null;
         }
 
-        mostrarMensaje(loginMensaje, "¡Bienvenido!", true);
-        document.getElementById('modal-login').style.display = 'none';
+        // mostrarMensaje(loginMensaje, "¡Bienvenido!", true); // Removed in favor of global toast
+        showGlobalNotification("Sesión iniciada correctamente", "success");
+        
+        // Delay closing to show message briefly? No, usually login is instant.
+        // But let's keep it instant for login, consistent with user expectation.
+        const modalLogin = document.getElementById('modal-login');
+        if (modalLogin) {
+            modalLogin.classList.remove('show');
+            modalLogin.style.display = '';
+        }
         document.getElementById('form-login').reset();
 
         // Sincronizar currentUserId con window para acceso global (usado por sales.js)
@@ -85,10 +96,12 @@ export async function handleLoginSubmit(event) {
 
         // Actualiza toda la UI (se configurará desde app.js)
         if (window.actualizarUIPorRolCallback) {
+            console.log("Actualizando UI..."); // DEBUG
             window.actualizarUIPorRolCallback();
         }
 
     } catch (error) {
+        console.error("Login Error:", error); // DEBUG
         userRole = 'visualizacion';
         mostrarMensaje(loginMensaje, error.message, false);
     } finally {
@@ -125,9 +138,20 @@ export async function handleRegistroSubmit(event) {
         }
 
         const nuevoUsuario = await response.json();
-        mostrarMensaje(registroMensaje, `¡Usuario ${nuevoUsuario.nombre} creado! Ahora puedes iniciar sesión.`, true);
-        document.getElementById('modal-registro').style.display = 'none';
-        document.getElementById('form-registro').reset();
+        mostrarMensaje(registroMensaje, `Usuario ${nuevoUsuario.nombre} creado. Redirigiendo...`, true);
+        
+        // Delay closing so user sees the message
+        setTimeout(() => {
+            const modalRegistro = document.getElementById('modal-registro');
+            if (modalRegistro) {
+                 modalRegistro.classList.remove('show');
+                 modalRegistro.style.display = '';
+            }
+            document.getElementById('form-registro').reset();
+            
+            // Optional: Automatically open login modal?
+            // document.getElementById('modal-login').classList.add('show');
+        }, 2000); 
 
     } catch (error) {
         mostrarMensaje(registroMensaje, `Error: ${error.message}`, false);
@@ -140,10 +164,13 @@ export async function handleRegistroSubmit(event) {
  * Cierra la sesión del usuario
  */
 export function handleLogout() {
+    showGlobalNotification("Cerrando sesión...", "info", 2000);
     localStorage.removeItem('authToken');
     userRole = 'visualizacion';
     currentUserId = null;
-    window.location.reload();
+    setTimeout(() => {
+        window.location.reload();
+    }, 1500);
 }
 
 /**
@@ -185,19 +212,14 @@ export function initAuthListeners() {
     // Logout
     document.getElementById('btn-logout')?.addEventListener('click', handleLogout);
 
-    // Mostrar modales
-    document.getElementById('btn-mostrar-login')?.addEventListener('click', () => {
-        document.getElementById('modal-login').style.display = 'block';
-    });
-
-    document.getElementById('btn-mostrar-registro')?.addEventListener('click', () => {
-        document.getElementById('modal-registro').style.display = 'block';
-    });
-
-    // Cerrar modales
+    // Cerrar modales (Generic closer)
     document.querySelectorAll('.cerrar-modal').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            e.target.closest('.modal').style.display = 'none';
+            const modal = e.target.closest('.modal');
+            if (modal) {
+                modal.classList.remove('show');
+                modal.style.display = '';
+            }
         });
     });
 }

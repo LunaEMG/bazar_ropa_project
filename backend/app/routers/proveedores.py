@@ -1,7 +1,7 @@
 # Importaciones necesarias de FastAPI, tipos y estado HTTP
 from fastapi import APIRouter, HTTPException, status, Depends 
 from typing import List
-from psycopg import Connection 
+from sqlalchemy.orm import Session 
 
 # Importa las funciones CRUD y los schemas Pydantic para proveedores
 from app.crud import crud_proveedores
@@ -25,7 +25,7 @@ router = APIRouter()
 )
 def create_new_proveedor(
     proveedor: ProveedorCreate, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """Crea un nuevo proveedor. (Admin Only)"""
@@ -45,7 +45,7 @@ def create_new_proveedor(
     tags=["Proveedores"]
 )
 def read_proveedores(
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """Obtiene una lista de todos los proveedores. (Admin Only)"""
@@ -61,7 +61,7 @@ def read_proveedores(
 )
 def read_proveedor(
     proveedor_id: int, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """Obtiene un proveedor específico. (Admin Only)"""
@@ -80,7 +80,7 @@ def read_proveedor(
 def update_existing_proveedor(
     proveedor_id: int, 
     proveedor_update: ProveedorUpdate, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """Actualiza datos de un proveedor por ID. (Admin Only)"""
@@ -102,7 +102,7 @@ def update_existing_proveedor(
 )
 def delete_existing_proveedor(
     proveedor_id: int, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """

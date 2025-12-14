@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from psycopg import Connection
+from sqlalchemy.orm import Session # Changed from psycopg Connection
 from datetime import timedelta
 
 from app.db.database import get_db
@@ -19,12 +19,19 @@ router = APIRouter()
 )
 
 async def login_for_access_token(
-    db: Connection = Depends(get_db), 
+    db: Session = Depends(get_db), # Changed to Session
     form_data: OAuth2PasswordRequestForm = Depends()
 ):
     user = crud_clientes.get_cliente_by_email(db, email=form_data.username)
-    
-    if not user or not verify_password(form_data.password, user['hashed_password']):
+       
+    if not user:
+         raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+    if not verify_password(form_data.password, user.hashed_password): # Fixed attribute access
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos",
@@ -33,9 +40,9 @@ async def login_for_access_token(
         
     
     token_data = {
-        "sub": user['email'], 
-        "rol": user['rol'],
-        "id": user['id_cliente']  
+        "sub": user.email, # Fixed attribute access
+        "rol": user.rol,   # Fixed attribute access
+        "id": user.id_cliente  # Fixed attribute access
     }
     
     
@@ -55,7 +62,7 @@ async def login_for_access_token(
 )
 def register_new_user(
     cliente: ClienteCreate, 
-    db: Connection = Depends(get_db)
+    db: Session = Depends(get_db) # Changed to session
 ):
     """
     Endpoint de Registro.

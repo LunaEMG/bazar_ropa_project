@@ -1,7 +1,7 @@
 # Importaciones de FastAPI y tipos necesarios
 from fastapi import APIRouter, HTTPException, status, Depends 
 from typing import List 
-from psycopg import Connection 
+from sqlalchemy.orm import Session 
 
 # Importa las funciones CRUD para ventas
 from app.crud import crud_ventas 
@@ -27,7 +27,7 @@ router = APIRouter()
 )
 def create_new_venta(
     venta: VentaCreate, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: Cliente = Depends(get_current_user)
 ):
     """
@@ -69,7 +69,7 @@ def create_new_venta(
     tags=["Ventas"]
 )
 def read_ventas(
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """
@@ -86,7 +86,7 @@ def read_ventas(
     tags=["Ventas"]
 )
 def read_mis_ventas(
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: Cliente = Depends(get_current_user) # <-- Esto asegura que sea el usuario logueado
 ):
     """
@@ -104,7 +104,7 @@ def read_mis_ventas(
 )
 def read_venta(
     venta_id: int, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """

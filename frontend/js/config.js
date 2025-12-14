@@ -4,4 +4,4 @@
  */
 
 /** URL base de la API backend desplegada */
-export const API_URL = 'https://bazar-ropa-project-lunaemg.onrender.com';
+export const API_URL = 'http://127.0.0.1:8000';

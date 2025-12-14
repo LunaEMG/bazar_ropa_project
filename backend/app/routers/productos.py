@@ -1,24 +1,17 @@
-# Importaciones necesarias de FastAPI, tipos y estado HTTP
-from fastapi import APIRouter, HTTPException, status, Depends 
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
-from psycopg import Connection 
+from sqlalchemy.orm import Session # Changed from psycopg Connection
 
-# Importa las funciones CRUD y los schemas Pydantic para productos
-from app.crud import crud_productos
+from app.crud import crud_productos 
 from app.schemas import Producto, ProductoUpdate, ProductoCreate, ProductoUpdateConSubtipo
 
-# Importa nuestro  'inyector' de DB
 from app.db.database import get_db
 
-# --- AÑADIR ESTAS DOS LÍNEAS ---
 from app.auth import get_current_admin_user
 from app.schemas import Cliente
-# --- FIN DE LO AÑADIDO ---
 
-# Crea un router específico para las rutas de productos
 router = APIRouter()
 
-# ---  Endpoint para CREAR un producto (con herencia) ---
 @router.post(
     "/api/productos", 
     response_model=Producto, 
@@ -28,7 +21,7 @@ router = APIRouter()
 )
 def create_new_producto(
     producto: ProductoCreate, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db), # Changed to Session
     admin_user: Cliente = Depends(get_current_admin_user) 
 ):
     """
@@ -45,15 +38,13 @@ def create_new_producto(
     
     return db_producto
 
-
-# --- Endpoint para LEER todos los productos ---
 @router.get(
     "/api/productos", 
     response_model=List[Producto],
     summary="Obtener lista de productos",
     tags=["Productos"]
 )
-def read_productos(db: Connection = Depends(get_db)): 
+def read_productos(db: Session = Depends(get_db)): # Changed to Session
     """
     Obtiene una lista de todos los productos del bazar... (Público)
     """
@@ -69,7 +60,7 @@ def read_productos(db: Connection = Depends(get_db)):
 )
 def read_producto(
     producto_id: int, 
-    db: Connection = Depends(get_db) 
+    db: Session = Depends(get_db) 
 ):
     """
     Obtiene los detalles de un producto específico... (Público)
@@ -89,7 +80,7 @@ def read_producto(
 def update_existing_producto(
     producto_id: int, 
     producto_update: ProductoUpdateConSubtipo,
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db), # Changed to Session
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """
@@ -115,7 +106,7 @@ def update_existing_producto(
 )
 def delete_existing_producto(
     producto_id: int, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db), # Changed to Session
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """

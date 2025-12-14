@@ -9,16 +9,32 @@ import { API_URL } from './js/config.js';
 import { showLoading, hideLoading, mostrarMensaje } from './js/ui.js';
 import { fetchData } from './js/api.js';
 import { initCartDOM, setGetUserRoleCallback, handleAddCarritoClick, renderizarCarrito, carrito } from './js/cart.js';
-import { userRole, currentUserId, getUserRole, checkExistingToken, initAuthListeners } from './js/auth.js';
+import { userRole, currentUserId, getUserRole, checkExistingToken, initAuthListeners, handleLogout } from './js/auth.js';
 import { cargarHistorialVentas, cargarReporteBajoStock, cargarReporteVentasCliente, cargarMisCompras, initSalesListeners } from './js/sales.js';
+import { cargarDireccionesCliente, handleNuevaDireccionSubmit, resetFormularioDireccion } from './js/client_addresses.js';
+import './js/admin.js'; // Admin Dashboard Logic
 
 // Espera a que el DOM esté completamente cargado.
 document.addEventListener("DOMContentLoaded", () => {
 
     // --- Referencias a elementos clave del DOM ---
     const listaDeProductos = document.getElementById('productos-lista');
-    const listaDeClientesContenedor = document.getElementById('clientes-lista-contenedor');
     
+    // UI Layers Elements (Drawer, Dropdown)
+    const cartDrawer = document.getElementById('cart-drawer');
+    const cartOverlay = document.getElementById('cart-drawer-overlay');
+    const btnCloseCart = document.getElementById('btn-close-cart');
+    const btnToggleCart = document.getElementById('btn-toggle-cart');
+    
+    const userDropdown = document.getElementById('user-dropdown');
+    const btnUserProfile = document.getElementById('btn-user-profile');
+    
+    // Modals (New References)
+    const modalMisDirecciones = document.getElementById('modal-mis-direcciones');
+    const cerrarModalDirecciones = document.getElementById('cerrar-modal-direcciones');
+    const modalMisCompras = document.getElementById('modal-mis-compras');
+    const cerrarModalCompras = document.getElementById('cerrar-modal-compras');
+
     // Formularios
     const formNuevoCliente = document.getElementById('form-nuevo-cliente');
     const formNuevoProveedor = document.getElementById('form-nuevo-proveedor');
@@ -26,52 +42,65 @@ document.addEventListener("DOMContentLoaded", () => {
     const formNuevoProducto = document.getElementById('form-nuevo-producto');
     const formEditarCliente = document.getElementById('form-editar-cliente');
 
-    // Mensajes
-    const clienteMensaje = document.getElementById('cliente-mensaje');
-    const proveedorMensaje = document.getElementById('proveedor-mensaje');
-    const direccionMensaje = document.getElementById('direccion-mensaje');
-    const productoMensaje = document.getElementById('producto-mensaje');
-    const editClienteMensaje = document.getElementById('edit-cliente-mensaje');
-
     // Elementos del Carrito (para inicializar módulo)
     const carritoItemsDiv = document.getElementById('carrito-items');
     const carritoTotalSpan = document.getElementById('carrito-total');
     const btnFinalizarCompra = document.getElementById('btn-finalizar-compra');
 
     // Selectores y Listas
-    const selectorCliente = document.getElementById('selector-cliente');
-    const listaDeProveedores = document.getElementById('proveedores-lista');
-    const direccionesClienteDiv = document.getElementById('direcciones-cliente');
-    const listaDireccionesCliente = document.getElementById('lista-direcciones-cliente');
-    
-    // --- CORRECCIÓN: IDs coincidentes con index.html ---
-    const selectorProveedorProducto = document.getElementById('producto-proveedor'); 
     const selectorTipoProducto = document.getElementById('producto-tipo');
 
-    // Inputs y Modales
-    const nombreClienteSeleccionadoSpan = document.getElementById('nombre-cliente-seleccionado');
-    const idClienteDireccionInput = document.getElementById('id-cliente-direccion');
+    // Inputs y Modales Generales
     const modalEditarCliente = document.getElementById('modal-editar-cliente');
-    const editClienteIdInput = document.getElementById('edit-cliente-id');
-    const editNombreClienteInput = document.getElementById('edit-nombre-cliente');
-    const editTelefonoClienteInput = document.getElementById('edit-telefono-cliente');
     const cerrarModalClienteBtn = document.getElementById('cerrar-modal-cliente');
-    const productoIdEditInput = document.getElementById('producto-id-edit');
     const btnCancelarEdicionProducto = document.getElementById('btn-cancelar-edicion-producto');
 
-    // Contenedores de detalles de producto
-    const detallesRopa = document.getElementById('detalles-ropa');
-    const detallesCalzado = document.getElementById('detalles-calzado');
-    const detallesAccesorios = document.getElementById('detalles-accesorios');
+    // Header Elements
+    const btnHome = document.getElementById('btn-home');
+
+    // --- Funciones de UI Layering ---
+
+    function openCart() {
+        if (cartDrawer) cartDrawer.classList.add('open');
+        if (cartOverlay) cartOverlay.style.display = 'block';
+    }
+
+    function closeCart() {
+        if (cartDrawer) cartDrawer.classList.remove('open');
+        if (cartOverlay) cartOverlay.style.display = 'none';
+    }
+
+    function toggleUserMenu() {
+        if (userDropdown) {
+            userDropdown.style.display = userDropdown.style.display === 'block' ? 'none' : 'block';
+        }
+    }
+
+    function closeUserMenu() {
+        if (userDropdown) userDropdown.style.display = 'none';
+    }
+
+    // Modal Helpers
+    // Modal Helpers
+    function openModal(modal) {
+        if (modal) {
+            modal.classList.add('show');
+            modal.style.display = ''; // Clear inline style
+        }
+        closeUserMenu(); // Close menu if opening a modal from it
+    }
+    function closeModal(modal) {
+        if (modal) {
+            modal.classList.remove('show');
+            modal.style.display = ''; // Clear inline style
+        }
+    }
+
 
     // --- Estado Local ---
-    /** Almacena el ID del cliente seleccionado para gestión de direcciones. */
     let clienteSeleccionadoId = null;
 
-
-    // --- Funciones de Carga y Renderizado (Productos, Clientes, Proveedores) ---
-
-    /** Carga y muestra la lista de productos. */
+    // --- Funciones de Carga y Renderizado (Productos) ---
     async function cargarProductos() {
         if (!listaDeProductos) return;
         listaDeProductos.innerHTML = '<p>Cargando productos...</p>';
@@ -93,634 +122,193 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (producto.detalles_subtipo) {
                     const d = producto.detalles_subtipo;
                     if (producto.tipo_producto === 'ropa') {
-                        detallesHTML = `<p style="font-size:0.85em; color:#666;">
-                                    Talla: <b>${d.talla}</b> | Material: ${d.material} ${d.tipo_corte ? '| Corte: ' + d.tipo_corte : ''}
-                                </p>`;
+                        detallesHTML = `<p class="producto-detalle">Talla: ${d.talla || 'N/A'}</p>`;
                     } else if (producto.tipo_producto === 'calzado') {
-                        detallesHTML = `<p style="font-size:0.85em; color:#666;">
-                                    Talla: <b>${d.talla_numerica}</b> | Suela: ${d.material_suela}
-                                </p>`;
-                    } else if (producto.tipo_producto === 'accesorios') {
-                        detallesHTML = `<p style="font-size:0.85em; color:#666;">
-                                    Material: ${d.material} ${d.dimensiones ? '| Dim: ' + d.dimensiones : ''}
-                                </p>`;
+                         detallesHTML = `<p class="producto-detalle">Talla: ${d.talla_numerica || d.talla || 'N/A'}</p>`;
                     }
                 }
-
-                let botonesAdminHTML = '';
-                if (esAdmin) {
-                    botonesAdminHTML = `
-                        <button class="btn-accion btn-editar-producto btn-editar" data-id="${producto.id_producto}">Editar</button>
-                        <button class="btn-accion btn-eliminar-producto btn-eliminar" data-id="${producto.id_producto}" data-nombre="${producto.nombre}">Eliminar</button>
-                    `;
-                }
+                
+                // === Renderizado Estilo "Cards" con Imagen ===
+                const imgContent = producto.imagen_url 
+                    ? `<img src="${producto.imagen_url}" alt="${producto.nombre}" style="width: 100%; height: 100%; object-fit: cover;">`
+                    : `<span style="color: #999;">Imagen</span>`;
 
                 item.innerHTML = `
-                    <h3>${producto.nombre}</h3>
-                    <p>${producto.descripcion || 'Sin descripción'}</p>
-                    ${detallesHTML}
-                    <p style="font-size: 0.9em; color: #555; margin-bottom: 10px;">
-                        Disponibles: <strong>${producto.cantidad_stock}</strong>
-                    </p>
-                    <p class="precio">$${producto.precio.toFixed(2)}</p>
-                    
-                    <div class="producto-acciones">
-                        <button class="btn-accion btn-add-carrito" 
-                            data-id="${producto.id_producto}" 
-                            data-nombre="${producto.nombre}" 
-                            data-precio="${producto.precio}">
-                            Añadir
-                        </button>
-                        ${botonesAdminHTML}
+                    <div class="producto-image-placeholder">
+                        ${imgContent}
+                        ${Math.random() > 0.7 ? '<div class="tag-mas-vendido">MÁS VENDIDO</div>' : ''}
+                    </div>
+                    <div class="producto-info">
+                        <h3>${producto.nombre}</h3>
+                        <p style="display:none;">${producto.descripcion || ''}</p> <!-- Hidden desc for search -->
+                        ${detallesHTML}
+                        <p class="precio">$${producto.precio.toFixed(2)}</p>
+                        <p class="stock-info" style="font-size: 0.85rem; color: #666; margin-top: 5px;">Stock: <strong>${producto.cantidad_stock}</strong></p>
+                        
+                        <div class="producto-acciones">
+                            <button onclick="window.handleAddCarritoClick(${producto.id_producto}, '${producto.nombre}', ${producto.precio}, '${producto.imagen_url || ''}'); window.openCart();">
+                                Agregar al Carrito
+                            </button>
+                            <!-- Admin buttons removed for Home view -->
+                        </div>
                     </div>
                 `;
-
-                // Listener Añadir
-                item.querySelector('.btn-add-carrito').addEventListener('click', handleAddCarritoClick);
-
-                if (esAdmin) {
-                    // Usamos ?. por seguridad si el elemento no existe
-                    item.querySelector('.btn-editar-producto')?.addEventListener('click', () => handleEditarProductoClick(producto.id_producto));
-                    item.querySelector('.btn-eliminar-producto')?.addEventListener('click', handleDeleteProductoClick);
-                }
-
                 listaDeProductos.appendChild(item);
             });
         } catch (error) {
-            listaDeProductos.innerHTML = `<p style="color: red;">Error al cargar productos: ${error.message}</p>`;
+            console.error('Error al cargar productos:', error);
+            listaDeProductos.innerHTML = '<p>Error al cargar el catálogo.</p>';
         }
     }
 
-    /** Carga clientes y llena el selector */
-    async function cargarClientes() {
-        if (!listaDeClientesContenedor || !selectorCliente) return;
-        listaDeClientesContenedor.innerHTML = '<p>Cargando clientes...</p>';
-        selectorCliente.innerHTML = '<option value="">Seleccione un cliente...</option>';
-        try {
-            const clientes = await fetchData('/api/clientes');
-            listaDeClientesContenedor.innerHTML = '';
-            if (!clientes || clientes.length === 0) { 
-                listaDeClientesContenedor.innerHTML = '<p>No hay clientes registrados.</p>'; 
-                return; 
-            }
 
-            const ul = document.createElement('ul');
-            clientes.forEach(cliente => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div class="item-info">
-                        <span>${cliente.nombre}</span> 
-                        <span>${cliente.telefono || 'Sin teléfono'}</span>
-                    </div>
-                    <div class="item-acciones">
-                        <button class="btn-accion btn-ver-direcciones" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre}">Direcciones</button>
-                        <button class="btn-accion btn-editar-cliente" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre}" data-telefono="${cliente.telefono || ''}">Editar</button>
-                        <button class="btn-accion btn-eliminar-cliente" data-id="${cliente.id_cliente}" data-nombre="${cliente.nombre}">Eliminar</button>
-                    </div>
-                `;
-                li.querySelector('.btn-ver-direcciones').addEventListener('click', handleVerDireccionesClick);
-                li.querySelector('.btn-editar-cliente').addEventListener('click', handleEditarClienteClick);
-                li.querySelector('.btn-eliminar-cliente').addEventListener('click', handleDeleteClienteClick);
-                ul.appendChild(li);
-
-                const option = document.createElement('option'); 
-                option.value = cliente.id_cliente; 
-                option.textContent = cliente.nombre;
-                selectorCliente.appendChild(option);
-            });
-            listaDeClientesContenedor.appendChild(ul);
-        } catch (error) {
-            listaDeClientesContenedor.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
-        }
-    }
-
-    /** Carga proveedores */
-    async function cargarProveedores() {
-        // Verifica si existen los elementos en el DOM
-        if (!listaDeProveedores || !selectorProveedorProducto) return;
+    // --- Gestión de UI por Roles (UPDATED) ---
+    function actualizarUIPorRol() {
+        const saludosSpan = document.getElementById('saludo-usuario');
+        const seccionesAdmin = document.querySelectorAll('.admin-only');
         
-        listaDeProveedores.innerHTML = '<p>Cargando proveedores...</p>';
-        selectorProveedorProducto.innerHTML = '<option value="">Seleccione un proveedor...</option>';
+        // Populate User Dropdown
+        if (userDropdown) userDropdown.innerHTML = ''; 
 
-        try {
-            const proveedores = await fetchData('/api/proveedores');
-            listaDeProveedores.innerHTML = '';
-            if (!proveedores || proveedores.length === 0) {
-                listaDeProveedores.innerHTML = '<p>No hay proveedores.</p>';
-                selectorProveedorProducto.innerHTML = '<option value="">No hay proveedores</option>';
-                return;
-            }
-
-            const ul = document.createElement('ul');
-            proveedores.forEach(proveedor => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div class="item-info">
-                        <span>${proveedor.nombre}</span> 
-                        <span>${proveedor.telefono || 'Sin teléfono'}</span>
-                    </div>
-                    <div class="item-acciones">
-                         <button class="btn-accion btn-editar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}" data-telefono="${proveedor.telefono || ''}">Editar</button>
-                         <button class="btn-accion btn-eliminar-proveedor" data-id="${proveedor.id_proveedor}" data-nombre="${proveedor.nombre}">Eliminar</button>
-                    </div>
-                `;
-                li.querySelector('.btn-editar-proveedor').addEventListener('click', handleEditarProveedorClick);
-                li.querySelector('.btn-eliminar-proveedor').addEventListener('click', handleDeleteProveedorClick);
-                ul.appendChild(li);
-
-                const option = document.createElement('option');
-                option.value = proveedor.id_proveedor;
-                option.textContent = proveedor.nombre;
-                selectorProveedorProducto.appendChild(option);
-            });
-            listaDeProveedores.appendChild(ul);
-        } catch (error) {
-            listaDeProveedores.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
-            selectorProveedorProducto.innerHTML = '<option value="">Error al cargar</option>';
+        // Admin Panel Button Logic
+        const btnAdminPanel = document.getElementById('btn-admin-panel');
+        if (btnAdminPanel) {
+            btnAdminPanel.style.display = (userRole === 'admin') ? 'inline-block' : 'none';
+            btnAdminPanel.onclick = (e) => {
+                e.preventDefault();
+                document.getElementById('admin-dashboard-section').style.display = 'block';
+                document.querySelector('main.container').style.display = 'none';
+                
+                // Initialize default tab
+                if(window.switchAdminTab) window.switchAdminTab('admin-resumen');
+                // Load admin specific data if not loaded
+                if(window.cargarDatosAdminResumen) window.cargarDatosAdminResumen();
+            };
         }
-    }
 
-    /** Carga direcciones de un cliente */
-    async function cargarDireccionesCliente(clienteId) {
-        if (!listaDireccionesCliente) return;
-        listaDireccionesCliente.innerHTML = '<p>Cargando direcciones...</p>';
-        try {
-            const direcciones = await fetchData(`/api/clientes/${clienteId}/direcciones`);
-            listaDireccionesCliente.innerHTML = '';
-            if (!direcciones || direcciones.length === 0) { 
-                listaDireccionesCliente.innerHTML = '<p>Sin direcciones registradas.</p>'; 
-                return; 
-            }
-            const ul = document.createElement('ul');
-            direcciones.forEach(dir => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div class="item-info">
-                        <span>${dir.calle}</span>
-                        <span>${dir.ciudad}, CP ${dir.codigo_postal}</span>
-                    </div>
-                    <div class="item-acciones">
-                        <button class="btn-accion btn-editar-direccion btn-editar" 
-                            data-id-dir="${dir.id_direccion}" 
-                            data-calle="${dir.calle}"
-                            data-ciudad="${dir.ciudad}"
-                            data-cp="${dir.codigo_postal}">Editar</button>
-                        <button class="btn-accion btn-eliminar-direccion btn-eliminar" 
-                            data-id-dir="${dir.id_direccion}" 
-                            data-id-cli="${dir.id_cliente}">Eliminar</button>
-                    </div>
-                `;
-                li.querySelector('.btn-editar-direccion').addEventListener('click', handleEditarDireccionClick);
-                li.querySelector('.btn-eliminar-direccion').addEventListener('click', handleDeleteDireccionClick);
-                ul.appendChild(li);
-            });
-            listaDireccionesCliente.appendChild(ul);
-        } catch (error) {
-            listaDireccionesCliente.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
-        }
-    }
-
-    // --- Funciones de Lógica de UI y Formularios ---
-
-    function mostrarSeccionDirecciones(clienteId, nombreCliente) {
-        if (!direccionesClienteDiv) return;
-        clienteSeleccionadoId = clienteId;
-        nombreClienteSeleccionadoSpan.textContent = nombreCliente;
-        idClienteDireccionInput.value = clienteId;
-        direccionesClienteDiv.style.display = 'block';
-        resetFormularioDireccion();
-        cargarDireccionesCliente(clienteId);
-    }
-
-    function mostrarModalEditarCliente(clienteId, nombre, telefono) {
-        editClienteIdInput.value = clienteId;
-        editNombreClienteInput.value = nombre;
-        editTelefonoClienteInput.value = telefono || '';
-        editClienteMensaje.textContent = 'Editando Cliente';
-        
-        const modalTitle = modalEditarCliente.querySelector('h3');
-        if (modalTitle) modalTitle.textContent = "Editar Cliente";
-        formEditarCliente.setAttribute('data-target-entity', 'cliente');
-        
-        modalEditarCliente.style.display = 'block';
-    }
-
-    function mostrarModalEditarProveedor(proveedorId, nombre, telefono) {
-        editClienteIdInput.value = proveedorId;
-        editNombreClienteInput.value = nombre;
-        editTelefonoClienteInput.value = telefono || '';
-        editClienteMensaje.textContent = 'Editando Proveedor';
-
-        const modalTitle = modalEditarCliente.querySelector('h3');
-        if (modalTitle) modalTitle.textContent = "Editar Proveedor";
-        formEditarCliente.setAttribute('data-target-entity', 'proveedor');
-
-        modalEditarCliente.style.display = 'block';
-    }
-
-    function ocultarModalEditarCliente() {
-        if (modalEditarCliente) modalEditarCliente.style.display = 'none';
-    }
-
-    function handleTipoProductoChange() {
-        if (detallesRopa) detallesRopa.style.display = 'none';
-        if (detallesCalzado) detallesCalzado.style.display = 'none';
-        if (detallesAccesorios) detallesAccesorios.style.display = 'none';
-        document.querySelectorAll('.detalles-subtipo input').forEach(input => input.required = false);
-
-        if (!selectorTipoProducto) return;
-        const tipo = selectorTipoProducto.value;
-
-        if (tipo === 'ropa') {
-            detallesRopa.style.display = 'block';
-            document.querySelector('#ropa-material').required = true;
-            document.querySelector('#ropa-talla').required = true;
-        } else if (tipo === 'calzado') {
-            detallesCalzado.style.display = 'block';
-            document.querySelector('#calzado-talla').required = true;
-            document.querySelector('#calzado-suela').required = true;
-        } else if (tipo === 'accesorios') {
-            detallesAccesorios.style.display = 'block';
-            document.querySelector('#accesorio-material').required = true;
-        }
-    }
-
-    async function handleEditarProductoClick(productoId) {
-        try {
-            const producto = await fetchData(`/api/productos/${productoId}`);
-            if (!producto) throw new Error("No se pudieron cargar los datos.");
-
-            // Cargar datos en el formulario
-            productoIdEditInput.value = producto.id_producto;
-            
-            // --- CORRECCIÓN DE IDs: Usar los nombres que coinciden con index.html ---
-            document.getElementById('nombre-producto').value = producto.nombre;
-            document.getElementById('descripcion-producto').value = producto.descripcion || '';
-            document.getElementById('precio-producto').value = producto.precio;
-            document.getElementById('stock-producto').value = producto.cantidad_stock;
-            selectorProveedorProducto.value = producto.id_proveedor;
-
-            // Configurar tipo y detalles
-            formNuevoProducto.setAttribute('data-editing-type', producto.tipo_producto);
-            selectorTipoProducto.value = producto.tipo_producto;
-            handleTipoProductoChange();
-            selectorTipoProducto.disabled = true;
-
-            if (producto.detalles_subtipo) {
-                const d = producto.detalles_subtipo;
-                if (producto.tipo_producto === 'ropa') {
-                    document.getElementById('ropa-material').value = d.material;
-                    document.getElementById('ropa-talla').value = d.talla;
-                    document.getElementById('ropa-corte').value = d.tipo_corte || '';
-                } else if (producto.tipo_producto === 'calzado') {
-                    document.getElementById('calzado-talla').value = d.talla_numerica;
-                    document.getElementById('calzado-suela').value = d.material_suela;
-                } else if (producto.tipo_producto === 'accesorios') {
-                    document.getElementById('accesorio-material').value = d.material;
-                    document.getElementById('accesorio-dimensiones').value = d.dimensiones || '';
+        if (userRole === 'admin') {
+            if (saludosSpan) saludosSpan.textContent = "Admin";
+            seccionesAdmin.forEach(el => {
+                // Show ONLY if it's inside the cart drawer (Client Selector)
+                if (el.closest('.cart-drawer')) {
+                    el.style.display = 'block';
+                } else {
+                    el.style.display = 'none'; // Keep other admin sections hidden on Home
                 }
-            }
-
-            formNuevoProducto.closest('section').querySelector('h2').textContent = "Editar Producto";
-            formNuevoProducto.querySelector('button[type="submit"]').textContent = "Actualizar Producto";
-            btnCancelarEdicionProducto.style.display = 'inline-block';
-            formNuevoProducto.scrollIntoView({ behavior: 'smooth' });
-
-        } catch (error) {
-            mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
-        }
-    }
-
-    function resetFormularioProducto() {
-        productoIdEditInput.value = '';
-        formNuevoProducto.removeAttribute('data-editing-type');
-        formNuevoProducto.reset();
-        handleTipoProductoChange();
-        selectorTipoProducto.disabled = false;
-        formNuevoProducto.closest('section').querySelector('h2').textContent = "Registrar Nuevo Producto";
-        formNuevoProducto.querySelector('button[type="submit"]').textContent = "Registrar Producto";
-        btnCancelarEdicionProducto.style.display = 'none';
-    }
-
-    function resetFormularioDireccion() {
-        document.getElementById('id-direccion-edit').value = '';
-        formNuevaDireccion.reset();
-        if (clienteSeleccionadoId) document.getElementById('id-cliente-direccion').value = clienteSeleccionadoId;
-        formNuevaDireccion.parentElement.querySelector('h4').textContent = "Añadir Nueva Dirección";
-        formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Añadir Dirección";
-        document.getElementById('btn-cancelar-edicion-direccion').style.display = 'none';
-    }
-
-    async function handleNuevoProductoSubmit(event) {
-        event.preventDefault();
-        if (!formNuevoProducto) return;
-
-        const editId = productoIdEditInput.value ? parseInt(productoIdEditInput.value) : null;
-        const isEditMode = editId !== null;
-        let tipoProducto = formNuevoProducto.getAttribute('data-editing-type') || selectorTipoProducto.value;
-
-        // --- CORRECCIÓN DE IDs: Usar los nombres correctos del HTML ---
-        const payload = {
-            nombre: document.getElementById('nombre-producto').value,
-            descripcion: document.getElementById('descripcion-producto').value || null,
-            precio: parseFloat(document.getElementById('precio-producto').value),
-            cantidad_stock: parseInt(document.getElementById('stock-producto').value),
-            id_proveedor: parseInt(selectorProveedorProducto.value),
-            tipo_producto: tipoProducto,
-            detalles_subtipo: {}
-        };
-
-        try {
-            if (tipoProducto === 'ropa') {
-                payload.detalles_subtipo = {
-                    material: document.getElementById('ropa-material').value,
-                    talla: document.getElementById('ropa-talla').value,
-                    tipo_corte: document.getElementById('ropa-corte').value || null
-                };
-            } else if (tipoProducto === 'calzado') {
-                payload.detalles_subtipo = {
-                    talla_numerica: parseFloat(document.getElementById('calzado-talla').value),
-                    material_suela: document.getElementById('calzado-suela').value
-                };
-            } else if (tipoProducto === 'accesorios') {
-                payload.detalles_subtipo = {
-                    material: document.getElementById('accesorio-material').value,
-                    dimensiones: document.getElementById('accesorio-dimensiones').value || null
-                };
-            }
-        } catch (e) {
-            mostrarMensaje(productoMensaje, "Error leyendo formulario", false);
-            return;
-        }
-
-        const submitButton = formNuevoProducto.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        
-        const method = isEditMode ? 'PUT' : 'POST';
-        const endpoint = isEditMode ? `/api/productos/${editId}` : `/api/productos`;
-
-        try {
-            await fetchData(endpoint, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            mostrarMensaje(productoMensaje, isEditMode ? "Producto actualizado!" : "Producto registrado!", true);
-            resetFormularioProducto();
-            cargarProductos();
-        } catch (error) {
-            mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
-        } finally {
-            submitButton.disabled = false;
-        }
-    }
-
-    // --- Manejadores de Eventos (Clicks) ---
-
-    function handleVerDireccionesClick(event) {
-        const button = event.target;
-        mostrarSeccionDirecciones(parseInt(button.dataset.id), button.dataset.nombre);
-    }
-
-    function handleEditarClienteClick(event) {
-        const btn = event.target;
-        mostrarModalEditarCliente(parseInt(btn.dataset.id), btn.dataset.nombre, btn.dataset.telefono);
-    }
-
-    function handleEditarProveedorClick(event) {
-        const btn = event.target;
-        mostrarModalEditarProveedor(parseInt(btn.dataset.id), btn.dataset.nombre, btn.dataset.telefono);
-    }
-
-    function handleEditarDireccionClick(event) {
-        const btn = event.target;
-        document.getElementById('id-direccion-edit').value = btn.dataset.idDir;
-        document.getElementById('calle-direccion').value = btn.dataset.calle;
-        document.getElementById('ciudad-direccion').value = btn.dataset.ciudad;
-        document.getElementById('cp-direccion').value = btn.dataset.cp;
-
-        formNuevaDireccion.parentElement.querySelector('h4').textContent = "Editar Dirección";
-        formNuevaDireccion.querySelector('button[type="submit"]').textContent = "Actualizar Dirección";
-        document.getElementById('btn-cancelar-edicion-direccion').style.display = 'inline-block';
-    }
-
-    async function handleDeleteClienteClick(event) {
-        const btn = event.target;
-        if (!confirm(`¿Eliminar cliente "${btn.dataset.nombre}"?`)) return;
-        try {
-            await fetchData(`/api/clientes/${btn.dataset.id}`, { method: 'DELETE' });
-            mostrarMensaje(clienteMensaje, "Cliente eliminado.", true);
-            cargarClientes();
-            if (clienteSeleccionadoId === parseInt(btn.dataset.id)) direccionesClienteDiv.style.display = 'none';
-        } catch (error) {
-            mostrarMensaje(clienteMensaje, `Error: ${error.message}`, false);
-        }
-    }
-
-    async function handleDeleteDireccionClick(event) {
-        const btn = event.target;
-        if (!confirm("¿Eliminar dirección?")) return;
-        try {
-            await fetchData(`/api/clientes/${btn.dataset.idCli}/direcciones/${btn.dataset.idDir}`, { method: 'DELETE' });
-            mostrarMensaje(direccionMensaje, "Dirección eliminada.", true);
-            cargarDireccionesCliente(btn.dataset.idCli);
-        } catch (error) {
-            mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false);
-        }
-    }
-
-    async function handleDeleteProveedorClick(event) {
-        const btn = event.target;
-        if (!confirm(`¿Eliminar proveedor "${btn.dataset.nombre}"?`)) return;
-        try {
-            await fetchData(`/api/proveedores/${btn.dataset.id}`, { method: 'DELETE' });
-            mostrarMensaje(proveedorMensaje, "Proveedor eliminado.", true);
-            cargarProveedores();
-            cargarProductos();
-        } catch (error) {
-            mostrarMensaje(proveedorMensaje, `Error: ${error.message}`, false);
-        }
-    }
-
-    async function handleDeleteProductoClick(event) {
-        const btn = event.target;
-        if (!confirm(`¿Eliminar producto "${btn.dataset.nombre}"?`)) return;
-        try {
-            await fetchData(`/api/productos/${btn.dataset.id}`, { method: 'DELETE' });
-            mostrarMensaje(productoMensaje, "Producto eliminado.", true);
-            cargarProductos();
-        } catch (error) {
-            mostrarMensaje(productoMensaje, `Error: ${error.message}`, false);
-        }
-    }
-
-    async function handleEditarSubmit(event) {
-        event.preventDefault();
-        const entityType = formEditarCliente.getAttribute('data-target-entity');
-        const id = parseInt(editClienteIdInput.value);
-        const payload = {
-            nombre: editNombreClienteInput.value,
-            telefono: editTelefonoClienteInput.value || null
-        };
-
-        const endpoint = entityType === 'proveedor' ? `/api/proveedores/${id}` : `/api/clientes/${id}`;
-        
-        try {
-            const res = await fetchData(endpoint, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
             });
             
-            if (entityType === 'cliente') {
-                mostrarMensaje(clienteMensaje, `Cliente "${res.nombre}" actualizado`, true);
-                cargarClientes();
-            } else {
-                mostrarMensaje(proveedorMensaje, `Proveedor "${res.nombre}" actualizado`, true);
-                cargarProveedores();
-            }
-            ocultarModalEditarCliente();
-        } catch (error) {
-            mostrarMensaje(editClienteMensaje, `Error: ${error.message}`, false);
-        }
-    }
+            // cargarReporteBajoStock(); // Moved to dashboard logic
+            
+            if (userDropdown) userDropdown.innerHTML += `<li><button id="menu-logout">Cerrar Sesión</button></li>`;
+            
+            
+        } else if (userRole === 'cliente' || userRole === 'user' || userRole === 'usuario') {
+             if (saludosSpan) saludosSpan.textContent = "Hola, Cliente";
+             seccionesAdmin.forEach(el => el.style.display = 'none');
+             
+             if (userDropdown) {
+                 userDropdown.innerHTML += `
+                    <li><button id="menu-orders">Mis Compras</button></li>
+                    <li><button id="menu-addresses">Mis Direcciones</button></li>
+                    <li style="border-top:1px solid #eee; margin-top:5px; padding-top:5px;"><button id="menu-logout">Cerrar Sesión</button></li>
+                `;
+             }
 
-    async function handleNuevoClienteSubmit(event) {
-        event.preventDefault();
-        const formData = new FormData(formNuevoCliente);
-        try {
-            await fetchData('/api/clientes', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.fromEntries(formData))
-            });
-            mostrarMensaje(clienteMensaje, "Cliente registrado", true);
-            formNuevoCliente.reset();
-            cargarClientes();
-        } catch (error) {
-            mostrarMensaje(clienteMensaje, `Error: ${error.message}`, false);
-        }
-    }
+             // Pre-load data 
+             if (currentUserId) cargarDireccionesCliente(currentUserId);
+             cargarMisCompras();
 
-    async function handleNuevoProveedorSubmit(event) {
-        event.preventDefault();
-        const formData = new FormData(formNuevoProveedor);
-        try {
-            await fetchData('/api/proveedores', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.fromEntries(formData))
-            });
-            mostrarMensaje(proveedorMensaje, "Proveedor registrado", true);
-            formNuevoProveedor.reset();
-            cargarProveedores();
-        } catch (error) {
-            mostrarMensaje(proveedorMensaje, `Error: ${error.message}`, false);
-        }
-    }
-
-    async function handleNuevaDireccionSubmit(event) {
-        event.preventDefault();
-        const idEdit = document.getElementById('id-direccion-edit').value;
-        const isEdit = idEdit !== '';
-        
-        let targetClientId = userRole === 'admin' ? clienteSeleccionadoId : currentUserId;
-        if (!targetClientId) return;
-
-        const formData = new FormData(formNuevaDireccion);
-        const payload = {
-            calle: formData.get('calle'),
-            ciudad: formData.get('ciudad'),
-            codigo_postal: formData.get('codigo_postal')
-        };
-
-        const endpoint = isEdit 
-            ? `/api/clientes/${targetClientId}/direcciones/${idEdit}` 
-            : `/api/clientes/${targetClientId}/direcciones`;
-
-        try {
-            await fetchData(endpoint, {
-                method: isEdit ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            mostrarMensaje(direccionMensaje, isEdit ? "Dirección actualizada" : "Dirección añadida", true);
-            resetFormularioDireccion();
-            cargarDireccionesCliente(targetClientId);
-        } catch (error) {
-            mostrarMensaje(direccionMensaje, `Error: ${error.message}`, false);
-        }
-    }
-
-    /**
-     * Actualiza la UI basado en el rol.
-     * Esta función es llamada por auth.js después del login.
-     */
-    async function actualizarUIPorRol() {
-        const esAdmin = userRole === 'admin';
-        const esUsuario = userRole === 'usuario';
-        const esVisualizacion = userRole === 'visualizacion';
-
-        // Botones Auth
-        document.getElementById('btn-mostrar-login').style.display = esVisualizacion ? 'inline-block' : 'none';
-        document.getElementById('btn-mostrar-registro').style.display = esVisualizacion ? 'inline-block' : 'none';
-        document.getElementById('btn-logout').style.display = esVisualizacion ? 'none' : 'inline-block';
-
-        // Secciones Admin
-        document.querySelectorAll('.admin-only').forEach(el => el.style.display = esAdmin ? 'block' : 'none');
-
-        // Saludo y datos
-        const saludoSpan = document.getElementById('saludo-usuario');
-        selectorCliente.style.display = 'none';
-
-        if (esAdmin) {
-            saludoSpan.textContent = 'Modo Administrador';
-            selectorCliente.style.display = 'block';
-            cargarClientes();
-            cargarProveedores();
-            cargarHistorialVentas();
-            cargarReporteBajoStock();
-            cargarReporteVentasCliente();
-        } else if (esUsuario) {
-            saludoSpan.textContent = `¡Hola, usuario!`;
-            document.getElementById('seccion-mis-direcciones').style.display = 'block';
-            document.getElementById('nombre-cliente-seleccionado').textContent = "tus direcciones";
-            if (currentUserId) {
-                document.getElementById('id-cliente-direccion').value = currentUserId;
-                cargarDireccionesCliente(currentUserId);
-            }
-            document.getElementById('seccion-mis-compras').style.display = 'block';
-            cargarMisCompras();
         } else {
-            saludoSpan.textContent = 'Modo Visitante';
-            document.getElementById('seccion-mis-direcciones').style.display = 'none';
-            document.getElementById('seccion-mis-compras').style.display = 'none';
+            // Visitante
+            if (saludosSpan) saludosSpan.textContent = "Modo Visitante";
+            seccionesAdmin.forEach(el => el.style.display = 'none');
+             
+             if (userDropdown) {
+                 userDropdown.innerHTML += `
+                    <li><button id="menu-login">Iniciar Sesión</button></li>
+                    <li><button id="menu-register">Registrarse</button></li>
+                `;
+             }
         }
+
+        // Attach Listeners to Dynamic Menu Items
+        setTimeout(() => { // Timeout to ensure DOM is updated
+            const btnLoginMenu = document.getElementById('menu-login');
+            if (btnLoginMenu) btnLoginMenu.onclick = () => { openModal(document.getElementById('modal-login')); closeUserMenu(); };
+
+            const btnRegisterMenu = document.getElementById('menu-register');
+            if (btnRegisterMenu) btnRegisterMenu.onclick = () => { openModal(document.getElementById('modal-registro')); closeUserMenu(); };
+
+            const btnLogoutMenu = document.getElementById('menu-logout');
+            if (btnLogoutMenu) btnLogoutMenu.onclick = () => {
+                handleLogout(); // Direct call
+                closeUserMenu();
+            };
+
+            const btnOrdersMenu = document.getElementById('menu-orders');
+            if (btnOrdersMenu) btnOrdersMenu.onclick = () => openModal(modalMisCompras);
+
+            const btnAddressesMenu = document.getElementById('menu-addresses');
+            if (btnAddressesMenu) btnAddressesMenu.onclick = () => {
+                const hiddenIdInput = document.getElementById('id-cliente-direccion');
+                if (hiddenIdInput && currentUserId) hiddenIdInput.value = currentUserId;
+                openModal(modalMisDirecciones);
+            };
+        }, 100);
 
         // Carga productos para todos
         cargarProductos();
-
-        // Botón Carrito
-        if (esVisualizacion) {
-            btnFinalizarCompra.textContent = "Iniciar sesión para comprar";
-            btnFinalizarCompra.disabled = false;
-        } else {
-            btnFinalizarCompra.textContent = "Finalizar Compra";
-            btnFinalizarCompra.disabled = carrito.length === 0;
-        }
-        renderizarCarrito();
+        renderizarCarrito(); // Update cart UI
     }
 
+    // Expose helpers to window for inline onclicks and cross-module access
+    window.openCart = openCart;
+    window.handleAddCarritoClick = handleAddCarritoClick;
+    window.cargarProductos = cargarProductos;
 
     // --- Inicialización y Listeners ---
 
-    if (formNuevoCliente) formNuevoCliente.addEventListener('submit', handleNuevoClienteSubmit);
-    if (formNuevoProveedor) formNuevoProveedor.addEventListener('submit', handleNuevoProveedorSubmit);
+    // Toggle Cart
+    if (btnToggleCart) btnToggleCart.addEventListener('click', openCart);
+    if (btnCloseCart) btnCloseCart.addEventListener('click', closeCart);
+    if (cartOverlay) cartOverlay.addEventListener('click', closeCart);
+
+    // Toggle User Menu
+    if (btnUserProfile) {
+        btnUserProfile.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleUserMenu();
+        });
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (userDropdown && userDropdown.style.display === 'block') {
+            if (!userDropdown.contains(e.target) && !btnUserProfile.contains(e.target)) {
+                closeUserMenu();
+            }
+        }
+    });
+
+    // Close Modals Listeners
+    if (cerrarModalDirecciones) cerrarModalDirecciones.onclick = () => closeModal(modalMisDirecciones);
+    if (cerrarModalCompras) cerrarModalCompras.onclick = () => closeModal(modalMisCompras);
+    
+    // Close modals on overlay click
+    window.addEventListener('click', (e) => {
+        if (e.target === modalMisDirecciones) closeModal(modalMisDirecciones);
+        if (e.target === modalMisCompras) closeModal(modalMisCompras);
+        if (e.target === document.getElementById('modal-login')) closeModal(document.getElementById('modal-login'));
+        if (e.target === document.getElementById('modal-registro')) closeModal(document.getElementById('modal-registro'));
+    });
+    
+    // Form Listeners
+    // Admin forms are now handled in admin.js
     if (formNuevaDireccion) formNuevaDireccion.addEventListener('submit', handleNuevaDireccionSubmit);
     
-    if (selectorTipoProducto) selectorTipoProducto.addEventListener('change', handleTipoProductoChange);
-    if (formNuevoProducto) formNuevoProducto.addEventListener('submit', handleNuevoProductoSubmit);
-    if (btnCancelarEdicionProducto) btnCancelarEdicionProducto.addEventListener('click', resetFormularioProducto);
+    // if (selectorTipoProducto) selectorTipoProducto.addEventListener('change', handleTipoProductoChange);
+    // if (formNuevoProducto) formNuevoProducto.addEventListener('submit', handleNuevoProductoSubmit);
+    
     if (document.getElementById('btn-cancelar-edicion-direccion')) {
         document.getElementById('btn-cancelar-edicion-direccion').addEventListener('click', resetFormularioDireccion);
     }
@@ -733,6 +321,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+
+
     // === Inicializar Módulos Externos ===
     
     // 1. Inicializar Cart
@@ -741,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. Configurar Auth Callback
     setGetUserRoleCallback(getUserRole);
 
-    // 3. Configurar Callbacks Globales (IMPORTANTE: Hacer esto ANTES de initAuthListeners)
+    // 3. Configurar Callbacks Globales
     window.actualizarUIPorRolCallback = actualizarUIPorRol;
     window.currentUserId = currentUserId;
 
@@ -757,4 +347,197 @@ document.addEventListener("DOMContentLoaded", () => {
     // 7. Render inicial
     actualizarUIPorRol();
 
+    // Event listener para subida de imágenes
+    // Event listener para subida de imágenes
+    const fileInput = document.getElementById('file-imagen-producto');
+    if (fileInput) {
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Disable submit button mainly for admin form usage
+            const submitBtn = document.querySelector('#form-nuevo-producto button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const status = document.getElementById('upload-status');
+            const urlInput = document.getElementById('imagen-producto');
+
+            try {
+                if (status) {
+                    status.textContent = 'Subiendo imagen... por favor espere';
+                    status.style.color = 'blue';
+                }
+
+                const response = await fetch(`${API_URL}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Error en la subida');
+
+                const data = await response.json();
+                urlInput.value = `${API_URL}${data.url}`;
+                
+                if (status) {
+                    status.textContent = '¡Imagen cargada exitosamente!';
+                    status.style.color = 'green';
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                if (status) {
+                    status.textContent = 'Error al subir la imagen.';
+                    status.style.color = 'red';
+                }
+            } finally {
+                if(submitBtn) submitBtn.disabled = false;
+            }
+        });
+    }
+
 });
+
+// --- Dummy Functions for Missing Imports (if any) to prevent crash during refactor ---
+function handleNuevoClienteSubmit(e) { e.preventDefault(); console.log("New Client Submit"); }
+function handleNuevoProveedorSubmit(e) { e.preventDefault(); console.log("New Provider Submit"); }
+
+let productoEnEdicionId = null;
+
+function handleTipoProductoChange(e) {
+    const tipo = e.target.value;
+    document.querySelectorAll('.detalles-subtipo').forEach(el => el.style.display = 'none');
+    if (tipo === 'ropa') document.getElementById('detalles-ropa').style.display = 'block';
+    if (tipo === 'calzado') document.getElementById('detalles-calzado').style.display = 'block';
+    if (tipo === 'accesorios') document.getElementById('detalles-accesorios').style.display = 'block';
+}
+
+async function handleNuevoProductoSubmit(e) {
+    e.preventDefault();
+    const mensaje = document.getElementById('producto-mensaje');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    
+    // Gather Base Data
+    const nombre = document.getElementById('nombre-producto').value;
+    const precio = parseFloat(document.getElementById('precio-producto').value);
+    const stock = parseInt(document.getElementById('stock-producto').value);
+    const imagen_url = document.getElementById('imagen-producto').value;
+    const id_proveedor = document.getElementById('producto-proveedor').value;
+    const tipo = document.getElementById('producto-tipo').value;
+
+    // Gather Subtype Data
+    let detalles = {};
+    if (tipo === 'ropa') {
+        detalles = {
+            material: document.getElementById('ropa-material').value,
+            talla: document.getElementById('ropa-talla').value,
+            tipo_corte: document.getElementById('ropa-corte').value
+        };
+    } else if (tipo === 'calzado') {
+        detalles = {
+            talla_numerica: parseFloat(document.getElementById('calzado-talla').value),
+            material_suela: document.getElementById('calzado-suela').value
+        };
+    } else if (tipo === 'accesorios') {
+        detalles = {
+            material: document.getElementById('accesorio-material').value,
+            dimensiones: document.getElementById('accesorio-dimensiones').value
+        };
+    }
+
+    const payload = {
+        nombre, precio, cantidad_stock: stock, imagen_url, 
+        id_proveedor: parseInt(id_proveedor),
+        tipo_producto: tipo,
+        detalles_subtipo: detalles
+    };
+
+    submitBtn.disabled = true;
+    try {
+        if (productoEnEdicionId) {
+             const updatePayload = {
+                 ...payload,
+                 // For update, we might need slight adjustments depending on schema, but usually same payload works if all fields are present
+                 // Removing fields if schema requires partial? No, PUT usually expects full or partial.
+             };
+             await fetchData(`/api/productos/${productoEnEdicionId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(updatePayload)
+             });
+             mostrarMensaje(mensaje, "Producto actualizado correctamente", true);
+             productoEnEdicionId = null;
+             document.querySelector('#form-nuevo-producto button[type="submit"]').textContent = 'Registrar Producto';
+             document.getElementById('btn-cancelar-edicion-producto').style.display = 'none';
+        } else {
+            await fetchData('/api/productos', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            mostrarMensaje(mensaje, "Producto creado correctamente", true);
+        }
+        
+        e.target.reset();
+        // Reset subtype visibility
+        document.querySelectorAll('.detalles-subtipo').forEach(el => el.style.display = 'none');
+        document.getElementById('detalles-ropa').style.display = 'block'; // Default
+        cargarProductos();
+    } catch (err) {
+        mostrarMensaje(mensaje, "Error: " + err.message, false);
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+function resetFormularioProducto() { 
+    document.getElementById('form-nuevo-producto').reset();
+    document.getElementById('producto-mensaje').textContent = '';
+    productoEnEdicionId = null;
+    document.querySelector('#form-nuevo-producto button[type="submit"]').textContent = 'Registrar Producto';
+    document.getElementById('btn-cancelar-edicion-producto').style.display = 'none';
+}
+
+window.prepararEdicionProducto = async function(id) {
+    try {
+        const p = await fetchData(`/api/productos/${id}`);
+        // Fill form
+        document.getElementById('nombre-producto').value = p.nombre;
+        document.getElementById('precio-producto').value = p.precio;
+        document.getElementById('stock-producto').value = p.cantidad_stock;
+        document.getElementById('imagen-producto').value = p.imagen_url || '';
+        document.getElementById('producto-proveedor').value = p.id_proveedor;
+        document.getElementById('producto-tipo').value = p.tipo_producto;
+        
+        // Trigger type change
+        const event = new Event('change');
+        document.getElementById('producto-tipo').dispatchEvent(event);
+
+        // Fill Subtypes
+        if (p.detalles_subtipo) {
+             if (p.tipo_producto === 'ropa') {
+                document.getElementById('ropa-material').value = p.detalles_subtipo.material;
+                document.getElementById('ropa-talla').value = p.detalles_subtipo.talla;
+                document.getElementById('ropa-corte').value = p.detalles_subtipo.tipo_corte;
+            } else if (p.tipo_producto === 'calzado') {
+                document.getElementById('calzado-talla').value = p.detalles_subtipo.talla_numerica;
+                document.getElementById('calzado-suela').value = p.detalles_subtipo.material_suela;
+            } else if (p.tipo_producto === 'accesorios') {
+                document.getElementById('accesorio-material').value = p.detalles_subtipo.material;
+                document.getElementById('accesorio-dimensiones').value = p.detalles_subtipo.dimensiones;
+            }
+        }
+
+        productoEnEdicionId = id;
+        document.querySelector('#form-nuevo-producto button[type="submit"]').textContent = 'Actualizar Producto';
+        document.getElementById('btn-cancelar-edicion-producto').style.display = 'inline-block';
+        
+        document.getElementById('form-nuevo-producto').scrollIntoView({ behavior: 'smooth' });
+    } catch (e) {
+        console.error(e);
+        alert("Error al cargar producto para edición");
+    }
+};
+function handleEditarSubmit(e) { e.preventDefault(); console.log("Edit Submit"); }
+function ocultarModalEditarCliente() { document.getElementById('modal-editar-cliente').style.display = 'none'; }

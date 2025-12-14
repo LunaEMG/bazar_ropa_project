@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends 
 from typing import List
-from psycopg import Connection 
+from sqlalchemy.orm import Session # Changed to Session
 
 from app.crud import crud_reportes
 from app.schemas import ReporteStock, ReporteVentasCliente
@@ -19,7 +19,7 @@ router = APIRouter()
     tags=["Reportes"]
 )
 def read_reporte_bajo_stock(
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db), # Changed to Session
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """Obtiene una lista de productos con stock < 10. (Admin Only)"""
@@ -33,7 +33,7 @@ def read_reporte_bajo_stock(
     tags=["Reportes"]
 )
 def read_reporte_ventas_cliente(
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db), # Changed to Session
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """Obtiene un resumen de compras y gasto total por cliente. (Admin Only)"""

@@ -7,7 +7,6 @@ import { fetchData } from './api.js';
 import { mostrarMensaje } from './ui.js';
 import { getCarrito, clearCarrito, renderizarCarrito } from './cart.js';
 import { getUserRole } from './auth.js';
-import { cargarProductos } from './products.js';
 
 /**
  * Carga el historial de ventas (Admin only)
@@ -177,7 +176,7 @@ export async function handleFinalizarCompraClick() {
             return;
         }
         idClienteParaVenta = idClienteAdmin;
-    } else if (userRole === 'usuario') {
+    } else if (['usuario', 'cliente', 'user'].includes(userRole)) {
         if (!currentUserId) {
             mostrarMensaje(compraMensaje, "Error de sesión. Por favor, inicia sesión de nuevo.", false);
             return;
@@ -200,10 +199,12 @@ export async function handleFinalizarCompraClick() {
     const ventaData = {
         id_cliente: parseInt(idClienteParaVenta),
         detalles: carrito.map(item => ({
-            id_producto: item.id_producto,
-            cantidad: item.cantidad
+            id_producto: parseInt(item.id_producto),
+            cantidad: parseInt(item.cantidad)
         }))
     };
+    
+    console.log("Enviando venta:", ventaData); // DEBUG
 
     btnFinalizarCompra.disabled = true;
     btnFinalizarCompra.textContent = 'Procesando...';
@@ -215,7 +216,7 @@ export async function handleFinalizarCompraClick() {
             body: JSON.stringify(ventaData),
         });
 
-        mostrarMensaje(compraMensaje, `Venta #${ventaCreada.id_venta} registrada! Total: $${ventaCreada.monto_total.toFixed(2)}`, true);
+        mostrarMensaje(compraMensaje, `Pedido realizado, Gracias! Total: $${ventaCreada.monto_total.toFixed(2)}`, true);
 
         clearCarrito();
         if (userRole === 'admin') {
@@ -223,15 +224,21 @@ export async function handleFinalizarCompraClick() {
             cargarHistorialVentas();
             cargarReporteBajoStock();
             cargarReporteVentasCliente();
-        } else if (userRole === 'usuario') {
+        } else {
+            // For any other role (cliente, user, usuario)
             cargarMisCompras();
         }
 
-        cargarProductos();
+        if (window.cargarProductos) {
+            window.cargarProductos(); // Refresh global product list & stock
+        } else {
+            console.warn("cargarProductos not found globally");
+        }
     } catch (error) {
         mostrarMensaje(compraMensaje, `Error: ${error.message}`, false);
     } finally {
         btnFinalizarCompra.textContent = 'Finalizar Compra';
+        btnFinalizarCompra.disabled = false;
         renderizarCarrito();
     }
 }

@@ -1,17 +1,23 @@
 # Importaciones principales de FastAPI y middleware
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware 
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 # Importación de los módulos de routers para todas las entidades
-from app.routers import productos, clientes, ventas, proveedores, direcciones, reportes 
-from app.routers import productos, clientes, ventas, proveedores, direcciones, reportes, auth 
+from app.routers import productos, clientes, ventas, proveedores, direcciones, reportes, auth, uploads
+
 # Inicialización de la aplicación FastAPI
 app = FastAPI(title="API del Bazar de Ropa", version="0.1.0")
+
+# --- Montaje de Archivos Estáticos (Imágenes) ---
+os.makedirs("static/uploads", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- Configuración de CORS ---
 # Define los orígenes permitidos para las peticiones cross-origin.
 origins = [
-# URL del frontend desplegado en Render
+    # URL del frontend desplegado en Render
     "https://bazar-ropa-project-web.onrender.com", 
     # Orígenes para desarrollo local
     "http://localhost", 
@@ -31,8 +37,6 @@ app.add_middleware(
 )
 
 # --- Inclusión de Routers ---
-# Registra los endpoints definidos en cada módulo router.
-# Cada router agrupa rutas relacionadas con una entidad.
 app.include_router(productos.router)
 app.include_router(clientes.router) 
 app.include_router(ventas.router) 
@@ -40,6 +44,7 @@ app.include_router(proveedores.router)
 app.include_router(direcciones.router) 
 app.include_router(reportes.router)
 app.include_router(auth.router)
+app.include_router(uploads.router)
 
 # --- Endpoint Raíz ---
 @app.get("/", tags=["Root"]) 
@@ -48,4 +53,4 @@ def read_root():
     Endpoint raíz de la API. Proporciona un mensaje de bienvenida
     e indica la ruta a la documentación interactiva.
     """
-    return {"mensaje": "Bienvenido a la API del Bazar de RDopa. Visita /docs para la documentación."}
+    return {"mensaje": "Bienvenido a la API del Bazar de Ropa. Visita /docs para la documentación."}

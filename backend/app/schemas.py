@@ -8,6 +8,7 @@ class ProductoBase(BaseModel):
     """Schema base para Producto, define campos comunes."""
     nombre: str
     descripcion: Optional[str] = None
+    imagen_url: Optional[str] = None # Added field
     precio: float = Field(ge=0) 
     cantidad_stock: int = Field(ge=0) 
     # Mantenemos 'int' aquí para que ProductoCreate lo herede como requerido
@@ -17,6 +18,7 @@ class ProductoUpdate(BaseModel):
     """Schema para actualizar un Producto. Todos los campos son opcionales."""
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
+    imagen_url: Optional[str] = None # Added field
     precio: Optional[float] = Field(None, ge=0) 
     cantidad_stock: Optional[int] = Field(None, ge=0)
     id_proveedor: Optional[int] = None
@@ -40,13 +42,22 @@ class RopaDetalles(BaseModel):
     tipo_corte: Optional[str] = Field(None, example="Slim Fit")
     talla: str = Field(..., example="M")
 
+    class Config:
+        from_attributes = True
+
 class CalzadoDetalles(BaseModel):
     talla_numerica: float = Field(..., example=27.5)
     material_suela: str = Field(..., example="Goma")
 
+    class Config:
+        from_attributes = True
+
 class AccesoriosDetalles(BaseModel):
     material: str = Field(..., example="Lana")
     dimensiones: Optional[str] = Field(None, example="180cm x 30cm")
+
+    class Config:
+        from_attributes = True
 
 class RopaDetallesUpdate(BaseModel):
     material: Optional[str] = None

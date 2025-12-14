@@ -1,7 +1,7 @@
 # Importaciones necesarias de FastAPI, tipos y estado HTTP
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
-from psycopg import Connection
+from sqlalchemy.orm import Session
 
 # Importa las funciones CRUD y los schemas Pydantic para clientes
 from app.crud import crud_clientes
@@ -28,7 +28,7 @@ router = APIRouter()
 )
 def create_new_cliente(
     cliente: ClienteCreate, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """
@@ -36,6 +36,14 @@ def create_new_cliente(
     Nota: Para registro público, usar /api/auth/register
     ...
     """
+    # Check if email exists (active or inactive)
+    existing_cliente = crud_clientes.get_cliente_by_email_any(db, email=cliente.email)
+    if existing_cliente:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="El correo electrónico ya está registrado."
+        )
+
     new_cliente = crud_clientes.create_cliente(db=db, cliente=cliente) 
     if new_cliente is None:
         raise HTTPException(
@@ -52,7 +60,7 @@ def create_new_cliente(
     tags=["Clientes"]
 )
 def read_clientes(
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """
@@ -71,7 +79,7 @@ def read_clientes(
 )
 def read_cliente(
     cliente_id: int, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """
@@ -92,7 +100,7 @@ def read_cliente(
 def update_existing_cliente(
     cliente_id: int, 
     cliente_update: ClienteUpdate, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """
@@ -112,7 +120,7 @@ def update_existing_cliente(
 )
 def delete_existing_cliente(
     cliente_id: int, 
-    db: Connection = Depends(get_db),
+    db: Session = Depends(get_db),
     admin_user: Cliente = Depends(get_current_admin_user)
 ):
     """

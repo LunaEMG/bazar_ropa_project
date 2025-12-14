@@ -50,3 +50,34 @@ export function mostrarMensaje(elemento, mensaje, exito = true) {
         elemento.classList.remove('visible');
     }, 5000);
 }
+
+/**
+ * Muestra una notificación global tipo "Toast".
+ * @param {string} mensaje - Texto del mensaje
+ * @param {string} tipo - 'info', 'success', 'error'
+ * @param {number} duracion - Duración en ms
+ */
+export function showGlobalNotification(mensaje, tipo = 'info', duracion = 3000) {
+    let notif = document.getElementById('global-notification');
+    if (!notif) {
+        notif = document.createElement('div');
+        notif.id = 'global-notification';
+        notif.className = 'global-notification';
+        document.body.appendChild(notif);
+    }
+    
+    // Reset classes
+    notif.className = `global-notification ${tipo}`;
+    notif.textContent = mensaje;
+    
+    // Trigger show
+    requestAnimationFrame(() => {
+        notif.classList.add('visible');
+    });
+
+    if (window.globalNotifTimeout) clearTimeout(window.globalNotifTimeout);
+    
+    window.globalNotifTimeout = setTimeout(() => {
+        notif.classList.remove('visible');
+    }, duracion);
+}

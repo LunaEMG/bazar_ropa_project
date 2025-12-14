@@ -1,31 +1,27 @@
+# backend/app/crud/crud_reportes.py
+
 # Importaciones necesarias
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 
-import psycopg
-from psycopg import Connection 
-from .crud_productos import row_to_dict 
-
-def get_productos_bajo_stock(db: Connection): 
+def get_productos_bajo_stock(db: Session): 
     """Obtiene datos de la vista v_productos_bajo_stock."""
-    reporte = []
     try:
-        with db.cursor() as cur: # <-- Usa db
-            cur.execute("SELECT id_producto, nombre, cantidad_stock FROM v_productos_bajo_stock")
-            reporte_rows = cur.fetchall()
-            reporte = [row_to_dict(cur, row) for row in reporte_rows]
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al obtener reporte bajo stock: {error}")
+        # Usamos text() para consultar la vista existente
+        statement = text("SELECT id_producto, nombre, cantidad_stock FROM v_productos_bajo_stock")
+        result = db.execute(statement)
+        # Convertir a lista de diccionarios (usando _mapping)
+        return [row._mapping for row in result]
+    except Exception as e:
+        print(f"Error al obtener reporte bajo stock: {e}")
+        return []
 
-    return reporte
-
-def get_ventas_por_cliente(db: Connection): 
+def get_ventas_por_cliente(db: Session): 
     """Obtiene datos de la vista v_ventas_por_cliente."""
-    reporte = []
     try:
-        with db.cursor() as cur: 
-            cur.execute("SELECT id_cliente, nombre, total_compras, gasto_total FROM v_ventas_por_cliente")
-            reporte_rows = cur.fetchall()
-            reporte = [row_to_dict(cur, row) for row in reporte_rows]
-    except (Exception, psycopg.Error) as error:
-        print(f"Error al obtener reporte ventas por cliente: {error}")
-        
-    return reporte
+        statement = text("SELECT id_cliente, nombre, total_compras, gasto_total FROM v_ventas_por_cliente")
+        result = db.execute(statement)
+        return [row._mapping for row in result]
+    except Exception as e:
+        print(f"Error al obtener reporte ventas por cliente: {e}")
+        return []

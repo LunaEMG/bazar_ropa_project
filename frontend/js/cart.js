@@ -56,13 +56,22 @@ export function renderizarCarrito() {
         carrito.forEach(item => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'carrito-item';
+            const imagenHtml = item.imagen_url 
+                ? `<img src="${item.imagen_url}" alt="${item.nombre}">` 
+                : `<img src="https://via.placeholder.com/48?text=Img" alt="no-img">`;
+
             itemDiv.innerHTML = `
-                <span class="item-nombre">${item.nombre}</span>
-                <div class="carrito-item-controles">
+                <div class="item-info">
+                    ${imagenHtml}
+                    <span class="item-nombre">${item.nombre}</span>
+                </div>
+                
+                <div class="qty-pill">
                     <button class="btn-qty btn-decrease-qty" data-id="${item.id_producto}">-</button>
-                    <span class="item-cantidad">x ${item.cantidad}</span>
+                    <span class="item-cantidad">${item.cantidad}</span>
                     <button class="btn-qty btn-increase-qty" data-id="${item.id_producto}">+</button>
                 </div>
+                
                 <span class="item-precio">$${(item.precio * item.cantidad).toFixed(2)}</span>
             `;
 
@@ -82,34 +91,40 @@ export function renderizarCarrito() {
 /**
  * Maneja el clic en "Añadir al Carrito"
  */
-export function handleAddCarritoClick(event) {
+export function handleAddCarritoClick(idProducto, nombre, precio, imagenUrl = null) {
     const userRole = getUserRoleCallback();
 
-    if (userRole === 'visualizacion') {
+    if (userRole === 'visualizacion' || !userRole) {
         alert("⚠️ Registrate o inicia sesión para agregar productos al carrito.");
-        document.getElementById('modal-login').style.display = 'block';
+        const modalLogin = document.getElementById('modal-login');
+        if (modalLogin) {
+             modalLogin.classList.add('show');
+             modalLogin.style.display = '';
+        }
         return;
     }
 
-    const button = event.target;
-    const idProducto = parseInt(button.dataset.id);
-    const nombre = button.dataset.nombre;
-    const precio = parseFloat(button.dataset.precio);
+    // Ensure types
+    idProducto = parseInt(idProducto);
+    precio = parseFloat(precio);
 
-    const itemExistente = carrito.find(item => item.id_producto === idProducto);
+    // Comparación robusta asegurando que ambos IDs sean números
+    const itemExistente = carrito.find(item => parseInt(item.id_producto) === idProducto);
+    
     if (itemExistente) {
         itemExistente.cantidad++;
     } else {
-        carrito.push({ id_producto: idProducto, nombre, precio, cantidad: 1 });
+        carrito.push({ id_producto: idProducto, nombre, precio, cantidad: 1, imagen_url: imagenUrl });
     }
     renderizarCarrito();
+    // Auto-open cart? Handled by the inline wrapper in app.js
 }
 
 /**
  * Maneja el clic en el botón "-" para reducir cantidad
  */
 function handleDecreaseQuantity(event) {
-    const idProducto = parseInt(event.target.dataset.id);
+    const idProducto = parseInt(event.currentTarget.dataset.id);
     const itemEnCarrito = carrito.find(item => item.id_producto === idProducto);
 
     if (itemEnCarrito) {
@@ -129,7 +144,7 @@ function handleDecreaseQuantity(event) {
  * Maneja el clic en el botón "+" para aumentar cantidad
  */
 function handleIncreaseQuantity(event) {
-    const idProducto = parseInt(event.target.dataset.id);
+    const idProducto = parseInt(event.currentTarget.dataset.id);
     const itemEnCarrito = carrito.find(item => item.id_producto === idProducto);
 
     if (itemEnCarrito) {
