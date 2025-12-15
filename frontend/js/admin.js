@@ -122,9 +122,11 @@ export async function cargarProductosAdmin() {
     }
 
     tbody.innerHTML = productos.map(p => {
-             const imgUrl = p.imagen_url && p.imagen_url.startsWith('http')
-                    ? p.imagen_url
-                    : `${API_URL}${p.imagen_url}`;
+             const rawUrl = p.imagen_url || '';
+             const cleanUrl = rawUrl.trim();
+             const imgUrl = cleanUrl.startsWith('http')
+                    ? cleanUrl
+                    : `${API_URL}${cleanUrl}`;
              return `
             <tr>
                 <td><img src="${p.imagen_url ? imgUrl : 'https://via.placeholder.com/50'}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;"></td>
