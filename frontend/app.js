@@ -389,7 +389,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (!response.ok) throw new Error('Error en la subida');
 
                 const data = await response.json();
-                urlInput.value = `${API_URL}${data.url}`;
+
+                if (data.url.startsWith('http')) {
+                    urlInput.value = data.url; 
+                } else {
+                    urlInput.value = `${API_URL}${data.url}`;
+                }
                 
                 if (status) {
                     status.textContent = '¡Imagen cargada exitosamente!';
