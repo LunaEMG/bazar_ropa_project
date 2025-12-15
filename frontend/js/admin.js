@@ -727,11 +727,13 @@ async function handleUploadImage(e) {
     if (!response.ok) throw new Error("Error subiendo imagen");
 
     const data = await response.json();
+    const rawUrl = data.url || '';
+    const cleanUrl = rawUrl.trim();
 
-    if (data.url.startsWith("http")) {
-      urlInput.value = data.url;
+    if (cleanUrl.startsWith("http")) {
+      urlInput.value = cleanUrl;
     } else {
-      urlInput.value = `${API_URL}${data.url}`;
+      urlInput.value = `${API_URL}${cleanUrl}`;
     }
 
     statusSmall.textContent = "¡Subida exitosa!";
