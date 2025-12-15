@@ -5,7 +5,10 @@
  */
 
 // === ES6 Module Imports ===
-import { API_URL } from './js/config.js';
+import { API_URL as CONFIG_API_URL } from './js/config.js';
+// Fallback if API_URL is undefined
+const API_URL = CONFIG_API_URL || '';
+
 import { showLoading, hideLoading, mostrarMensaje } from './js/ui.js';
 import { fetchData } from './js/api.js';
 import { initCartDOM, setGetUserRoleCallback, handleAddCarritoClick, renderizarCarrito, carrito } from './js/cart.js';

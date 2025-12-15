@@ -1,5 +1,7 @@
+
 import { fetchData, deleteData } from "./api.js";
-import { API_URL } from "./config.js";
+import { API_URL as CONFIG_API_URL } from "./config.js";
+const API_URL = CONFIG_API_URL || '';
 import { mostrarMensaje, showGlobalNotification } from "./ui.js";
 
 export function switchAdminTab(tabId) {
