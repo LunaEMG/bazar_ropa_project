@@ -129,8 +129,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 
                 // === Renderizado Estilo "Cards" con Imagen ===
+                // Fix: Handle Cloudinary (absolute) vs Local (relative) URLs
+                const imgUrl = producto.imagen_url && producto.imagen_url.startsWith('http') 
+                    ? producto.imagen_url 
+                    : `${API_URL}${producto.imagen_url}`;
+
                 const imgContent = producto.imagen_url 
-                    ? `<img src="${producto.imagen_url}" alt="${producto.nombre}" style="width: 100%; height: 100%; object-fit: cover;">`
+                    ? `<img src="${imgUrl}" alt="${producto.nombre}" style="width: 100%; height: 100%; object-fit: cover;">`
                     : `<span style="color: #999;">Imagen</span>`;
 
                 item.innerHTML = `
