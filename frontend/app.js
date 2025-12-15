@@ -154,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p class="stock-info" style="font-size: 0.85rem; color: #666; margin-top: 5px;">Stock: <strong>${producto.cantidad_stock}</strong></p>
                         
                         <div class="producto-acciones">
-                            <button onclick="window.handleAddCarritoClick(${producto.id_producto}, '${producto.nombre}', ${producto.precio}, '${producto.imagen_url || ''}'); window.openCart();">
+                            <button onclick="window.handleAddCarritoClick(${producto.id_producto}, '${producto.nombre}', ${producto.precio}, '${imgUrl || ''}'); window.openCart();">
                                 Agregar al Carrito
                             </button>
                             <!-- Admin buttons removed for Home view -->
