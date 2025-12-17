@@ -13,6 +13,7 @@ router = APIRouter(
     tags=["Direcciones"] 
 )
 
+#--- Función para verificar permisos ---
 def verificar_permiso_cliente(cliente_id: int, current_user: Cliente):
     """Verifica que el ID de la ruta coincida con el usuario logueado."""
     # Permitir acceso si es admin
@@ -25,6 +26,7 @@ def verificar_permiso_cliente(cliente_id: int, current_user: Cliente):
             detail="No tienes permiso para acceder a los recursos de este cliente."
         )
 
+#--- Endpoint para REGISTRAR una nueva dirección ---
 @router.post(
     "/direcciones", 
     response_model=Direccion, 
@@ -55,6 +57,7 @@ def create_direccion_for_existing_cliente(
         )
     return db_direccion
 
+#--- Endpoint para LEER las direcciones de un cliente ---
 @router.get(
     "/direcciones", 
     response_model=List[Direccion],
@@ -74,6 +77,7 @@ def read_direcciones_for_cliente(
     direcciones = crud_direcciones.get_direcciones_by_cliente(db=db, cliente_id=cliente_id)
     return direcciones
 
+#--- Endpoint para ACTUALIZAR una dirección ---
 @router.put(
     "/direcciones/{direccion_id}", 
     response_model=Direccion,
@@ -104,7 +108,7 @@ def update_existing_direccion(
         
     return updated_direccion
 
-
+#--- Endpoint para ELIMINAR una dirección ---
 @router.delete(
     "/direcciones/{direccion_id}",
     status_code=status.HTTP_204_NO_CONTENT,

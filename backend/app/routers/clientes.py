@@ -9,6 +9,7 @@ from app.auth import get_current_admin_user
 
 router = APIRouter()
 
+#--- Endpoint para REGISTRAR un nuevo cliente ---
 @router.post(
     "/api/clientes", 
     response_model=Cliente, 
@@ -41,6 +42,7 @@ def create_new_cliente(
         )
     return new_cliente
 
+#--- Endpoint para LEER todos los clientes ---
 @router.get(
     "/api/clientes", 
     response_model=List[Cliente],
@@ -57,7 +59,7 @@ def read_clientes(
     clientes = crud_clientes.get_all_clientes(db=db) 
     return clientes
 
-
+#--- Endpoint para LEER un cliente por ID ---
 @router.get(
     "/api/clientes/{cliente_id}", 
     response_model=Cliente,
@@ -77,6 +79,7 @@ def read_cliente(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
     return db_cliente
 
+#--- Endpoint para ACTUALIZAR un cliente existente ---
 @router.put(
     "/api/clientes/{cliente_id}",
     response_model=Cliente,

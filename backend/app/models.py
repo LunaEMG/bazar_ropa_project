@@ -4,6 +4,7 @@ from datetime import date
 
 Base = declarative_base()
 
+#--- Modelo Cliente ---
 class Cliente(Base):
     __tablename__ = "cliente"
 
@@ -18,6 +19,7 @@ class Cliente(Base):
     direcciones = relationship("Direccion", back_populates="cliente")
     ventas = relationship("Venta", back_populates="cliente")
 
+#--- Modelo Direccion ---
 class Direccion(Base):
     __tablename__ = "direccion"
 
@@ -29,6 +31,7 @@ class Direccion(Base):
 
     cliente = relationship("Cliente", back_populates="direcciones")
 
+#--- Modelo Proveedor ---
 class Proveedor(Base):
     __tablename__ = "proveedor"
 
@@ -39,6 +42,7 @@ class Proveedor(Base):
 
     productos = relationship("Producto", back_populates="proveedor")
 
+#--- Modelo Producto ---
 class Producto(Base):
     __tablename__ = "producto"
 
@@ -61,6 +65,7 @@ class Producto(Base):
     calzado_detalle = relationship("Calzado", uselist=False, back_populates="producto")
     accesorios_detalle = relationship("Accesorios", uselist=False, back_populates="producto")
 
+#--- Modelo Ropa ---
 class Ropa(Base):
     __tablename__ = "ropa"
     
@@ -71,6 +76,7 @@ class Ropa(Base):
 
     producto = relationship("Producto", back_populates="ropa_detalle")
 
+#--- Modelo Calzado ---
 class Calzado(Base):
     __tablename__ = "calzado"
 
@@ -80,6 +86,7 @@ class Calzado(Base):
 
     producto = relationship("Producto", back_populates="calzado_detalle")
 
+#--- Modelo Accesorios ---
 class Accesorios(Base):
     __tablename__ = "accesorios"
 
@@ -89,6 +96,7 @@ class Accesorios(Base):
 
     producto = relationship("Producto", back_populates="accesorios_detalle")
 
+#--- Modelo Venta ---
 class Venta(Base):
     __tablename__ = "venta"
 
@@ -100,6 +108,7 @@ class Venta(Base):
     cliente = relationship("Cliente", back_populates="ventas")
     detalles = relationship("DetalleVenta", back_populates="venta", cascade="all, delete-orphan")
 
+#--- Modelo DetalleVenta ---
 class DetalleVenta(Base):
     __tablename__ = "detalle_venta"
 

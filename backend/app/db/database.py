@@ -7,7 +7,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Asegurar que se use el driver psycopg (v3) si es lo que está instalado
+# Asegurar que se use el driver psycopg
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://")
 

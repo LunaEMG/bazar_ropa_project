@@ -11,6 +11,7 @@ from app.schemas import Cliente
 
 router = APIRouter()
 
+#--- Endpoint para REGISTRAR un nuevo producto ---
 @router.post(
     "/api/productos", 
     response_model=Producto, 
@@ -20,7 +21,7 @@ router = APIRouter()
 )
 def create_new_producto(
     producto: ProductoCreate, 
-    db: Session = Depends(get_db), # Changed to Session
+    db: Session = Depends(get_db), 
     admin_user: Cliente = Depends(get_current_admin_user) 
 ):
     """
@@ -36,13 +37,14 @@ def create_new_producto(
     
     return db_producto
 
+#--- Endpoint para LEER todos los productos ---
 @router.get(
     "/api/productos", 
     response_model=List[Producto],
     summary="Obtener lista de productos",
     tags=["Productos"]
 )
-def read_productos(db: Session = Depends(get_db)): # Changed to Session
+def read_productos(db: Session = Depends(get_db)): 
     """
     Obtiene una lista de todos los productos del bazar (Público).
     """

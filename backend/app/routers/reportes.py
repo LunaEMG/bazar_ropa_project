@@ -10,6 +10,7 @@ from app.schemas import Cliente
 
 router = APIRouter()
 
+#--- Endpoint para LEER reporte de productos con bajo stock ---
 @router.get(
     "/api/reportes/bajo-stock", 
     response_model=List[ReporteStock],
@@ -17,13 +18,14 @@ router = APIRouter()
     tags=["Reportes"]
 )
 def read_reporte_bajo_stock(
-    db: Session = Depends(get_db), # Changed to Session
+    db: Session = Depends(get_db), 
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """Obtiene una lista de productos con stock < 10 (Solo Admin)."""
     reporte = crud_reportes.get_productos_bajo_stock(db=db) 
     return reporte
 
+#--- Endpoint para LEER reporte de ventas por cliente ---
 @router.get(
     "/api/reportes/ventas-cliente", 
     response_model=List[ReporteVentasCliente],
@@ -31,7 +33,7 @@ def read_reporte_bajo_stock(
     tags=["Reportes"]
 )
 def read_reporte_ventas_cliente(
-    db: Session = Depends(get_db), # Changed to Session
+    db: Session = Depends(get_db), 
     admin_user: Cliente = Depends(get_current_admin_user)
 ): 
     """Obtiene un resumen de compras y gasto total por cliente (Solo Admin)."""
