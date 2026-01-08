@@ -19,6 +19,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 origins = [
     # URL del frontend desplegado en Render
     "https://bazar-ropa-project-web.onrender.com", 
+    "https://lunaemg.github.io/bazar_ropa_project/"
     # Orígenes para desarrollo local
     "http://localhost", 
     "http://127.0.0.1",
